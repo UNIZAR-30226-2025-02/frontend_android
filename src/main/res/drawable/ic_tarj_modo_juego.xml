@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="4dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <!-- Photo on the left -->
+        <ImageView
+            android:id="@+id/photo"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:src="@drawable/tablero_aj"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:contentDescription="@string/photo" />
+
+        <!-- Title -->
+        <TextView
+            android:id="@+id/titulo_modo_juego"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Game Mode Title"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            app:layout_constraintStart_toEndOf="@id/photo"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/explicacion_modo_juego"
+            android:layout_marginStart="8dp" />
+
+        <!-- First field of text -->
+        <TextView
+            android:id="@+id/explicacion_modo_juego"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Explicación mínima del modo de juego"
+            app:layout_constraintStart_toEndOf="@id/photo"
+            app:layout_constraintTop_toBottomOf="@id/titulo_modo_juego"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="4dp" />
+
+        <!-- Second field of text -->
+        <TextView
+            android:id="@+id/puntuacion_modo_juego"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Puntiación: 0"
+            app:layout_constraintStart_toEndOf="@id/photo"
+            app:layout_constraintTop_toBottomOf="@id/explicacion_modo_juego"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="4dp" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.cardview.widget.CardView>
+</selector>
