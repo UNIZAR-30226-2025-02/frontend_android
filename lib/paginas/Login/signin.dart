@@ -55,12 +55,50 @@ class Signin_page extends StatelessWidget {
                 ],
               ),
 
+              SizedBox(height: 30),
+              _textFieldName(),
+              SizedBox(height: 25.0),
+
+              // Espaciadores eliminados para mejor orden
+              _textFieldSurname(),
+              SizedBox(height: 25.0),
+              _textFieldUser(),
+              SizedBox(height: 25.0),
+              // Espaciadores eliminados para mejor orden
+              _textFieldPassword(),
               SizedBox(height: 25.0),
 
               // Espaciadores eliminados para mejor orden
               _buttonLogin(),
+
+              // Espaciadores eliminados para mejor orden
+
             ],
           ),
+        ),
+      ),
+    );
+  }
+  Widget _textFieldName() {
+    return Container(
+      color: Colors.white,
+      margin: EdgeInsets.symmetric(horizontal: 30.0),
+      child: TextField(
+        decoration: InputDecoration(
+          prefixIcon: Icon(Icons.text_fields),
+          labelText: "Name",
+        ),
+      ),
+    );
+  }
+  Widget _textFieldSurname() {
+    return Container(
+      color: Colors.white,
+      margin: EdgeInsets.symmetric(horizontal: 30.0),
+      child: TextField(
+        decoration: InputDecoration(
+          prefixIcon: Icon(Icons.text_fields_outlined),
+          labelText: "Surname",
         ),
       ),
     );
