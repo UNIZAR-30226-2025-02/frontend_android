@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend_android/paginas/Login/login.dart';
+import 'package:frontend_android/paginas/Login/signin.dart';
 
 
 
@@ -19,8 +20,9 @@ class MyApp extends StatelessWidget {
     initialRoute: Login_page.id,
     routes: {
     Login_page.id: (_) => Login_page(),
-
+    Signin_page.id: (_) => Signin_page(),
   },
     );
   }
 }
+

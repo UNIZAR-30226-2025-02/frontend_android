@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:frontend_android/paginas/Login/signin.dart';
 
 class Login_page extends StatelessWidget {
   static const String id = "login_page";
@@ -28,18 +28,32 @@ class Login_page extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  Text('Login',
+                  GestureDetector(
+                    onTap:(){
+                      print('objet');
+                    }
+                    ,
+                    child:Text('Login',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 20,
-                        fontWeight: FontWeight.bold,)),
+                        fontWeight: FontWeight.bold,)),),
+                GestureDetector(
+                  onTap:(){
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => Signin_page()),  // Cambia HomePage() por la página a la que quieres ir
+                    );
 
-                  Text('Sign In',
+                  }
+                    ,
+                 child: Text('Sign In',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 20,
                         fontWeight: FontWeight.bold,)
                   )
+                )
                 ],
               ),
               SizedBox(
@@ -50,6 +64,10 @@ class Login_page extends StatelessWidget {
                 height: 15.0,
               ),
               _textFieldPassword(),
+              SizedBox(
+                height: 15.0,
+              ),
+              _buttonLogin(),
             ],
           ),
         ),
@@ -57,17 +75,18 @@ class Login_page extends StatelessWidget {
     );
   }
 
+
   Widget _textFieldUser() {
     return Container(
       color: Colors.white,
       margin: EdgeInsets.symmetric(
         horizontal: 30.0,
       ),
-      child:TextField(
-      decoration: InputDecoration(
-        prefixIcon: Icon(Icons.person_outline),
-        labelText: "User"
-      ),
+      child: TextField(
+        decoration: InputDecoration(
+            prefixIcon: Icon(Icons.person_outline),
+            labelText: "User"
+        ),
       ),
     );
   }
@@ -78,12 +97,21 @@ class Login_page extends StatelessWidget {
       margin: EdgeInsets.symmetric(
         horizontal: 30.0,
       ),
-      child:TextField(
+      child: TextField(
         decoration: InputDecoration(
-          prefixIcon: Icon(Icons.lock),
+            prefixIcon: Icon(Icons.lock),
             labelText: "Password"
         ),
       ),
+    );
+  }
+
+  Widget _buttonLogin() {
+    return ElevatedButton(
+      onPressed: () {
+        print('Botón presionado');
+      },
+      child: Text('Login'),
     );
   }
 }
