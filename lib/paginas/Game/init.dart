@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:frontend_android/paginas/Login/login.dart';
+import 'package:frontend_android/paginas/inGame/board.dart';
 
 class Init_page extends StatelessWidget {
 static const String id = "init_page";
+String selectedGameMode = "Partida estándar"; //Modo de juego a seleccionar
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -52,7 +55,7 @@ static const String id = "init_page";
                 _buildGameButton('Partida relámpago'),
                 _buildGameButton('Partida estándar'),
                 Spacer(),
-                _buildBuscarPartidaButton(),
+                _buildBuscarPartidaButton(context),
               ],
             ),
           ),
@@ -75,7 +78,9 @@ static const String id = "init_page";
               borderRadius: BorderRadius.circular(12),
             ),
           ),
-          onPressed: () {},
+          onPressed: () {
+              selectedGameMode = title;
+          },
           child: Text(
             title,
             style: TextStyle(
@@ -89,7 +94,7 @@ static const String id = "init_page";
     );
   }
 
-  Widget _buildBuscarPartidaButton() {
+  Widget _buildBuscarPartidaButton(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: SizedBox(
@@ -98,11 +103,15 @@ static const String id = "init_page";
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.purple[200],  // Botón lila
-            shape: RoundedRectangleBorder(
+            shape:  RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
           ),
-          onPressed: () {},
+          onPressed: () {
+            Navigator.push(
+              context, MaterialPageRoute(builder: (context) => BoardScreen(gameMode : selectedGameMode)),
+            );
+          },
           child: Text(
             'BUSCAR PARTIDA',
             style: TextStyle(
@@ -140,4 +149,5 @@ static const String id = "init_page";
       onPressed: () {},
     );
   }
+
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend_android/paginas/Login/login.dart';
+/* Clase que implementa la interfaz del registro del usuario
+*/
 
 class Signin_page extends StatelessWidget {
   static const String id = 'signin_page'; // Ruta nombrada

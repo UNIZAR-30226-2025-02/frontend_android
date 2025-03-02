@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend_android/paginas/Login/signin.dart';
 
+//Clase que implementa el inicio de sesion del usuario
 class Login_page extends StatelessWidget {
   static const String id = "login_page";
 
