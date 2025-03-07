@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:frontend_android/paginas/Game/settings.dart';
 import 'package:frontend_android/paginas/Login/login.dart';
 import 'package:frontend_android/paginas/inGame/board.dart';
+import 'package:frontend_android/paginas/Game/botton_nav_bar.dart';  // Importa el nuevo widget
 
 class Init_page extends StatelessWidget {
   static const String id = "init_page";
-  String selectedGameMode = "Partida estándar"; //Modo de juego a seleccionar
+  String selectedGameMode = "Partida estándar"; // Modo de juego a seleccionar
 
   @override
   Widget build(BuildContext context) {
@@ -14,13 +15,12 @@ class Init_page extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.black,
         toolbarHeight: 70,
-        // Más alto
         title: Text(
           'CheckMates',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
-            fontSize: 24, // Letra más grande
+            fontSize: 24,
           ),
         ),
         centerTitle: true,
@@ -28,7 +28,6 @@ class Init_page extends StatelessWidget {
           IconButton(
             icon: Icon(Icons.account_circle, color: Colors.white, size: 32),
             onPressed: () {
-              // Navegación a la página de login
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => Login_page()),
@@ -61,7 +60,9 @@ class Init_page extends StatelessWidget {
               ],
             ),
           ),
-          _buildBottomNavigationBar(context),
+
+          // Usa el BottomNavBar reutilizable
+          BottomNavBar(currentIndex: 0),  // currentIndex = 0 porque es la página inicial
         ],
       ),
     );
@@ -72,7 +73,7 @@ class Init_page extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: SizedBox(
         width: double.infinity,
-        height: 70, // Botones grandes
+        height: 70,
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.grey[800],
@@ -101,18 +102,20 @@ class Init_page extends StatelessWidget {
       padding: const EdgeInsets.all(16.0),
       child: SizedBox(
         width: double.infinity,
-        height: 70, // Misma altura para consistencia
+        height: 70,
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.purple[200], // Botón lila
+            backgroundColor: Colors.purple[200],
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
           ),
           onPressed: () {
             Navigator.push(
-              context, MaterialPageRoute(
-                builder: (context) => BoardScreen(gameMode: selectedGameMode)),
+              context,
+              MaterialPageRoute(
+                builder: (context) => BoardScreen(gameMode: selectedGameMode),
+              ),
             );
           },
           child: Text(
@@ -127,43 +130,4 @@ class Init_page extends StatelessWidget {
       ),
     );
   }
-
-  Widget _buildBottomNavigationBar(BuildContext context) {
-    return Container(
-      color: Colors.black,
-      height: 80,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildNavBarIcon(Icons.home),
-          _buildNavBarIcon(Icons.emoji_events),
-          _buildNavBarIcon(Icons.folder),
-          _buildNavBarIcon(Icons.group),
-          _buildNavBarIconset(context, Icons.settings),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavBarIconset(BuildContext context, IconData icon) {
-    return IconButton(
-      icon: Icon(icon, color: Colors.white, size: 32),
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => Settings_page()),
-        );
-      },
-    );
-  }
-
-
-  Widget _buildNavBarIcon(IconData icon) {
-    return IconButton(
-      icon: Icon(icon, color: Colors.white, size: 32), // Íconos más grandes
-      onPressed: () {},
-    );
-  }
-
 }
