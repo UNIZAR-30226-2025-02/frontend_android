@@ -74,7 +74,7 @@ class Ranking_page extends StatelessWidget {
             title,
             style: TextStyle(
               fontSize: 18,
-              color: Colors.white,
+              color: Colors.white70,
               fontWeight: FontWeight.bold,
             ),
           ),
