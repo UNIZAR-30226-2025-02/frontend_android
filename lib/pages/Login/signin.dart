@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:frontend_android/paginas/Login/login.dart';
-import 'package:frontend_android/paginas/Game/init.dart'; // ✅ Importa Init_page
+import 'package:frontend_android/pages/Login/login.dart';
+import 'package:frontend_android/pages/Game/init.dart'; // ✅ Importa Init_page
 
 class Signin_page extends StatefulWidget {
   static const String id = 'signin_page';

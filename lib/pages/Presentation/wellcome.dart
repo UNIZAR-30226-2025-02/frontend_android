@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:frontend_android/paginas/Game/init.dart';
-import 'package:frontend_android/paginas/Login/login.dart';
-import 'package:frontend_android/paginas/Login/signin.dart';
+import 'package:frontend_android/pages/Game/init.dart';
+import 'package:frontend_android/pages/Login/login.dart';
+import 'package:frontend_android/pages/Login/signin.dart';
 
 class welcome_page extends StatelessWidget {
   static const String id = "wellcome_page";

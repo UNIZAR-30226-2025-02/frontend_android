@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:frontend_android/paginas/Game/botton_nav_bar.dart';
+import 'package:frontend_android/pages/Game/botton_nav_bar.dart';
 
 class Ranking_page extends StatelessWidget {
   static const String id = "ranking_page";

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:frontend_android/paginas/Game/init.dart';
-import 'package:frontend_android/paginas/Game/settings.dart';
-import 'package:frontend_android/paginas/Game/ranking.dart';
-import 'package:frontend_android/paginas/Game/learn.dart';
+import 'package:frontend_android/pages/Game/init.dart';
+import 'package:frontend_android/pages/Game/settings.dart';
+import 'package:frontend_android/pages/Game/ranking.dart';
+import 'package:frontend_android/pages/Game/learn.dart';
 
 
 class BottomNavBar extends StatelessWidget {

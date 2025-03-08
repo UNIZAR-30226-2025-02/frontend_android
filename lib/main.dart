@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:frontend_android/paginas/Game/init.dart';
-import 'package:frontend_android/paginas/Game/settings.dart';
-import 'package:frontend_android/paginas/Login/login.dart';
-import 'package:frontend_android/paginas/Login/signin.dart';
-import 'package:frontend_android/paginas/Game/init.dart';
-import 'package:frontend_android/paginas/Biencenida/Wellcome.dart';
+import 'package:frontend_android/pages/Game/init.dart';
+import 'package:frontend_android/pages/Game/settings.dart';
+import 'package:frontend_android/pages/Login/login.dart';
+import 'package:frontend_android/pages/Login/signin.dart';
+import 'package:frontend_android/pages/Presentation/wellcome.dart';
 
 void main() {
   runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -18,6 +19,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
+        iconTheme: IconThemeData(color: null),
       ),
       initialRoute: welcome_page.id,
       routes: {
