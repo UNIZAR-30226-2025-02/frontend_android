@@ -1,24 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:frontend_android/paginas/Game/settings.dart';
 import 'package:frontend_android/paginas/Login/login.dart';
 import 'package:frontend_android/paginas/inGame/board.dart';
+import 'package:frontend_android/paginas/Game/botton_nav_bar.dart';  // Importa el nuevo widget
 
 class Init_page extends StatelessWidget {
-static const String id = "init_page";
-String selectedGameMode = "Partida estándar"; //Modo de juego a seleccionar
+  static const String id = "init_page";
+  String selectedGameMode = "Partida estándar"; // Modo de juego a seleccionar
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[900],  // Fondo oscuro como el login
+      backgroundColor: Colors.grey[900], // Fondo oscuro como el login
       appBar: AppBar(
         backgroundColor: Colors.black,
-        toolbarHeight: 70,  // Más alto
+        toolbarHeight: 70,
         title: Text(
           'CheckMates',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
-            fontSize: 24,  // Letra más grande
+            fontSize: 24,
           ),
         ),
         centerTitle: true,
@@ -26,7 +28,6 @@ String selectedGameMode = "Partida estándar"; //Modo de juego a seleccionar
           IconButton(
             icon: Icon(Icons.account_circle, color: Colors.white, size: 32),
             onPressed: () {
-              // Navegación a la página de login
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => Login_page()),
@@ -59,7 +60,9 @@ String selectedGameMode = "Partida estándar"; //Modo de juego a seleccionar
               ],
             ),
           ),
-          _buildBottomNavigationBar(),
+
+          // Usa el BottomNavBar reutilizable
+          BottomNavBar(currentIndex: 0),  // currentIndex = 0 porque es la página inicial
         ],
       ),
     );
@@ -70,7 +73,7 @@ String selectedGameMode = "Partida estándar"; //Modo de juego a seleccionar
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: SizedBox(
         width: double.infinity,
-        height: 70,  // Botones grandes
+        height: 70,
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.grey[800],
@@ -79,7 +82,7 @@ String selectedGameMode = "Partida estándar"; //Modo de juego a seleccionar
             ),
           ),
           onPressed: () {
-              selectedGameMode = title;
+            selectedGameMode = title;
           },
           child: Text(
             title,
@@ -99,17 +102,20 @@ String selectedGameMode = "Partida estándar"; //Modo de juego a seleccionar
       padding: const EdgeInsets.all(16.0),
       child: SizedBox(
         width: double.infinity,
-        height: 70,  // Misma altura para consistencia
+        height: 70,
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.purple[200],  // Botón lila
-            shape:  RoundedRectangleBorder(
+            backgroundColor: Colors.purple[200],
+            shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
           ),
           onPressed: () {
             Navigator.push(
-              context, MaterialPageRoute(builder: (context) => BoardScreen(gameMode : selectedGameMode)),
+              context,
+              MaterialPageRoute(
+                builder: (context) => BoardScreen(gameMode: selectedGameMode),
+              ),
             );
           },
           child: Text(
@@ -124,30 +130,4 @@ String selectedGameMode = "Partida estándar"; //Modo de juego a seleccionar
       ),
     );
   }
-
-  Widget _buildBottomNavigationBar() {
-    return Container(
-      color: Colors.black,
-      height: 80,  // Más alto para ocupar todo
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildNavBarIcon(Icons.home),
-          _buildNavBarIcon(Icons.emoji_events),
-          _buildNavBarIcon(Icons.folder),
-          _buildNavBarIcon(Icons.group),
-          _buildNavBarIcon(Icons.settings),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavBarIcon(IconData icon) {
-    return IconButton(
-      icon: Icon(icon, color: Colors.white, size: 32),  // Íconos más grandes
-      onPressed: () {},
-    );
-  }
-
 }
