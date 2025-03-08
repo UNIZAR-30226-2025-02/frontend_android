@@ -18,12 +18,12 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-    initialRoute: Init_page.id,
-    routes: {
-    Login_page.id: (_) => Login_page(),
-    Signin_page.id: (_) => Signin_page(),
-      Init_page.id: (_) => Init_page(),
-  },
+      initialRoute: Init_page.id,
+      routes: {
+        Login_page.id: (_) => Login_page(),
+        Signin_page.id: (_) => Signin_page(),
+        Init_page.id: (_) => Init_page(),
+      },
     );
   }
 }
