@@ -1,10 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:frontend_android/paginas/Login/login.dart';
-/* Clase que implementa la interfaz del registro del usuario
-*/
 
-class Signin_page extends StatelessWidget {
-  static const String id = 'signin_page'; // Ruta nombrada
+class Signin_page extends StatefulWidget {
+  static const String id = 'signin_page';
+
+  @override
+  _SigninPageState createState() => _SigninPageState();
+}
+
+class _SigninPageState extends State<Signin_page> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _surnameController = TextEditingController();
+  final TextEditingController _userController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  String _mensajeError = '';
+
+  void _registrarUsuario() {
+    String name = _nameController.text;
+    String surname = _surnameController.text;
+    String user = _userController.text;
+    String password = _passwordController.text;
+
+    if (name.isEmpty || surname.isEmpty || user.isEmpty || password.isEmpty) {
+      setState(() {
+        _mensajeError = "Todos los campos son obligatorios";
+      });
+    } else {
+      setState(() {
+        _mensajeError = "";
+      });
+      print('Registro con: $name $surname ($user)');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,33 +86,35 @@ class Signin_page extends StatelessWidget {
 
               SizedBox(height: 30),
               _textFieldName(),
-              SizedBox(height: 25.0),
-
-              // Espaciadores eliminados para mejor orden
+              SizedBox(height: 15.0),
               _textFieldSurname(),
-              SizedBox(height: 25.0),
+              SizedBox(height: 15.0),
               _textFieldUser(),
-              SizedBox(height: 25.0),
-              // Espaciadores eliminados para mejor orden
+              SizedBox(height: 15.0),
               _textFieldPassword(),
-              SizedBox(height: 25.0),
+              SizedBox(height: 10.0),
 
-              // Espaciadores eliminados para mejor orden
+              if (_mensajeError.isNotEmpty)
+                Text(
+                  _mensajeError,
+                  style: TextStyle(color: Colors.red),
+                ),
+
+              SizedBox(height: 15.0),
               _buttonLogin(),
-
-              // Espaciadores eliminados para mejor orden
-
             ],
           ),
         ),
       ),
     );
   }
+
   Widget _textFieldName() {
     return Container(
       color: Colors.white,
       margin: EdgeInsets.symmetric(horizontal: 30.0),
       child: TextField(
+        controller: _nameController,
         decoration: InputDecoration(
           prefixIcon: Icon(Icons.text_fields),
           labelText: "Name",
@@ -93,11 +122,13 @@ class Signin_page extends StatelessWidget {
       ),
     );
   }
+
   Widget _textFieldSurname() {
     return Container(
       color: Colors.white,
       margin: EdgeInsets.symmetric(horizontal: 30.0),
       child: TextField(
+        controller: _surnameController,
         decoration: InputDecoration(
           prefixIcon: Icon(Icons.text_fields_outlined),
           labelText: "Surname",
@@ -111,6 +142,7 @@ class Signin_page extends StatelessWidget {
       color: Colors.white,
       margin: EdgeInsets.symmetric(horizontal: 30.0),
       child: TextField(
+        controller: _userController,
         decoration: InputDecoration(
           prefixIcon: Icon(Icons.person_outline),
           labelText: "User",
@@ -124,20 +156,29 @@ class Signin_page extends StatelessWidget {
       color: Colors.white,
       margin: EdgeInsets.symmetric(horizontal: 30.0),
       child: TextField(
+        controller: _passwordController,
         decoration: InputDecoration(
           prefixIcon: Icon(Icons.lock),
           labelText: "Password",
         ),
+        obscureText: true,
       ),
     );
   }
 
   Widget _buttonLogin() {
     return ElevatedButton(
-      onPressed: () {
-        print('Botón presionado');
-      },
+      onPressed: _registrarUsuario,
       child: Text('Sign in'),
     );
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _surnameController.dispose();
+    _userController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 }
