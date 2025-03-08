@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend_android/paginas/Login/signin.dart';
+import 'package:frontend_android/paginas/Game/init.dart'; // Importa Init_page
 
 class Login_page extends StatefulWidget {
   static const String id = "login_page";
@@ -25,7 +26,9 @@ class _LoginPageState extends State<Login_page> {
       setState(() {
         _mensajeError = "";
       });
-      print('Login con usuario: $user');
+
+
+      Navigator.pushReplacementNamed(context, Init_page.id);
     }
   }
 
@@ -130,7 +133,7 @@ class _LoginPageState extends State<Login_page> {
 
   Widget _buttonLogin() {
     return ElevatedButton(
-      onPressed: _login,
+      onPressed: _login, // Llama a la función corregida
       child: Text('Login'),
     );
   }

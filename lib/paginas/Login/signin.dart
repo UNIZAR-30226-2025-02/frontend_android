@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend_android/paginas/Login/login.dart';
+import 'package:frontend_android/paginas/Game/init.dart'; // ✅ Importa Init_page
 
 class Signin_page extends StatefulWidget {
   static const String id = 'signin_page';
@@ -29,7 +30,9 @@ class _SigninPageState extends State<Signin_page> {
       setState(() {
         _mensajeError = "";
       });
-      print('Registro con: $name $surname ($user)');
+
+      // ✅ Redirige a Init_page
+      Navigator.pushReplacementNamed(context, Init_page.id);
     }
   }
 
@@ -101,7 +104,7 @@ class _SigninPageState extends State<Signin_page> {
                 ),
 
               SizedBox(height: 15.0),
-              _buttonLogin(),
+              _buttonRegister(),
             ],
           ),
         ),
@@ -166,9 +169,9 @@ class _SigninPageState extends State<Signin_page> {
     );
   }
 
-  Widget _buttonLogin() {
+  Widget _buttonRegister() {
     return ElevatedButton(
-      onPressed: _registrarUsuario,
+      onPressed: _registrarUsuario, // ✅ Llama a la función corregida
       child: Text('Sign in'),
     );
   }
