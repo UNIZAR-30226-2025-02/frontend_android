@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend_android/pages/Game/friends.dart';
 import 'package:frontend_android/pages/Game/init.dart';
 import 'package:frontend_android/pages/Game/settings.dart';
 import 'package:frontend_android/pages/Game/ranking.dart';
@@ -30,6 +31,12 @@ class BottomNavBar extends StatelessWidget {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => LearnPage()),
+        );
+        break;
+      case 3:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => Friends_Page()),
         );
         break;
       case 4:
