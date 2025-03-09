@@ -1,46 +1,67 @@
+import 'dart:math';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:flutter/material.dart';
 
-/// Clase que representa la pantalla del tablero de ajedrez.
-/// Muestra el tablero interactivo con el modo de juego seleccionado.
-/// Además, coloca el nombre del jugador rival arriba y el nombre del jugador local abajo.
-class BoardScreen extends StatelessWidget {
-  static const id = "board_page"; // Identificador único para la pantalla del tablero.
+import '../Game/init.dart';
 
-  final ChessBoardController controller = ChessBoardController(); // Controlador del tablero de ajedrez.
-  final String gameMode; // Modo de juego seleccionado (Ej: Partida Relámpago, Partida Estándar).
+class BoardScreen extends StatefulWidget {
+  static const id = "board_page";
 
-  /// Constructor que recibe el modo de juego y lo asigna a la variable `gameMode`.
+  final String gameMode;
+
   BoardScreen({required this.gameMode});
+
+  @override
+  _BoardScreenState createState() => _BoardScreenState();
+}
+
+class _BoardScreenState extends State<BoardScreen> {
+  final ChessBoardController controller = ChessBoardController();
+  late PlayerColor playerColor;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Asignar color aleatorio al jugador local
+    playerColor = Random().nextBool() ? PlayerColor.white : PlayerColor.black;
+
+    controller.addListener(() {
+      if (controller.isCheckMate()) {
+        bool didIWin = (controller.game.turn == Color.WHITE && playerColor == PlayerColor.black) ||
+            (controller.game.turn == Color.BLACK && playerColor == PlayerColor.white);
+        _showCheckMateDialog(didWin: didIWin);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        backgroundColor: Colors.purple[200],
-        title: Text(gameMode),
+        backgroundColor: Colors.black,
+        title: Text(widget.gameMode, style: TextStyle(color: Colors.white)),
         centerTitle: true,
       ),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _buildPlayerInfo("Rival"), // Muestra el nombre del rival en la parte superior.
+          _buildPlayerInfo(playerColor == PlayerColor.white ? "Negras" : "Blancas"),
           Expanded(
             child: Center(
               child: ChessBoard(
                 controller: controller,
-                boardColor: BoardColor.brown,
-                boardOrientation: PlayerColor.white,
+                boardOrientation: playerColor,
               ),
             ),
           ),
-          _buildPlayerInfo("Yo"), // Muestra el nombre del jugador local en la parte inferior.
+          _buildPlayerInfo("Yo"),
         ],
       ),
     );
   }
 
-  /// Construye un widget de texto con el nombre del jugador.
   Widget _buildPlayerInfo(String name) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
@@ -49,10 +70,44 @@ class BoardScreen extends StatelessWidget {
         style: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.bold,
-          color: Colors.black,
+          color: Colors.white,
         ),
         textAlign: TextAlign.center,
       ),
     );
   }
+
+  void _showCheckMateDialog({required bool didWin}) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.black,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        title: Text(didWin ? '¡Has ganado!' : 'Has perdido',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(didWin ? Icons.emoji_events : Icons.close,
+                size: 40, color: didWin ? Colors.yellow : Colors.redAccent),
+            SizedBox(height: 10),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+              onPressed: () { Navigator.pop(context);},
+              child: Text('Revisar Partida', style: TextStyle(color: Colors.white)),
+            ),
+            SizedBox(height: 10),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              child: Text('Menú', style: TextStyle(color: Colors.white)),
+              onPressed: () {Navigator.pushReplacementNamed(context, Init_page.id);},
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
 }
