@@ -105,6 +105,25 @@ class _SigninPageState extends State<Signin_page> {
 
               SizedBox(height: 15.0),
               _buttonRegister(),
+              SizedBox(height: 20),
+
+              // Enlace para entrar como invitado
+              GestureDetector(
+                onTap: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => Init_page()),
+                  );
+                },
+                child: Text(
+                  "Entrar como invitado",
+                  style: TextStyle(
+                    color: Colors.blueAccent,
+                    fontSize: 14,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
             ],
           ),
         ),

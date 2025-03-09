@@ -27,7 +27,6 @@ class _LoginPageState extends State<Login_page> {
         _mensajeError = "";
       });
 
-
       Navigator.pushReplacementNamed(context, Init_page.id);
     }
   }
@@ -95,6 +94,24 @@ class _LoginPageState extends State<Login_page> {
                 ),
               SizedBox(height: 15.0),
               _buttonLogin(),
+              SizedBox(height: 20),
+              // Enlace para entrar como invitado
+              GestureDetector(
+                onTap: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => Init_page()),
+                  );
+                },
+                child: Text(
+                  "Entrar como invitado",
+                  style: TextStyle(
+                    color: Colors.blueAccent,
+                    fontSize: 14,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
