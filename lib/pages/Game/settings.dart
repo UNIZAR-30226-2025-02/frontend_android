@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:frontend_android/pages/Game/botton_nav_bar.dart';
 import 'package:frontend_android/pages/Game/profile.dart';
 
+import '../Login/login.dart';
 import '../Presentation/wellcome.dart';
+import '../buildHead.dart';
 
 class Settings_page extends StatelessWidget {
   static const String id = "setting_page";
@@ -13,18 +15,17 @@ class Settings_page extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black, // Fondo oscuro
-      appBar: AppBar(
-        backgroundColor: Colors.grey[900], // Color oscuro para la barra superior
-        title: Text(
-          'CHECKMATES',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 24,
-          ),
+      appBar: BuildHeadLogo(actions: [
+        IconButton(
+          icon: Icon(Icons.account_circle, color: Colors.white, size: 32),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => Login_page()),
+            );
+          },
         ),
-        centerTitle: true,
-      ),
+      ],),
       body: Column(
         children: [
           Container(

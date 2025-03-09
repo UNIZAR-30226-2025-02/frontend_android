@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import 'package:flutter/material.dart';
+
 class BuildHeadLogo extends StatelessWidget implements PreferredSizeWidget {
-  final List<Widget>? actions; // ✅ Se agrega este parámetro opcional
+  final List<Widget>? actions;
 
   BuildHeadLogo({super.key, this.actions});
 
@@ -9,23 +11,32 @@ class BuildHeadLogo extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     return AppBar(
       backgroundColor: Colors.black,
-      title: Center(
-        child: Image.asset(
-          "assets/logoNombre.png",
-          height: 40,
-        ),
-      ),
       leading: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Image.asset("assets/logo.png", height: 40),
       ),
-      actions: actions, // ✅ Ahora puede recibir `actions`
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.center, // ✅ Asegura centrado
+        children: [
+          Expanded(
+            child: Image.asset(
+              "assets/logoNombre.png",
+              height: 40,
+            ),
+          ),
+        ],
+      ),
+      centerTitle: true, // ✅ Para refuerzo de centrado en algunos casos
+      actions: actions ?? [const SizedBox(width: 48)], // ✅ Si no hay `actions`, deja un espacio fijo
     );
   }
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 }
+
+
+
 class BuildHeadArrow extends StatelessWidget implements PreferredSizeWidget {
 
   final List<Widget>? actions;

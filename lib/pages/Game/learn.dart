@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:frontend_android/pages/Game/botton_nav_bar.dart';
+import 'package:frontend_android/pages/buildHead.dart';
 
+import '../Login/login.dart';
 class LearnPage extends StatelessWidget {
   static const String id = "learn_page";
 
@@ -8,24 +10,18 @@ class LearnPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black, // Fondo oscuro
-      appBar: AppBar(
-        backgroundColor: Colors.grey[900], // Color oscuro para la barra superior
-        title: Text(
-          'CHECKMATES',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 24,
-          ),
+      appBar: BuildHeadLogo(actions: [
+        IconButton(
+          icon: Icon(Icons.account_circle, color: Colors.white, size: 32),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => Login_page()),
+            );
+          },
         ),
-        centerTitle: true,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Icon(Icons.account_circle, color: Colors.white, size: 32),
-          ),
-        ],
-      ),
+      ],),
+
       body: Column(
         children: [
           Container(
