@@ -35,9 +35,35 @@ class _FriendsPageState extends State<Friends_Page> {
   ];
 
   void _removeFriend(String friend) {
-    setState(() {
-      friends.remove(friend);
-    });
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey[900],
+        title: Text("Eliminar amigo", style: TextStyle(color: Colors.white)),
+        content: Text("¿Seguro que quieres eliminar a $friend de tu lista de amigos?", style: TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Cancelar", style: TextStyle(color: Colors.white)),
+          ),
+          TextButton(
+            onPressed: () {
+              setState(() {
+                friends.remove(friend);
+              });
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text("$friend ha sido eliminado"),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            },
+            child: Text("Eliminar", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showGameModes(BuildContext context, String friend) {
