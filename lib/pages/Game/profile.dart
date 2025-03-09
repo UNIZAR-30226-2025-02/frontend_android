@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:frontend_android/pages/buildHead.dart';
 
 class Profile_page  extends StatefulWidget {
   static const String id = "profile_page";
@@ -19,12 +20,7 @@ class _ProfilePageState extends State<Profile_page > {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[900],
-      appBar: AppBar(
-        backgroundColor: Colors.grey[850],
-        centerTitle: true,
-        iconTheme: IconThemeData(color: Colors.white),
-        title: Image.asset("assets/logoNombre.png", height: 40),
-      ),
+      appBar:BuildHeadArrow(),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
         child: Column(

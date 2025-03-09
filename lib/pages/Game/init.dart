@@ -3,6 +3,7 @@ import 'package:frontend_android/pages/Game/settings.dart';
 import 'package:frontend_android/pages/Login/login.dart';
 import 'package:frontend_android/pages/inGame/board.dart';
 import 'package:frontend_android/pages/Game/botton_nav_bar.dart';
+import 'package:frontend_android/pages/buildHead.dart';
 
 class Init_page extends StatelessWidget {
   static const String id = "init_page";
@@ -30,29 +31,19 @@ class Init_page extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: Center(
-          child: Image.asset(
-            "assets/logoNombre.png",
-            height: 40,
-          ),
+      appBar: BuildHeadLogo(actions: [
+        IconButton(
+          icon: Icon(Icons.account_circle, color: Colors.white, size: 32),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => Login_page()),
+            );
+          },
         ),
-        leading: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Image.asset("assets/logo.png", height: 40),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.account_circle, color: Colors.white, size: 32),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => Login_page()),
-              );
-            },
-          ),
-        ],
+      ],
+
+
       ),
       body: Column(
         children: [
