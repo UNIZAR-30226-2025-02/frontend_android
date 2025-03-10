@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend_android/pages/Game/botton_nav_bar.dart';
+import 'package:frontend_android/pages/Game/friends.dart';
 import 'package:frontend_android/pages/Game/profile.dart';
 
 import '../Login/login.dart';
@@ -57,7 +58,11 @@ class Settings_page extends StatelessWidget {
                   );
                 }),
                 _buildMenuItem(Icons.group, 'AMIGOS', () {
-
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => Friends_Page()),
+                        (route) => true, // Elimina todas las rutas previas
+                  );
                 }),
                /* _buildMenuItem(Icons.emoji_events, 'RANKING', () {
                   Navigator.pushNamed(context, '/ranking');
