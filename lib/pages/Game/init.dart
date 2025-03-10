@@ -4,10 +4,20 @@ import 'package:frontend_android/pages/Login/login.dart';
 import 'package:frontend_android/pages/inGame/board.dart';
 import 'package:frontend_android/pages/Game/botton_nav_bar.dart';
 import 'package:frontend_android/pages/buildHead.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../Presentation/wellcome.dart';
 
-class Init_page extends StatelessWidget {
+class Init_page extends StatefulWidget {
   static const String id = "init_page";
-  String selectedGameMode = "Clásica"; // Modo seleccionado
+
+  @override
+  _InitPageState createState() => _InitPageState();
+}
+
+class _InitPageState extends State<Init_page> {
+  String? usuarioActual;
+  String? fotoPerfil;
+  String selectedGameMode = "Clásica"; // ✅ Se mantiene el modo de juego
 
   final List<GameMode> gameModes = [
     GameMode("Clásica", Icons.extension, "10 min", "Modo tradicional de ajedrez."
@@ -17,7 +27,7 @@ class Init_page extends StatelessWidget {
         " aprendiendo. Cada jugador consta de 30 min para realizar sus "
         "movimientos", Colors.green),
     GameMode("Avanzado", Icons.timer_off, "5 min", "Para jugadores "
-        "experimentados. Cada jugador consta de 30 min para realizar sus "
+        "experimentados. Cada jugador consta de 5 min para realizar sus "
         "movimientos", Colors.red),
     GameMode("Relámpago", Icons.bolt, "3 min", "Modo para expertos. El tiempo es"
         " muy limitado, cada jugador cuenta con 3 minutos.", Colors.yellow),
@@ -28,25 +38,108 @@ class Init_page extends StatelessWidget {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _cargarUsuario();
+  }
+
+  Future<void> _cargarUsuario() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      usuarioActual = prefs.getString('usuario');
+      fotoPerfil = prefs.getString('fotoPerfil'); // ✅ Se usará más adelante para la imagen de perfil
+    });
+  }
+
+  Future<void> _cerrarSesion() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.remove('usuario');
+    await prefs.remove('fotoPerfil');
+
+    Navigator.pop(context); // ✅ Cierra el menú antes de redirigir
+
+    Future.delayed(Duration(milliseconds: 100), () {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => welcome_page()),
+            (Route<dynamic> route) => false, // ✅ Elimina todas las pantallas previas
+      );
+    });
+  }
+
+
+
+  void _mostrarOpcionesUsuario(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.settings),
+                title: Text("Configuración"),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, Settings_page.id);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.logout, color: Colors.red),
+                title: Text("Cerrar Sesión", style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  _cerrarSesion();
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: BuildHeadLogo(actions: [
-        IconButton(
-          icon: Icon(Icons.account_circle, color: Colors.white, size: 32),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => Login_page()),
-            );
-          },
-        ),
-      ],
-
-
+      appBar: BuildHeadLogo(
+        actions: [
+          usuarioActual == null
+              ? IconButton(
+            icon: Icon(Icons.account_circle, color: Colors.white, size: 32),
+            onPressed: () {
+              Navigator.pushNamed(context, Login_page.id);
+            },
+          )
+              : Padding(
+            padding: EdgeInsets.only(right: 12), // ✅ Evita que el icono se salga por el lateral
+            child: GestureDetector(
+              onTap: () => _mostrarOpcionesUsuario(context),
+              child: CircleAvatar(
+                radius: 18, // ✅ Tamaño más equilibrado
+                backgroundColor: Colors.white,
+                backgroundImage: fotoPerfil != null ? NetworkImage(fotoPerfil!) : null,
+                child: fotoPerfil == null ? Icon(Icons.person, color: Colors.black) : null,
+              ),
+            ),
+          ),
+        ],
       ),
       body: Column(
         children: [
+          if (usuarioActual != null)
+            Padding(
+              padding: const EdgeInsets.all(10.0),
+              child: Text(
+                'Bienvenido, $usuarioActual',
+                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
           Container(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text(
@@ -85,14 +178,13 @@ class Init_page extends StatelessWidget {
         ),
         child: ListTile(
           leading: Icon(mode.icon, size: 28, color: mode.color),
-
           title: Text(
             mode.name,
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
           subtitle: Row(
             children: [
-              _buildInfoButton(context, mode.name, mode.description), // Botón de información táctil
+              _buildInfoButton(context, mode.name, mode.description),
               SizedBox(width: 8),
               Text(
                 mode.time,
@@ -114,17 +206,15 @@ class Init_page extends StatelessWidget {
     );
   }
 
-  // Botón ℹ️ que muestra el mensaje al tocarlo
   Widget _buildInfoButton(BuildContext context, String title, String description) {
     return IconButton(
       icon: Icon(Icons.info_outline, color: Colors.blue, size: 22),
       onPressed: () {
-        _showInfoDialog(context, title, description); // Muestra el mensaje
+        _showInfoDialog(context, title, description);
       },
     );
   }
 
-  // Muestra un AlertDialog con la información del modo de juego
   void _showInfoDialog(BuildContext context, String title, String description) {
     showDialog(
       context: context,
@@ -172,18 +262,12 @@ class Init_page extends StatelessWidget {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (context) => BoardScreen(gameMode: selectedGameMode),
-              ),
+              MaterialPageRoute(builder: (context) => BoardScreen(gameMode: selectedGameMode)),
             );
           },
           child: Text(
             'BUSCAR PARTIDA',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-            ),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
           ),
         ),
       ),

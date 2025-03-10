@@ -37,6 +37,8 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_chess_board: ^1.0.1
   easy_software: ^0.0.9
+  http: ^1.3.0
+  shared_preferences: ^2.5.2
 
 dev_dependencies:
   flutter_test:
