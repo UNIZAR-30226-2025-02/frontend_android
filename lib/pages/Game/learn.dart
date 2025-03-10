@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:frontend_android/pages/Game/botton_nav_bar.dart';
+import 'package:frontend_android/pages/Game/rules.dart';
 import 'package:frontend_android/pages/buildHead.dart';
-
+import 'package:frontend_android/pages/Game/openings.dart';
 import '../Login/login.dart';
+
 class LearnPage extends StatelessWidget {
   static const String id = "learn_page";
 
@@ -20,7 +22,7 @@ class LearnPage extends StatelessWidget {
             );
           },
         ),
-      ],),
+      ]),
 
       body: Column(
         children: [
@@ -45,8 +47,8 @@ class LearnPage extends StatelessWidget {
           Expanded(
             child: ListView(
               children: [
-                _buildMenuItem(Icons.menu_book, 'APERTURAS'),
-                _buildMenuItem(Icons.assignment, 'REGLAS'),
+                _buildMenuItem(Icons.menu_book, 'APERTURAS', context, Openings_Page()),
+                _buildMenuItem(Icons.assignment, 'REGLAS', context, Rules_Page()),
               ],
             ),
           ),
@@ -56,22 +58,30 @@ class LearnPage extends StatelessWidget {
     );
   }
 
-  Widget _buildMenuItem(IconData icon, String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.white, size: 28),
-          SizedBox(width: 16),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 18,
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
+  Widget _buildMenuItem(IconData icon, String title, BuildContext context, Widget page) {
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => page),
+        );
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        child: Row(
+          children: [
+            Icon(icon, color: Colors.white, size: 28),
+            SizedBox(width: 16),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
