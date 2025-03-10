@@ -12,13 +12,14 @@ class Openings_Page extends StatelessWidget {
     'Defensa Siciliana',
     'Gambito de Dama',
     'Defensa Francesa',
-    'Apertura Italiana'
+    'Apertura Italiana',
+
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black, // Fondo oscuro
+      backgroundColor: Colors.black,
       appBar: BuildHeadLogo(actions: [
         IconButton(
           icon: Icon(Icons.account_circle, color: Colors.white, size: 32),
@@ -29,7 +30,7 @@ class Openings_Page extends StatelessWidget {
             );
           },
         ),
-      ],),
+      ]),
       body: ListView.builder(
         itemCount: openings.length,
         itemBuilder: (context, index) {
@@ -76,15 +77,47 @@ class _OpeningDetailPageState extends State<OpeningDetailPage> {
   final ChessBoardController _chessController = ChessBoardController();
   int moveIndex = -1;
 
-  final Map<String, List<String>> openingMoves = {
-    'Apertura Española': ['e2 e4', 'e7 e5', 'g1 f3', 'b8 c6', 'f1 b5'],
-    'Defensa Siciliana': ['e2 e4', 'c7 c5', 'g1 f3', 'd7 d6', 'd2 d4'],
-    'Gambito de Dama': ['d2 d4', 'd7 d5', 'c2 c4'],
-    'Defensa Francesa': ['e2 e4', 'e7 e6', 'd2 d4', 'd7 d5'],
-    'Apertura Italiana': ['e2 e4', 'e7 e5', 'g1 f3', 'b8 c6', 'f1 c4']
+  final Map<String, List<Map<String, String>>> openingMoves = {
+    'Apertura Española': [
+      {'e2 e4': 'e2 e4 Controla el centro y abre líneas para el desarrollo.'},
+      {'e7 e5': 'e7 e5 Iguala la lucha por el centro.'},
+      {'g1 f3': 'g1 f3 Desarrolla el caballo y ataca el peón de e5.'},
+      {'b8 c6': 'b8 c6 Defiende el peón de e5 y desarrolla una pieza.'},
+      {'f1 b5': 'f1 b5 Clava el caballo en c6 y prepara el enroque.'},
+      {'FIN':'FIN'}
+    ],
+    'Defensa Siciliana': [
+      {'e2 e4': 'e2 e4 Controla el centro y libera la dama y el alfil.'},
+      {'c7 c5': 'c7 c5 Busca un contrajuego rápido en el flanco de dama.'},
+      {'g1 f3': 'g1 f3 Desarrolla el caballo y presiona en d4.'},
+      {'d7 d6': 'd7 d6 Prepara el desarrollo del alfil y fortalece el centro.'},
+      {'d2 d4': 'd2 d4 Rompe el centro para conseguir ventaja de espacio.'},
+      {'FIN':'FIN'}
+    ],
+    'Gambito de Dama': [
+      {'d2 d4': 'd2 d4 Busca el control central y prepara el gambito.'},
+      {'d7 d5': 'd7 d5 Iguala la lucha en el centro.'},
+      {'c2 c4': 'c2 c4 Ofrece un peón a cambio de mejor desarrollo.'},
+      {'FIN':'FIN'}
+    ],
+    'Defensa Francesa': [
+      {'e2 e4': 'e2 e4 Controla el centro y facilita el desarrollo.'},
+      {'e7 e6': 'e7 e6 Prepara d5 para desafiar el centro blanco.'},
+      {'d2 d4': 'd2 d4 Refuerza el control central.'},
+      {'d7 d5': 'd7 d5 Rompe el centro y plantea una estructura sólida.'},
+      {'FIN':'FIN'}
+    ],
+    'Apertura Italiana': [
+      {'e2 e4': 'e2 e4 Controla el centro y abre líneas para el desarrollo.'},
+      {'e7 e5': 'e7 e5 Iguala la lucha por el centro.'},
+      {'g1 f3': 'g1 f3 Desarrolla el caballo y ataca el peón de e5.'},
+      {'b8 c6': 'b8 c6 Defiende el peón de e5 y desarrolla una pieza.'},
+      {'f1 c4': 'f1 c4 Desarrolla el alfil a una casilla activa apuntando a f7.'},
+      {'FIN':'FIN'}
+    ]
   };
 
-  List<String> moves = [];
+  List<Map<String, String>> moves = [];
 
   @override
   void initState() {
@@ -95,7 +128,8 @@ class _OpeningDetailPageState extends State<OpeningDetailPage> {
   void _nextMove() {
     if (moveIndex < moves.length - 1) {
       moveIndex++;
-      List<String> moveParts = moves[moveIndex].split(' ');
+      String move = moves[moveIndex].keys.first;
+      List<String> moveParts = move.split(' ');
       if (moveParts.length == 2) {
         _chessController.makeMove(from: moveParts[0], to: moveParts[1]);
       }
@@ -115,20 +149,30 @@ class _OpeningDetailPageState extends State<OpeningDetailPage> {
   @override
   Widget build(BuildContext context) {
     bool isLastMove = moveIndex == moves.length - 1;
+    String explanation = moveIndex >= 0 ? moves[moveIndex].values.first : 'Inicio de la partida';
 
     return Scaffold(
-      backgroundColor: Colors.black, // Fondo oscuro
-      appBar: BuildHeadLogo(actions: [
-        IconButton(
-          icon: Icon(Icons.account_circle, color: Colors.white, size: 32),
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => Login_page()),
-            );
+            Navigator.pop(context);
           },
         ),
-      ],),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.account_circle, color: Colors.white, size: 32),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => Login_page()),
+              );
+            },
+          ),
+        ],
+      ),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -137,21 +181,22 @@ class _OpeningDetailPageState extends State<OpeningDetailPage> {
             boardOrientation: PlayerColor.black,
           ),
           SizedBox(height: 20),
-          Text(
-            isLastMove ? 'FIN' : (moveIndex >= 0 ? 'Movimiento: ${moves[moveIndex]}' : 'Inicio de la partida'),
-            style: TextStyle(fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold),
+          Container(
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.red,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              explanation,
+              style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
+            ),
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              IconButton(
-                icon: Icon(Icons.arrow_back, color: Colors.white),
-                onPressed: _previousMove,
-              ),
-              IconButton(
-                icon: Icon(Icons.arrow_forward, color: isLastMove ? Colors.grey : Colors.white),
-                onPressed: isLastMove ? null : _nextMove,
-              ),
+              IconButton(icon: Icon(Icons.arrow_back, color: Colors.white), onPressed: _previousMove),
+              IconButton(icon: Icon(Icons.arrow_forward, color: isLastMove ? Colors.grey : Colors.white), onPressed: isLastMove ? null : _nextMove),
             ],
           ),
         ],
