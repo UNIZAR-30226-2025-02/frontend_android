@@ -17,7 +17,7 @@ class Init_page extends StatefulWidget {
 class _InitPageState extends State<Init_page> {
   String? usuarioActual;
   String? fotoPerfil;
-  String selectedGameMode = "Clásica"; // ✅ Se mantiene el modo de juego
+  String selectedGameMode = "Clásica";
 
   final List<GameMode> gameModes = [
     GameMode("Clásica", Icons.extension, "10 min", "Modo tradicional de ajedrez."
