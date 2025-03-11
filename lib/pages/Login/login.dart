@@ -1,6 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:frontend_android/pages/Game/init.dart';
 import 'package:frontend_android/pages/Login/signin.dart';
-import 'package:frontend_android/pages/Game/init.dart'; // Importa Init_page
 
 class Login_page extends StatefulWidget {
   static const String id = "login_page";
@@ -13,8 +16,9 @@ class _LoginPageState extends State<Login_page> {
   final TextEditingController _userController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   String _mensajeError = '';
+  bool _isLoading = false; // ✅ Muestra un indicador de carga mientras se procesa el login
 
-  void _login() {
+  Future<void> _login() async {
     String user = _userController.text;
     String password = _passwordController.text;
 
@@ -22,12 +26,55 @@ class _LoginPageState extends State<Login_page> {
       setState(() {
         _mensajeError = "Todos los campos son obligatorios";
       });
-    } else {
+      return;
+    }
+
+    setState(() {
+      _mensajeError = "";
+      _isLoading = true; // ✅ Activa el indicador de carga
+    });
+
+    // URL del backend
+    final String apiUrl = "http://10.0.2.2:3000/login"; // Emulador Android
+
+    final Map<String, String> loginData = {
+      "NombreUser": user,
+      "Contrasena": password
+    };
+
+    try {
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(loginData),
+      );
+
       setState(() {
-        _mensajeError = "";
+        _isLoading = false; // ✅ Desactiva el indicador de carga
       });
 
-      Navigator.pushReplacementNamed(context, Init_page.id);
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        print("✅ Inicio de sesión exitoso: ${response.body}");
+
+        // ✅ Guardar datos del usuario en SharedPreferences
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('usuario', responseData['NombreUser']);
+        await prefs.setString('fotoPerfil', responseData['FotoPerfil'] ?? ""); // Opcional
+
+        // ✅ Redirigir a la página principal
+        Navigator.pushReplacementNamed(context, Init_page.id);
+      } else {
+        setState(() {
+          _mensajeError = "Usuario o contraseña incorrectos";
+        });
+      }
+    } catch (e) {
+      print("❌ Error de conexión: $e");
+      setState(() {
+        _mensajeError = "Error de conexión con el servidor.";
+        _isLoading = false;
+      });
     }
   }
 
@@ -66,10 +113,7 @@ class _LoginPageState extends State<Login_page> {
                   ),
                   GestureDetector(
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => Signin_page()),
-                      );
+                      Navigator.pushNamed(context, Signin_page.id);
                     },
                     child: Text(
                       'Sign In',
@@ -93,15 +137,13 @@ class _LoginPageState extends State<Login_page> {
                   style: TextStyle(color: Colors.red),
                 ),
               SizedBox(height: 15.0),
-              _buttonLogin(),
+              _isLoading
+                  ? CircularProgressIndicator() // ✅ Muestra un indicador de carga mientras espera la respuesta
+                  : _buttonLogin(),
               SizedBox(height: 20),
-              // Enlace para entrar como invitado
               GestureDetector(
                 onTap: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => Init_page()),
-                  );
+                  Navigator.pushReplacementNamed(context, Init_page.id);
                 },
                 child: Text(
                   "Entrar como invitado",
@@ -150,7 +192,7 @@ class _LoginPageState extends State<Login_page> {
 
   Widget _buttonLogin() {
     return ElevatedButton(
-      onPressed: _login, // Llama a la función corregida
+      onPressed: _login, // ✅ Ahora llama a la función con conexión al backend
       child: Text('Login'),
     );
   }
