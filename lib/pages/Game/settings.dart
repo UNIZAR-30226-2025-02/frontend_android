@@ -1,16 +1,17 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:frontend_android/pages/Game/botton_nav_bar.dart';
 import 'package:frontend_android/pages/Game/friends.dart';
 import 'package:frontend_android/pages/Game/profile.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
-import '../Login/login.dart';
 import '../Presentation/wellcome.dart';
 import '../buildHead.dart';
 
 class Settings_page extends StatelessWidget {
   static const String id = "setting_page";
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -22,11 +23,11 @@ class Settings_page extends StatelessWidget {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => Login_page()),
+              MaterialPageRoute(builder: (context) => Wellcome_page()),
             );
           },
         ),
-      ],),
+      ]),
       body: Column(
         children: [
           Container(
@@ -54,29 +55,18 @@ class Settings_page extends StatelessWidget {
                   Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(builder: (context) => Profile_page()),
-                        (route) => true, // Elimina todas las rutas previas
+                        (route) => true, // Mantiene las rutas previas
                   );
                 }),
                 _buildMenuItem(Icons.group, 'AMIGOS', () {
                   Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(builder: (context) => Friends_Page()),
-                        (route) => true, // Elimina todas las rutas previas
+                        (route) => true, // Mantiene las rutas previas
                   );
                 }),
-               /* _buildMenuItem(Icons.emoji_events, 'RANKING', () {
-                  Navigator.pushNamed(context, '/ranking');
-                }),*/
-               /* _buildMenuItem(Icons.star, 'VALORA LA APP', () {
-                  // Aquí puedes agregar la lógica para valorar la app
-                  print('Valorar la app');
-                }),*/
-                /*_buildMenuItem(Icons.play_arrow, 'HISTORIAL PARTIDAS', () {
-                  Navigator.pushNamed(context, '');
-                }),*/
                 _buildMenuItem(Icons.close, 'CERRAR SESIÓN', () {
                   _confirmCloseSession(context);
-
                 }),
               ],
             ),
@@ -110,7 +100,7 @@ class Settings_page extends StatelessWidget {
     );
   }
 
-  void _confirmCloseSession(BuildContext context) {
+  void _confirmCloseSession(BuildContext context) async{
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -125,9 +115,9 @@ class Settings_page extends StatelessWidget {
               child: Text("Cancelar"),
             ),
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Cerrar el diálogo
-                _closeSession(context); // Ejecutar la función de cerrar sesión
+              onPressed: () async{
+                Navigator.pop(context); // Cerrar el diálogo
+                await _cerrarSesion(context); // Ejecutar la función de cerrar sesión
               },
               child: Text("Aceptar"),
             ),
@@ -137,16 +127,43 @@ class Settings_page extends StatelessWidget {
     );
   }
 
-  void _closeSession(BuildContext context){
-    // 🔹 2. Mostrar un mensaje (Opcional)
+  Future<void> _cerrarSesion(BuildContext context) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? usuarioActual = prefs.getString('usuario');
+
+    if (usuarioActual != null) {
+      try {
+        String? backendUrl = dotenv.env['SERVER_BACKEND'];
+        final response = await http.post(
+          Uri.parse("${backendUrl}logout"),
+          headers: {"Content-Type": "application/json"},
+          body: jsonEncode({"NombreUser": usuarioActual}),
+        );
+
+        if (response.statusCode == 200) {
+          print("✅ Sesión cerrada correctamente en el servidor.");
+        } else {
+          print("❌ Error al cerrar sesión en el servidor: ${response.body}");
+        }
+      } catch (e) {
+        print("❌ Error de conexión al servidor: $e");
+      }
+    }
+
+    // Eliminar datos de sesión
+    await prefs.clear();
+
+    if (!context.mounted) return;
+
+    // Mostrar mensaje de confirmación
     ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Has cerrado sesión'))
+      SnackBar(content: Text('Has cerrado sesión')),
     );
 
-    // 🔹 3. Navegar a la pantalla de bienvenida
+    // Redirigir al usuario a la pantalla de bienvenida
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (context) => welcome_page()),
+      MaterialPageRoute(builder: (context) => Wellcome_page()),
           (route) => false, // Elimina todas las rutas previas
     );
   }

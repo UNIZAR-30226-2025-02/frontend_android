@@ -41,9 +41,10 @@ class _InitPageState extends State<Init_page> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
       usuarioActual = prefs.getString('usuario');
+      print(usuarioActual);
       fotoPerfil = prefs.getString('fotoPerfil');
       if (fotoPerfil == null || fotoPerfil!.isEmpty || fotoPerfil == "none") {
-        fotoPerfil = "https://via.placeholder.com/150";
+        fotoPerfil = "assets/fotoPerfil.png";
       }
     });
   }
@@ -78,7 +79,7 @@ class _InitPageState extends State<Init_page> {
       Navigator.pop(context);
       Future.delayed(Duration(milliseconds: 100), () {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => welcome_page()),
+          MaterialPageRoute(builder: (context) => Wellcome_page()),
               (Route<dynamic> route) => false,
         );
       });
@@ -137,7 +138,7 @@ class _InitPageState extends State<Init_page> {
               child: CircleAvatar(
                 radius: 18,
                 backgroundColor: Colors.white,
-                backgroundImage: NetworkImage(fotoPerfil!),
+                backgroundImage: AssetImage(fotoPerfil!),
               ),
             ),
           ),

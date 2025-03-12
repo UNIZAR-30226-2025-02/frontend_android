@@ -4,6 +4,7 @@ import 'package:frontend_android/pages/Game/init.dart';
 import 'package:frontend_android/pages/Game/settings.dart';
 import 'package:frontend_android/pages/Login/login.dart';
 import 'package:frontend_android/pages/Login/signin.dart';
+import 'package:frontend_android/pages/Login/password.dart';
 import 'package:frontend_android/pages/Presentation/wellcome.dart';
 import 'package:frontend_android/pages/Game/profile.dart';
 
@@ -24,14 +25,15 @@ class MyApp extends StatelessWidget {
         visualDensity: VisualDensity.adaptivePlatformDensity,
         iconTheme: IconThemeData( color: null),
       ),
-      initialRoute: welcome_page.id,
+      initialRoute: Wellcome_page.id,
       routes: {
-        welcome_page.id: (_) => welcome_page(),
+        Wellcome_page.id: (_) => Wellcome_page(),
         Login_page.id: (_) => Login_page(),
         Signin_page.id: (_) => Signin_page(),
         Init_page.id: (_) => Init_page(),
         Settings_page.id:(_) => Settings_page(),
         Profile_page.id: (_) => Profile_page(),
+        Password_page.id: (_) => Password_page(),
       },
     );
   }

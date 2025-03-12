@@ -62,6 +62,7 @@ flutter:
   assets:
     - assets/logo.png
     - assets/logoNombre.png
+    - assets/fotoPerfil.png
     - .env
 
   # The following line ensures that the Material Icons font is

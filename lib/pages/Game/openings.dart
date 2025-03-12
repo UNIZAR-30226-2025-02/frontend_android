@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:frontend_android/pages/Game/botton_nav_bar.dart';
-import 'package:frontend_android/pages/Login/login.dart';
 import 'package:frontend_android/pages/buildHead.dart';
 
 class Openings_Page extends StatelessWidget {

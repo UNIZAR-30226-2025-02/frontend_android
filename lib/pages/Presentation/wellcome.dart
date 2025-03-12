@@ -3,7 +3,7 @@ import 'package:frontend_android/pages/Game/init.dart';
 import 'package:frontend_android/pages/Login/login.dart';
 import 'package:frontend_android/pages/Login/signin.dart';
 
-class welcome_page extends StatelessWidget {
+class Wellcome_page extends StatelessWidget {
   static const String id = "wellcome_page";
   @override
   Widget build(BuildContext context) {

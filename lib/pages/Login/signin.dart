@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:frontend_android/pages/Login/login.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -16,41 +15,59 @@ class _SigninPageState extends State<Signin_page> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _userController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  String _mensajeError = '';
+
+  String? _mensajeErrorCorreo;
+  String? _mensajeErrorUser;
+  String? _mensajeErrorPassword;
 
   bool _esEmailValido(String email) {
-    String pattern =
-        r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$";
+    String pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$";
     RegExp regex = RegExp(pattern);
     return regex.hasMatch(email);
   }
 
-  Future<void> _guardarUsuarioEnLocal(String nombreUsuario) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('usuario', nombreUsuario);
-    print("✅ Usuario guardado en SharedPreferences: $nombreUsuario");
-  }
-
   Future<void> _registrarUsuario() async {
-    String email = _emailController.text;
-    String user = _userController.text;
-    String password = _passwordController.text;
+    String email = _emailController.text.trim();
+    String user = _userController.text.trim();
+    String password = _passwordController.text.trim();
 
-    if (email.isEmpty || user.isEmpty || password.isEmpty) {
-      setState(() {
-        _mensajeError = "Todos los campos son obligatorios";
-      });
-      return;
+    _mensajeErrorCorreo = null;
+    _mensajeErrorUser = null;
+    _mensajeErrorPassword = null;
+
+    bool hasError = false;
+
+    if (email.isEmpty) {
+      setState(() => _mensajeErrorCorreo = "Completa este campo");
+      hasError = true;
+    } else if (!_esEmailValido(email)) {
+      setState(() => _mensajeErrorCorreo = "Incluye un signo '@' en la dirección");
+      hasError = true;
+    } else if (!email.contains('@') || email.endsWith('@')) {
+      setState(() => _mensajeErrorCorreo = "Introduce texto después del '@'");
+      hasError = true;
     }
 
-    if (!_esEmailValido(email)) {
-      setState(() {
-        _mensajeError = "Correo electrónico inválido";
-      });
-      return;
+    if (user.isEmpty) {
+      setState(() => _mensajeErrorUser = "Completa este campo");
+      hasError = true;
+    } else if (user.length < 4) {
+      setState(() => _mensajeErrorUser = "El usuario debe tener al menos 4 caracteres");
+      hasError = true;
     }
+
+    if (password.isEmpty) {
+      setState(() => _mensajeErrorPassword = "Completa este campo");
+      hasError = true;
+    } else if (password.length < 4) {
+      setState(() => _mensajeErrorPassword = "La contraseña debe tener al menos 4 caracteres");
+      hasError = true;
+    }
+
+    if (hasError) return;
+
     final String? baseUrl = dotenv.env['SERVER_BACKEND'];
-    final String apiUrl = "${baseUrl}register"; // Backend local
+    final String apiUrl = "${baseUrl}register";
 
     final Map<String, String> userData = {
       "Correo": email,
@@ -66,21 +83,24 @@ class _SigninPageState extends State<Signin_page> {
       );
 
       if (response.statusCode == 200) {
-        print("✅ Registro exitoso: ${response.body}");
-        await _guardarUsuarioEnLocal(user);
         _mostrarDialogoRegistroExitoso();
       } else {
-        print("❌ Error en el registro: ${response.body}");
-        setState(() {
-          _mensajeError = "Error en el registro: ${response.body}";
-        });
+        final responseData = jsonDecode(response.body);
+        _mostrarSnackBar(responseData['error'] ?? "Error en el registro");
       }
     } catch (e) {
-      print("❌ Error de conexión: $e");
-      setState(() {
-        _mensajeError = "Error de conexión con el servidor.";
-      });
+      _mostrarSnackBar("Error de conexión con el servidor.");
     }
+  }
+
+  void _mostrarSnackBar(String mensaje) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(mensaje),
+        backgroundColor: Colors.red,
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
 
   void _mostrarDialogoRegistroExitoso() {
@@ -95,7 +115,7 @@ class _SigninPageState extends State<Signin_page> {
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
-                _redirigirAInit();
+                _redirigirAInicioSesion();
               },
               child: Text("Aceptar"),
             ),
@@ -105,9 +125,9 @@ class _SigninPageState extends State<Signin_page> {
     );
   }
 
-  void _redirigirAInit() async {
+  void _redirigirAInicioSesion() async {
     await Future.delayed(Duration(seconds: 1));
-    Navigator.pushReplacementNamed(context, 'init_page');
+    Navigator.pushReplacementNamed(context, 'login_page');
   }
 
   @override
@@ -129,7 +149,6 @@ class _SigninPageState extends State<Signin_page> {
                 ),
               ),
               SizedBox(height: 20.0),
-
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
@@ -156,22 +175,13 @@ class _SigninPageState extends State<Signin_page> {
                   ),
                 ],
               ),
-
               SizedBox(height: 30),
               _textFieldEmail(),
               SizedBox(height: 15.0),
               _textFieldUser(),
               SizedBox(height: 15.0),
               _textFieldPassword(),
-              SizedBox(height: 10.0),
-
-              if (_mensajeError.isNotEmpty)
-                Text(
-                  _mensajeError,
-                  style: TextStyle(color: Colors.red),
-                ),
-
-              SizedBox(height: 15.0),
+              SizedBox(height: 20),
               _buttonRegister(),
               SizedBox(height: 20),
             ],
@@ -182,28 +192,46 @@ class _SigninPageState extends State<Signin_page> {
   }
 
   Widget _textFieldEmail() {
-    return _textField(_emailController, "Email", Icons.email);
+    return _textField(_emailController, "Email", Icons.email, _mensajeErrorCorreo);
   }
 
   Widget _textFieldUser() {
-    return _textField(_userController, "User", Icons.person_outline);
+    return _textField(_userController, "User", Icons.person_outline, _mensajeErrorUser);
   }
 
   Widget _textFieldPassword() {
-    return _textField(_passwordController, "Password", Icons.lock, isPassword: true);
+    return _textField(_passwordController, "Password", Icons.lock, _mensajeErrorPassword, isPassword: true);
   }
 
-  Widget _textField(TextEditingController controller, String label, IconData icon, {bool isPassword = false}) {
-    return Container(
-      color: Colors.white,
-      margin: EdgeInsets.symmetric(horizontal: 30.0),
-      child: TextField(
-        controller: controller,
-        obscureText: isPassword,
-        decoration: InputDecoration(
-          prefixIcon: Icon(icon),
-          labelText: label,
-        ),
+  Widget _textField(
+      TextEditingController controller,
+      String label,
+      IconData icon,
+      String? errorMessage, {
+        bool isPassword = false,
+      }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 5),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: controller,
+            obscureText: isPassword,
+            decoration: InputDecoration(
+              prefixIcon: Icon(icon),
+              labelText: label,
+              filled: true,
+              fillColor: Colors.white,
+              errorStyle: TextStyle(
+                fontSize: 14, // Aumenta el tamaño del texto del error
+                fontWeight: FontWeight.bold, // Hace que el texto sea más grueso
+                color: Colors.red, // Mantiene el color rojo
+              ),
+              errorText: errorMessage,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -211,7 +239,9 @@ class _SigninPageState extends State<Signin_page> {
   Widget _buttonRegister() {
     return ElevatedButton(
       onPressed: _registrarUsuario,
-      child: Text('Sign in'),
+      child: Text(
+        'Sign in',
+      ),
     );
   }
 
