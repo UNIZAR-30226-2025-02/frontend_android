@@ -19,18 +19,8 @@ class Openings_Page extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: BuildHeadLogo(actions: [
-        IconButton(
-          icon: Icon(Icons.account_circle, color: Colors.white, size: 32),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => Login_page()),
-            );
-          },
-        ),
-      ]),
+      backgroundColor: Colors.grey[900],
+      appBar:BuildHeadArrow(),
       body: ListView.builder(
         itemCount: openings.length,
         itemBuilder: (context, index) {
@@ -152,27 +142,10 @@ class _OpeningDetailPageState extends State<OpeningDetailPage> {
     String explanation = moveIndex >= 0 ? moves[moveIndex].values.first : 'Inicio de la partida';
 
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.account_circle, color: Colors.white, size: 32),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => Login_page()),
-              );
-            },
-          ),
-        ],
-      ),
+
+
+      backgroundColor: Colors.grey[900],
+      appBar:BuildHeadArrow(),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -184,7 +157,7 @@ class _OpeningDetailPageState extends State<OpeningDetailPage> {
           Container(
             padding: EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.red,
+              color: Colors.lightBlueAccent,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(

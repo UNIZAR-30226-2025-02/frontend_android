@@ -32,18 +32,8 @@ class Rules_Page extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: BuildHeadLogo(actions: [
-        IconButton(
-          icon: Icon(Icons.account_circle, color: Colors.white, size: 32),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => Login_page()),
-            );
-          },
-        ),
-      ]),
+      backgroundColor: Colors.grey[900],
+      appBar:BuildHeadArrow(),
       body: ListView.builder(
         itemCount: rules.length,
         itemBuilder: (context, index) {
