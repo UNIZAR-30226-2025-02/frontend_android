@@ -1,8 +1,9 @@
 import 'dart:convert';
-import 'package:frontend_android/pages/Login/login.dart';
-import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:frontend_android/pages/Login/login.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class Signin_page extends StatefulWidget {
   static const String id = 'signin_page';
@@ -12,8 +13,6 @@ class Signin_page extends StatefulWidget {
 }
 
 class _SigninPageState extends State<Signin_page> {
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _surnameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _userController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -33,13 +32,11 @@ class _SigninPageState extends State<Signin_page> {
   }
 
   Future<void> _registrarUsuario() async {
-    String name = _nameController.text;
-    String surname = _surnameController.text;
     String email = _emailController.text;
     String user = _userController.text;
     String password = _passwordController.text;
 
-    if (name.isEmpty || surname.isEmpty || email.isEmpty || user.isEmpty || password.isEmpty) {
+    if (email.isEmpty || user.isEmpty || password.isEmpty) {
       setState(() {
         _mensajeError = "Todos los campos son obligatorios";
       });
@@ -52,12 +49,10 @@ class _SigninPageState extends State<Signin_page> {
       });
       return;
     }
-
-    final String apiUrl = "http://10.0.2.2:3000/register"; // Para emulador
+    final String baseUrl = dotenv.env['SERVER_BACKEND'] ?? "http://localhost:3000/";
+    final String apiUrl = "${baseUrl}register"; // Backend local
 
     final Map<String, String> userData = {
-      "NombreCompleto": name,
-      "Apellidos": surname,
       "Correo": email,
       "NombreUser": user,
       "Contrasena": password
@@ -72,11 +67,7 @@ class _SigninPageState extends State<Signin_page> {
 
       if (response.statusCode == 200) {
         print("✅ Registro exitoso: ${response.body}");
-
-        // Guardar usuario en almacenamiento local
         await _guardarUsuarioEnLocal(user);
-
-        // Mostrar mensaje de éxito antes de redirigir
         _mostrarDialogoRegistroExitoso();
       } else {
         print("❌ Error en el registro: ${response.body}");
@@ -95,7 +86,7 @@ class _SigninPageState extends State<Signin_page> {
   void _mostrarDialogoRegistroExitoso() {
     showDialog(
       context: context,
-      barrierDismissible: false, // Evita que se cierre accidentalmente
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text("Registro Exitoso"),
@@ -103,8 +94,8 @@ class _SigninPageState extends State<Signin_page> {
           actions: <Widget>[
             TextButton(
               onPressed: () {
-                Navigator.pop(context); // Cierra el diálogo
-                _redirigirAInit(); // Redirige a la página principal
+                Navigator.pop(context);
+                _redirigirAInit();
               },
               child: Text("Aceptar"),
             ),
@@ -115,7 +106,7 @@ class _SigninPageState extends State<Signin_page> {
   }
 
   void _redirigirAInit() async {
-    await Future.delayed(Duration(seconds: 1)); // Espera 1 segundo antes de redirigir
+    await Future.delayed(Duration(seconds: 1));
     Navigator.pushReplacementNamed(context, 'init_page');
   }
 
@@ -167,10 +158,6 @@ class _SigninPageState extends State<Signin_page> {
               ),
 
               SizedBox(height: 30),
-              _textFieldName(),
-              SizedBox(height: 15.0),
-              _textFieldSurname(),
-              SizedBox(height: 15.0),
               _textFieldEmail(),
               SizedBox(height: 15.0),
               _textFieldUser(),
@@ -192,14 +179,6 @@ class _SigninPageState extends State<Signin_page> {
         ),
       ),
     );
-  }
-
-  Widget _textFieldName() {
-    return _textField(_nameController, "Name", Icons.text_fields);
-  }
-
-  Widget _textFieldSurname() {
-    return _textField(_surnameController, "Surname", Icons.text_fields_outlined);
   }
 
   Widget _textFieldEmail() {
@@ -238,8 +217,6 @@ class _SigninPageState extends State<Signin_page> {
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _surnameController.dispose();
     _emailController.dispose();
     _userController.dispose();
     _passwordController.dispose();

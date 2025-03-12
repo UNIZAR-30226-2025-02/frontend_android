@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:frontend_android/pages/Game/init.dart';
@@ -34,8 +35,8 @@ class _LoginPageState extends State<Login_page> {
       _isLoading = true; // ✅ Activa el indicador de carga
     });
 
-    // URL del backend
-    final String apiUrl = "http://10.0.2.2:3000/login"; // Emulador Android
+    final String baseUrl = dotenv.env['SERVER_BACKEND'] ?? "http://localhost:3000/";
+    final String apiUrl = "${baseUrl}login"; // Backend local
 
     final Map<String, String> loginData = {
       "NombreUser": user,

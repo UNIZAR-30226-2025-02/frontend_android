@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:frontend_android/pages/Game/init.dart';
 import 'package:frontend_android/pages/Game/settings.dart';
 import 'package:frontend_android/pages/Login/login.dart';
@@ -6,7 +7,9 @@ import 'package:frontend_android/pages/Login/signin.dart';
 import 'package:frontend_android/pages/Presentation/wellcome.dart';
 import 'package:frontend_android/pages/Game/profile.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load();
   runApp(MyApp());
 }
 
