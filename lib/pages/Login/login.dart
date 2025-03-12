@@ -35,7 +35,7 @@ class _LoginPageState extends State<Login_page> {
       _isLoading = true; // ✅ Activa el indicador de carga
     });
 
-    final String baseUrl = dotenv.env['SERVER_BACKEND'] ?? "http://localhost:3000/";
+    final String? baseUrl = dotenv.env['SERVER_BACKEND'] ;
     final String apiUrl = "${baseUrl}login"; // Backend local
 
     final Map<String, String> loginData = {

@@ -7,8 +7,7 @@ import 'package:frontend_android/pages/Login/signin.dart';
 import 'package:frontend_android/pages/Presentation/wellcome.dart';
 import 'package:frontend_android/pages/Game/profile.dart';
 
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+void main() async {
   await dotenv.load();
   runApp(MyApp());
 }

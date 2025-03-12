@@ -49,7 +49,7 @@ class _SigninPageState extends State<Signin_page> {
       });
       return;
     }
-    final String baseUrl = dotenv.env['SERVER_BACKEND'] ?? "http://localhost:3000/";
+    final String? baseUrl = dotenv.env['SERVER_BACKEND'];
     final String apiUrl = "${baseUrl}register"; // Backend local
 
     final Map<String, String> userData = {
