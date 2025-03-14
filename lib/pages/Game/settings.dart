@@ -160,11 +160,12 @@ class Settings_page extends StatelessWidget {
       SnackBar(content: Text('Has cerrado sesión')),
     );
 
-    // Redirigir al usuario a la pantalla de bienvenida
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => Wellcome_page()),
-          (route) => false, // Elimina todas las rutas previas
-    );
+    Future.microtask(() {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => Wellcome_page()),
+            (route) => false, // Elimina todas las rutas previas
+      );
+    });
   }
 }
