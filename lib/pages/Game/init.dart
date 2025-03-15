@@ -8,7 +8,8 @@ import 'package:frontend_android/pages/Game/botton_nav_bar.dart';
 import 'package:frontend_android/pages/buildHead.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import '../Presentation/wellcome.dart';
+import 'package:frontend_android/pages/Presentation/wellcome.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 class Init_page extends StatefulWidget {
   static const String id = "init_page";
@@ -21,6 +22,8 @@ class _InitPageState extends State<Init_page> {
   String? usuarioActual;
   String? fotoPerfil;
   String selectedGameMode = "Clásica";
+  String selectedGameModeKey = "clasica";
+  late IO.Socket socket;
 
   final List<GameMode> gameModes = [
     GameMode("Clásica", Icons.extension, "10 min", "Modo tradicional de ajedrez.", Colors.brown),
@@ -31,10 +34,60 @@ class _InitPageState extends State<Init_page> {
     GameMode("Incremento exprés", Icons.star, "3 min + 2 seg", "Partidas rápidas con 2 seg por jugada.", Colors.yellow),
   ];
 
+  final Map<String, String> modoBackendMap = {
+    "Clásica": "clasica",
+    "Principiante": "principiante",
+    "Avanzado": "avanzado",
+    "Relámpago": "blitz",
+    "Incremento": "incremento",
+    "Incremento exprés": "incremento_expres",
+  };
+
   @override
   void initState() {
     super.initState();
     _cargarUsuario();
+    _conectarSocket();
+  }
+
+  void _conectarSocket() async {
+    final backendUrl = dotenv.env['SERVER_BACKEND'] ?? 'http://localhost:3000';
+
+    socket = IO.io(backendUrl, <String, dynamic>{
+      'transports': ['websocket'],
+      'autoConnect': false,
+    });
+
+    socket.connect();
+
+    socket.onConnect((_) {
+      print("✅ Socket conectado");
+    });
+
+    socket.on('game-ready', (data) {
+      print("🎮 Partida lista: $data");
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => BoardScreen(gameMode: selectedGameMode),
+        ),
+      );
+    });
+
+    socket.on('color', (data) {
+      print("🎨 Colores asignados: $data");
+      // Puedes guardar el color aquí si lo necesitas más adelante
+    });
+
+    socket.on('errorMessage', (msg) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("❌ $msg")),
+      );
+    });
+
+    socket.onDisconnect((_) {
+      print("❌ Socket desconectado");
+    });
   }
 
   Future<void> _cargarUsuario() async {
@@ -222,9 +275,22 @@ class _InitPageState extends State<Init_page> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           ),
           onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => BoardScreen(gameMode: selectedGameMode)),
+            if (usuarioActual == null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("Debes iniciar sesión para jugar.")),
+              );
+              return;
+            }
+
+            selectedGameModeKey = modoBackendMap[selectedGameMode] ?? "clasica";
+
+            socket.emit('findGame', {
+              'idJugador': usuarioActual,
+              'mode': selectedGameModeKey,
+            });
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("🔍 Buscando partida...")),
             );
           },
           child: Text('BUSCAR PARTIDA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
