@@ -51,7 +51,7 @@ class _InitPageState extends State<Init_page> {
   }
 
   void _conectarSocket() async {
-    final backendUrl = dotenv.env['SERVER_BACKEND'] ?? 'http://localhost:3000';
+    final backendUrl = dotenv.env['SERVER_BACKEND'];
 
     socket = IO.io(backendUrl, <String, dynamic>{
       'transports': ['websocket'],
