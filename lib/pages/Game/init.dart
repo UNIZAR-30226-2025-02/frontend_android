@@ -268,7 +268,6 @@ class _InitPageState extends State<Init_page> {
       ),
     );
   }
-
   Widget _buildBuscarPartidaButton(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -277,32 +276,29 @@ class _InitPageState extends State<Init_page> {
         height: 60,
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blue,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            backgroundColor: Colors.blueAccent,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
+          child: Text('BUSCAR PARTIDA',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
           onPressed: () {
             if (usuarioActual == null) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("Debes iniciar sesión para jugar.")),
+                SnackBar(content: Text("❌ Usuario no autenticado")),
               );
               return;
             }
 
             selectedGameModeKey = modoBackendMap[selectedGameMode] ?? "clasica";
 
-            print("[MATCHMAKING] 🔍 Enviando solicitud de findGame con:");
-            print("[MATCHMAKING] idJugador: $usuarioActual, mode: $selectedGameModeKey");
+            print("[MATCHMAKING] 🔍 Enviando solicitud de findGame con idJugador: $usuarioActual, mode: $selectedGameModeKey");
 
-            socket.emit('findGame', {
+            socket.emit("findGame", {
               'idJugador': usuarioActual,
-              'mode': selectedGameModeKey,
+              'mode': selectedGameModeKey
             });
 
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("🔍 Buscando partida...")),
-            );
           },
-          child: Text('BUSCAR PARTIDA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
         ),
       ),
     );
