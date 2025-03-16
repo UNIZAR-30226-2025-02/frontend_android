@@ -6,7 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:frontend_android/pages/Game/init.dart';
 import 'package:frontend_android/pages/Login/signin.dart';
-
+import 'package:frontend_android/pages/playerInfo.dart';
 class Login_page extends StatefulWidget {
   static const String id = "login_page";
 
@@ -82,6 +82,8 @@ class _LoginPageState extends State<Login_page> {
         await prefs.setString('Correo', responseData['Correo']);
         await prefs.setString('estadoUser', responseData['estadoUser']);
         await prefs.setString('fotoPerfil', responseData['FotoPerfil'] ?? "");
+        playerInfo(prefs.getString('idJugador'),prefs.getString('usuario'), prefs.getString('Correo'),
+            prefs.getString('estadoUser'), prefs.getString('fotoPerfil'));
 
         Navigator.pushReplacementNamed(context, Init_page.id);
       } else {
