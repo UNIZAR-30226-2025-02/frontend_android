@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:frontend_android/pages/Presentation/wellcome.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:frontend_android/pages/Login/login.dart';
 
 class Init_page extends StatefulWidget {
   static const String id = "init_page";
@@ -20,6 +21,7 @@ class Init_page extends StatefulWidget {
 
 class _InitPageState extends State<Init_page> {
   String? usuarioActual;
+  String? idJugador;
   String? fotoPerfil;
   String selectedGameMode = "Clásica";
   String selectedGameModeKey = "clasica";
@@ -35,7 +37,7 @@ class _InitPageState extends State<Init_page> {
   ];
 
   final Map<String, String> modoBackendMap = {
-    "Clásica": "clasica",
+    "Clásica": "Punt_3",
     "Principiante": "principiante",
     "Avanzado": "avanzado",
     "Relámpago": "blitz",
@@ -48,58 +50,70 @@ class _InitPageState extends State<Init_page> {
     super.initState();
     _cargarUsuario();
     _conectarSocket();
+    encontrarPartida();
+
   }
 
   void _conectarSocket() async {
     final backendUrl = dotenv.env['SERVER_BACKEND'];
+    if (backendUrl == null) {
+      throw Exception("SERVER_BACKEND no está definido en el .env");
+    }
 
     socket = IO.io(backendUrl, <String, dynamic>{
       'transports': ['websocket'],
-      'autoConnect': false,
+      'autoConnect': true,
     });
-
-    socket.connect();
-
-    socket.onConnect((_) {
-      print("[MATCHMAKING] ⚠️ Socket conectado: ${socket.connected}");
-
-      socket.on('game-ready', (data) {
-        print("[MATCHMAKING] 🎮 Partida lista: $data");
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => BoardScreen(gameMode: selectedGameMode),
-          ),
-        );
-      });
-
-      socket.on('color', (data) {
-        print("[MATCHMAKING] 🎨 Colores asignados: $data");
-      });
-
-      socket.on('errorMessage', (msg) {
-        print("[MATCHMAKING] ❌ Error recibido del backend: $msg");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("❌ $msg")),
-        );
-      });
-
-      socket.onDisconnect((_) {
-        print("[MATCHMAKING] 🔌 Socket desconectado");
-      });
-    });
-
-    // Opcional para depuración extra
-    socket.onAny((event, data) {
-      print("[MATCHMAKING] 📥 Evento recibido: $event - Data: $data");
-    });
+    //print("MATCHMAKING: conectando socket");
+    /*socket.connect();
+    print("[MATCHMAKING] ⚠️ Socket conectado: ${socket.connected}");
+    if (socket.disconnected) {
+      print("[MATCHMAKING] ⚠️ Socket no conectado");
+      return;
+    }*/
   }
+
+Future<void> encontrarPartida() async {
+
+
+  socket.on('game-ready', (data) {
+    print("[MATCHMAKING] 🎮 Partida lista: $data");
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BoardScreen(gameMode: selectedGameMode),
+      ),
+    );
+  });
+
+  socket.on('color', (data) {
+    print("[MATCHMAKING] 🎨 Colores asignados: $data");
+  });
+
+  socket.on('errorMessage', (msg) {
+    print("[MATCHMAKING] ❌ Error recibido del backend: $msg");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("❌ $msg")),
+    );
+  });
+
+  socket.onDisconnect((_) {
+    print("[MATCHMAKING] 🔌 Socket desconectado");
+  });
+
+  // Opcional para depuración extra
+  socket.onAny((event, data) {
+    print("[MATCHMAKING] 📥 Evento recibido: $event - Data: $data");
+  });
+}
+
 
 
   Future<void> _cargarUsuario() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
       usuarioActual = prefs.getString('usuario');
+      idJugador = prefs.getString('idJugador');
       print(usuarioActual);
       fotoPerfil = prefs.getString('fotoPerfil');
       if (fotoPerfil == null || fotoPerfil!.isEmpty || fotoPerfil == "none") {
@@ -291,10 +305,10 @@ class _InitPageState extends State<Init_page> {
 
             selectedGameModeKey = modoBackendMap[selectedGameMode] ?? "clasica";
 
-            print("[MATCHMAKING] 🔍 Enviando solicitud de findGame con idJugador: $usuarioActual, mode: $selectedGameModeKey");
+            print("[MATCHMAKING] 🔍 Enviando solicitud de findGame con $idJugador: , mode: $selectedGameModeKey");
 
-            socket.emit("findGame", {
-              'idJugador': usuarioActual,
+            socket.emit("find-game", {
+              'idJugador': idJugador,
               'mode': selectedGameModeKey
             });
 
