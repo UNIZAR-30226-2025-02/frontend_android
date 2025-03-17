@@ -82,14 +82,27 @@ Future<void> encontrarPartida() async {
   });
 
   socket.on('color', (data) {
-    print("[MATCHMAKING] 🎨 Colores asignados: $data");
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => BoardScreen(selectedGameMode, data)
+    final jugadores = List<Map<String, dynamic>>.from(data[0]['jugadores']);
+    final idPartida = data[1]; // por si lo quieres guardar
 
-      ),
+    final yo = jugadores.firstWhere(
+          (jugador) => jugador['id'] == idJugador,
+      orElse: () => {},
     );
+
+    if (yo.isNotEmpty && yo.containsKey('color')) {
+      final color = yo['color'] as String;
+      print("🎯 Mi color: $color");
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => BoardScreen(selectedGameMode, color),
+        ),
+      );
+    } else {
+      print("❌ No se encontró tu jugador en la lista.");
+    }
   });
 
   socket.on('errorMessage', (msg) {
