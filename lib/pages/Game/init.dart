@@ -78,16 +78,18 @@ Future<void> encontrarPartida() async {
 
   socket.on('game-ready', (data) {
     print("[MATCHMAKING] 🎮 Partida lista: $data");
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => BoardScreen(gameMode: selectedGameMode),
-      ),
-    );
+
   });
 
   socket.on('color', (data) {
     print("[MATCHMAKING] 🎨 Colores asignados: $data");
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BoardScreen(selectedGameMode, data)
+
+      ),
+    );
   });
 
   socket.on('errorMessage', (msg) {
@@ -311,6 +313,8 @@ Future<void> encontrarPartida() async {
               'idJugador': idJugador,
               'mode': selectedGameModeKey
             });
+
+
 
           },
         ),

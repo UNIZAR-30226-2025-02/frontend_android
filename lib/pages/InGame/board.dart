@@ -8,13 +8,14 @@ class BoardScreen extends StatefulWidget {
   static const id = "board_page";
 
   final String gameMode;
+  final String color;
 
-  BoardScreen({required this.gameMode});
+  // Constructor clásico
+  BoardScreen(this.gameMode, this.color);
 
   @override
   _BoardScreenState createState() => _BoardScreenState();
 }
-
 class _BoardScreenState extends State<BoardScreen> {
   final ChessBoardController controller = ChessBoardController();
   late PlayerColor playerColor;
@@ -24,11 +25,12 @@ class _BoardScreenState extends State<BoardScreen> {
   int blackTime = 600; // 10 minutos
   bool isWhiteTurn = true;
 
+
   @override
   void initState() {
     super.initState();
-
-    playerColor = Random().nextBool() ? PlayerColor.white : PlayerColor.black;
+    playerColor = widget.color == "white" ? PlayerColor.white : PlayerColor.black;
+    //playerColor = BoardScreen.color;
 
     _startTimer();
 
