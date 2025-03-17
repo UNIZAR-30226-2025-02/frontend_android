@@ -37,12 +37,12 @@ class _InitPageState extends State<Init_page> {
   ];
 
   final Map<String, String> modoBackendMap = {
-    "Clásica": "Punt_3",
-    "Principiante": "principiante",
-    "Avanzado": "avanzado",
-    "Relámpago": "blitz",
-    "Incremento": "incremento",
-    "Incremento exprés": "incremento_expres",
+    "Clásica": "Punt_10",
+    "Principiante": "Punt_30",
+    "Avanzado": "Punt5",
+    "Relámpago": "Punt_3",
+    "Incremento": "Punt_5_10",
+    "Incremento exprés": "Punt_3_2",
   };
 
   @override
