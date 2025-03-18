@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../Game/init.dart';
 
@@ -48,9 +49,9 @@ class _BoardScreenState extends State<BoardScreen> {
   }
   void newSocket(){
 
-    socket = IO.io('https://tu-servidor.com', <String, dynamic>{
+    socket = IO.io(dotenv.env['SERVER_BACKEND'], <String, dynamic>{
       'transports': ['websocket'],
-      'autoConnect': false,
+      'autoConnect': true,
     });
 
     socket.connect();
