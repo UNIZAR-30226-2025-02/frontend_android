@@ -22,15 +22,16 @@ class BoardScreen extends StatefulWidget {
 class _BoardScreenState extends State<BoardScreen> {
   final ChessBoardController controller = ChessBoardController();
   late PlayerColor playerColor;
-  late Timer _timerWhite;
-  late Timer _timerBlack;
+  late Timer _timer;
   late final String gameId;
   int whiteTime = 600;
   int blackTime = 600;
   bool isWhiteTurn = true;
   late IO.Socket socket;
 
-  _BoardScreenState(String gameId){this.gameId = gameId;}
+  _BoardScreenState(String gameId) {
+    this.gameId = gameId;
+  }
 
   @override
   void initState() {
@@ -54,18 +55,15 @@ class _BoardScreenState extends State<BoardScreen> {
         print('MATCHMAKING: Último movimiento: de $from a $to');
 
         if (lastMove.containsKey("from") && lastMove.containsKey("to")) {
-
           print("MATCHMAKING:♟️ Movimiento detectado: $from -> $to");
-
           _sendMoveToServer(from, to);
           _switchTimer();
         }
-        }
-
+      }
     });
   }
-  void newSocket(){
 
+  void newSocket() {
     socket = IO.io(dotenv.env['SERVER_BACKEND'], <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': true,
@@ -85,32 +83,25 @@ class _BoardScreenState extends State<BoardScreen> {
 
           if (move != null) {
             _switchTimer();
-            _sendMoveToServer(data['from'], data['to']);
           } else {
-            print("❌ Movimiento inválido recibido: \${data['from']} -> \${data['to']}");
+            print("❌ Movimiento inválido recibido: ${data['from']} -> ${data['to']}");
           }
         } catch (e) {
-          print("⚠️ Error al procesar el movimiento: \$e");
+          print("⚠️ Error al procesar el movimiento: $e");
         }
       });
     });
   }
 
   void _startTimer() {
-    _timerWhite = Timer.periodic(Duration(seconds: 1), (timer) {
-      if (isWhiteTurn) {
-        setState(() {
-          if (whiteTime > 0) whiteTime--;
-        });
-      }
-    });
-
-    _timerBlack = Timer.periodic(Duration(seconds: 1), (timer) {
-      if (!isWhiteTurn) {
-        setState(() {
-          if (blackTime > 0) blackTime--;
-        });
-      }
+    _timer = Timer.periodic(Duration(seconds: 1), (timer) {
+      setState(() {
+        if (isWhiteTurn && whiteTime > 0) {
+          whiteTime--;
+        } else if (!isWhiteTurn && blackTime > 0) {
+          blackTime--;
+        }
+      });
     });
   }
 
@@ -136,8 +127,7 @@ class _BoardScreenState extends State<BoardScreen> {
 
   @override
   void dispose() {
-    _timerWhite.cancel();
-    _timerBlack.cancel();
+    _timer.cancel();
     super.dispose();
   }
 
@@ -182,7 +172,7 @@ class _BoardScreenState extends State<BoardScreen> {
             textAlign: TextAlign.center,
           ),
           Text(
-            "\${(time ~/ 60).toString().padLeft(2, '0')}:\${(time % 60).toString().padLeft(2, '0')}",
+            "${(time ~/ 60).toString().padLeft(2, '0')}:${(time % 60).toString().padLeft(2, '0')}",
             style: TextStyle(fontSize: 16, color: Colors.white),
           )
         ],
