@@ -49,13 +49,13 @@ class _BoardScreenState extends State<BoardScreen> {
         final lastMove = history.last;
         final from = lastMove['from'];
         final to = lastMove['to'];
-        print('Último movimiento: de $from a $to');
+        print('MATCHMAKING: Último movimiento: de $from a $to');
 
         if (lastMove.containsKey("from") && lastMove.containsKey("to")) {
           String from = lastMove.fromAlgebraic;
           String to = lastMove.toAlgebraic;
 
-          print("♟️ Movimiento detectado: $from -> $to");
+          print("MATCHMAKING:♟️ Movimiento detectado: $from -> $to");
 
           _sendMoveToServer(from, to);
           _switchTimer();
@@ -74,7 +74,7 @@ class _BoardScreenState extends State<BoardScreen> {
     socket.connect();
 
     socket.on("new-move", (data) {
-      print("♟️ Movimiento recibido del servidor: $data");
+      print("♟️ MATCHMAKING: Movimiento recibido del servidor: $data");
       setState(() {
         try {
           var move = controller.game.move({
