@@ -1,38 +1,73 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:flutter/material.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../Game/init.dart';
 
 class BoardScreen extends StatefulWidget {
   static const id = "board_page";
-
   final String gameMode;
   final String color;
 
-  // Constructor clásico
   BoardScreen(this.gameMode, this.color);
 
   @override
   _BoardScreenState createState() => _BoardScreenState();
 }
+
 class _BoardScreenState extends State<BoardScreen> {
   final ChessBoardController controller = ChessBoardController();
   late PlayerColor playerColor;
   late Timer _timerWhite;
   late Timer _timerBlack;
-  int whiteTime = 600; // 10 minutos
-  int blackTime = 600; // 10 minutos
+  int whiteTime = 600;
+  int blackTime = 600;
   bool isWhiteTurn = true;
-
+  late IO.Socket socket;
 
   @override
   void initState() {
     super.initState();
     playerColor = widget.color == "white" ? PlayerColor.white : PlayerColor.black;
-    //playerColor = BoardScreen.color;
-
     _startTimer();
+
+    socket = IO.io('https://tu-servidor.com', <String, dynamic>{
+      'transports': ['websocket'],
+      'autoConnect': false,
+    });
+
+    socket.connect();
+
+    socket.on("new-move", (data) {
+      print("♟️ Movimiento recibido del servidor: $data");
+      setState(() {
+        try {
+          var move = controller.game.move({
+            "from": data['from'],
+            "to": data['to'],
+            "promotion": "q"
+          });
+
+          if (move != null) {
+            _switchTimer();
+            _sendMoveToServer(data['from'], data['to']);
+          } else {
+            print("❌ Movimiento inválido recibido: \${data['from']} -> \${data['to']}");
+          }
+        } catch (e) {
+          print("⚠️ Error al procesar el movimiento: \$e");
+        }
+      });
+    });
+
+    socket.on("color", (data) {
+      print("🎨 Color asignado: $data");
+      if (data == "white" || data == "black") {
+        setState(() {
+          playerColor = data == "white" ? PlayerColor.white : PlayerColor.black;
+        });
+      }
+    });
 
     controller.addListener(() {
       if (controller.isCheckMate()) {
@@ -40,6 +75,7 @@ class _BoardScreenState extends State<BoardScreen> {
             (controller.game.turn == Color.BLACK && playerColor == PlayerColor.white);
         _showCheckMateDialog(didWin: didIWin);
       }
+      _sendMoveToServer(null, null);
       _switchTimer();
     });
   }
@@ -60,6 +96,18 @@ class _BoardScreenState extends State<BoardScreen> {
         });
       }
     });
+  }
+
+  void _sendMoveToServer(String? from, String? to) {
+    if (from != null && to != null) {
+      print("📡 Enviando movimiento al servidor: \$from -> \$to");
+      socket.emit("make-move", {
+        "from": from,
+        "to": to,
+        "gameId": "12345",
+        "playerColor": playerColor == PlayerColor.white ? "white" : "black",
+      });
+    }
   }
 
   void _switchTimer() {
@@ -112,15 +160,11 @@ class _BoardScreenState extends State<BoardScreen> {
         children: [
           Text(
             name,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
             textAlign: TextAlign.center,
           ),
           Text(
-            "${(time ~/ 60).toString().padLeft(2, '0')}:${(time % 60).toString().padLeft(2, '0')}",
+            "\${(time ~/ 60).toString().padLeft(2, '0')}:\${(time % 60).toString().padLeft(2, '0')}",
             style: TextStyle(fontSize: 16, color: Colors.white),
           )
         ],
@@ -146,8 +190,7 @@ class _BoardScreenState extends State<BoardScreen> {
         backgroundColor: Colors.black,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         title: Text(didWin ? '¡Has ganado!' : 'Has perdido',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white)),
+            textAlign: TextAlign.center, style: TextStyle(color: Colors.white)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
