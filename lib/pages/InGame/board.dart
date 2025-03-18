@@ -128,7 +128,18 @@ class _BoardScreenState extends State<BoardScreen> {
         final from = lastMove['from'];
         final to = lastMove['to'];
 
-        print("♟️ MOVIMIENTO DETECTADO: $from -> $to");
+        final turno = controller.game.turn; // "w" o "b"
+        final soyBlanco = widget.color == "white";
+
+        // ⛔ Bloquear si no es mi turno
+        if ((turno == "WHITE" && !soyBlanco) || (turno == "BLACK" && soyBlanco)) {
+          print("⛔ Movimiento cancelado: no es tu turno.");
+          controller.game.undo_move();
+          controller.loadFen(controller.game.fen); // refrescar visual
+          return;
+        }
+
+        print("♟ Movimiento local válido: $from -> $to");
 
         if (lastMove.containsKey("from") && lastMove.containsKey("to")) {
           _sendMoveToServer(from, to);
@@ -169,7 +180,44 @@ class _BoardScreenState extends State<BoardScreen> {
     _timerBlack.cancel();
     super.dispose();  // ❌ No desconectamos el socket aquí
   }
-
+  void _openChat() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Container(
+          height: 300,
+          padding: EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Expanded(
+                child: ListView(),
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      decoration: InputDecoration(hintText: "Escribe un mensaje..."),
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.send, color: Colors.blue),
+                    onPressed: () {},
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -195,8 +243,13 @@ class _BoardScreenState extends State<BoardScreen> {
           SizedBox(height: 10),
         ],
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _openChat,
+        child: Icon(Icons.chat),
+      ), // ✅ Aquí la coma en lugar del punto y coma
     );
   }
+
 
   Widget _buildPlayerInfo(String name, int time) {
     return Padding(
