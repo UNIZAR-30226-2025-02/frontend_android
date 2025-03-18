@@ -10,7 +10,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:frontend_android/pages/Presentation/wellcome.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
-import 'package:frontend_android/pages/Login/login.dart';
+
 
 class Init_page extends StatefulWidget {
   static const String id = "init_page";
@@ -86,7 +86,7 @@ Future<void> encontrarPartida() async {
 
   socket.on('color', (data) {
     final jugadores = List<Map<String, dynamic>>.from(data[0]['jugadores']);
-    final idPartida = data[1]; // por si lo quieres guardar
+
 
     final yo = jugadores.firstWhere(
           (jugador) => jugador['id'] == idJugador,
