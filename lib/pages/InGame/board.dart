@@ -109,7 +109,7 @@ class _BoardScreenState extends State<BoardScreen> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? idJugador = prefs.getString('idJugador');
     if (from != null && to != null) {
-      print("📡 MATCHMAKING: Enviando movimiento al servidor: $from -> $to");
+      print("📡 [MATCHMAKING]: Enviando movimiento al servidor: $from -> $to");
       socket.emit("make-move", {
         "from": from,
         "to": to,
