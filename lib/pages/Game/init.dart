@@ -25,6 +25,7 @@ class _InitPageState extends State<Init_page> {
   String? fotoPerfil;
   String selectedGameMode = "Clásica";
   String selectedGameModeKey = "clasica";
+  late String gameId;
   late IO.Socket socket;
 
   final List<GameMode> gameModes = [
@@ -78,8 +79,10 @@ Future<void> encontrarPartida() async {
 
   socket.on('game-ready', (data) {
     print("[MATCHMAKING] 🎮 Partida lista: $data");
-
+    gameId = data;
   });
+
+
 
   socket.on('color', (data) {
     final jugadores = List<Map<String, dynamic>>.from(data[0]['jugadores']);
@@ -97,7 +100,7 @@ Future<void> encontrarPartida() async {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => BoardScreen(selectedGameMode, color),
+          builder: (context) => BoardScreen(selectedGameMode, color, gameId),
         ),
       );
     } else {

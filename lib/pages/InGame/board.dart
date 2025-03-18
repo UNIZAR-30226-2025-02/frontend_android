@@ -8,11 +8,12 @@ class BoardScreen extends StatefulWidget {
   static const id = "board_page";
   final String gameMode;
   final String color;
+  final String gameId;
 
-  BoardScreen(this.gameMode, this.color);
+  BoardScreen(this.gameMode, this.color, this.gameId);
 
   @override
-  _BoardScreenState createState() => _BoardScreenState();
+  _BoardScreenState createState() => _BoardScreenState(gameId);
 }
 
 class _BoardScreenState extends State<BoardScreen> {
@@ -20,16 +21,32 @@ class _BoardScreenState extends State<BoardScreen> {
   late PlayerColor playerColor;
   late Timer _timerWhite;
   late Timer _timerBlack;
+  late final gameId;
   int whiteTime = 600;
   int blackTime = 600;
   bool isWhiteTurn = true;
   late IO.Socket socket;
+
+  _BoardScreenState(String gameId){this.gameId = gameId;}
 
   @override
   void initState() {
     super.initState();
     playerColor = widget.color == "white" ? PlayerColor.white : PlayerColor.black;
     _startTimer();
+    newSocket();
+
+    controller.addListener(() {
+      if (controller.isCheckMate()) {
+        bool didIWin = (controller.game.turn == Color.WHITE && playerColor == PlayerColor.black) ||
+            (controller.game.turn == Color.BLACK && playerColor == PlayerColor.white);
+        _showCheckMateDialog(didWin: didIWin);
+      }
+      _sendMoveToServer(null, null);
+      _switchTimer();
+    });
+  }
+  void newSocket(){
 
     socket = IO.io('https://tu-servidor.com', <String, dynamic>{
       'transports': ['websocket'],
@@ -59,25 +76,6 @@ class _BoardScreenState extends State<BoardScreen> {
         }
       });
     });
-
-    socket.on("color", (data) {
-      print("🎨 Color asignado: $data");
-      if (data == "white" || data == "black") {
-        setState(() {
-          playerColor = data == "white" ? PlayerColor.white : PlayerColor.black;
-        });
-      }
-    });
-
-    controller.addListener(() {
-      if (controller.isCheckMate()) {
-        bool didIWin = (controller.game.turn == Color.WHITE && playerColor == PlayerColor.black) ||
-            (controller.game.turn == Color.BLACK && playerColor == PlayerColor.white);
-        _showCheckMateDialog(didWin: didIWin);
-      }
-      _sendMoveToServer(null, null);
-      _switchTimer();
-    });
   }
 
   void _startTimer() {
@@ -104,7 +102,7 @@ class _BoardScreenState extends State<BoardScreen> {
       socket.emit("make-move", {
         "from": from,
         "to": to,
-        "gameId": "12345",
+        "gameId": gameId,
         "playerColor": playerColor == PlayerColor.white ? "white" : "black",
       });
     }
