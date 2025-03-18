@@ -77,6 +77,7 @@ class _BoardScreenState extends State<BoardScreen> {
                 "to": to,
                 "promotion": "q"
               });
+              controller.loadFen(controller.game.fen);
 
               if (move != null) {
                 print("♟️ Movimiento aplicado en el tablero: $from -> $to");
