@@ -1,7 +1,3 @@
-
-
-
-
 class playerInfo {
   String? idJugador;
   String? usuario;
@@ -17,6 +13,7 @@ class playerInfo {
     this.estadoUser = estadoUser;
     this.fotoPerfil = fotoPerfil;
   }
+
 
   void setUsuario(String usuario){
     this.usuario = usuario;

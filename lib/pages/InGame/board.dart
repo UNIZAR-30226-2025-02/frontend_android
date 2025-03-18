@@ -2,8 +2,10 @@ import 'dart:async';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../Game/init.dart';
+import '../playerInfo.dart';
 
 class BoardScreen extends StatefulWidget {
   static const id = "board_page";
@@ -52,8 +54,6 @@ class _BoardScreenState extends State<BoardScreen> {
         print('MATCHMAKING: Último movimiento: de $from a $to');
 
         if (lastMove.containsKey("from") && lastMove.containsKey("to")) {
-          String from = lastMove.fromAlgebraic;
-          String to = lastMove.toAlgebraic;
 
           print("MATCHMAKING:♟️ Movimiento detectado: $from -> $to");
 
@@ -114,14 +114,16 @@ class _BoardScreenState extends State<BoardScreen> {
     });
   }
 
-  void _sendMoveToServer(String? from, String? to) {
+  Future<void> _sendMoveToServer(String? from, String? to) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? idJugador = prefs.getString('idJugador');
     if (from != null && to != null) {
-      print("📡 Enviando movimiento al servidor: \$from -> \$to");
+      print("📡 MATCHMAKING: Enviando movimiento al servidor: $from -> $to");
       socket.emit("make-move", {
         "from": from,
         "to": to,
-        "gameId": gameId,
-        "playerColor": playerColor == PlayerColor.white ? "white" : "black",
+        "idPartida": gameId,
+        "idJugador": idJugador,
       });
     }
   }
