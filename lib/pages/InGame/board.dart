@@ -21,7 +21,7 @@ class _BoardScreenState extends State<BoardScreen> {
   late PlayerColor playerColor;
   late Timer _timerWhite;
   late Timer _timerBlack;
-  late final gameId;
+  late final String gameId;
   int whiteTime = 600;
   int blackTime = 600;
   bool isWhiteTurn = true;
