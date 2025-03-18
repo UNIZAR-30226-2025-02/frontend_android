@@ -25,7 +25,7 @@ class _InitPageState extends State<Init_page> {
   String? fotoPerfil;
   String selectedGameMode = "Clásica";
   String selectedGameModeKey = "clasica";
-  late String gameId;
+
   late IO.Socket socket;
 
   final List<GameMode> gameModes = [
@@ -76,7 +76,7 @@ class _InitPageState extends State<Init_page> {
 
 Future<void> encontrarPartida() async {
 
-
+  String gameId= "";
   socket.on('game-ready', (data) {
     print("[MATCHMAKING] 🎮 Partida lista: $data");
     gameId = data;
