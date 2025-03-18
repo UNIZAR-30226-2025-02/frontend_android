@@ -1,11 +1,9 @@
 import 'dart:async';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
-import '../Game/init.dart';
-import '../playerInfo.dart';
+import '../../services/socketService.dart';
 
 class BoardScreen extends StatefulWidget {
   static const id = "board_page";
@@ -16,7 +14,7 @@ class BoardScreen extends StatefulWidget {
   BoardScreen(this.gameMode, this.color, this.gameId);
 
   @override
-  _BoardScreenState createState() => _BoardScreenState(gameId);
+  _BoardScreenState createState() => _BoardScreenState();
 }
 
 class _BoardScreenState extends State<BoardScreen> {
@@ -24,78 +22,122 @@ class _BoardScreenState extends State<BoardScreen> {
   late PlayerColor playerColor;
   late Timer _timerWhite;
   late Timer _timerBlack;
-  late final String gameId;
+  late IO.Socket socket;
   int whiteTime = 600;
   int blackTime = 600;
   bool isWhiteTurn = true;
-  late IO.Socket socket;
-
-  _BoardScreenState(String gameId){this.gameId = gameId;}
 
   @override
   void initState() {
     super.initState();
+    socket = SocketService().getSocket();
     playerColor = widget.color == "white" ? PlayerColor.white : PlayerColor.black;
-    _startTimer();
-    newSocket();
+    print("✅ BoardScreen iniciado con gameId: ${widget.gameId}");
 
-    controller.addListener(() {
-      if (controller.isCheckMate()) {
-        bool didIWin = (controller.game.turn == Color.WHITE && playerColor == PlayerColor.black) ||
-            (controller.game.turn == Color.BLACK && playerColor == PlayerColor.white);
-        _showCheckMateDialog(didWin: didIWin);
+    _startTimer();
+    _joinGame();  // ✅ Asegurarse de unirse a la partida
+    _initializeSocketListeners();
+    _listenToBoardChanges();
+  }
+
+  /// ✅ Unirse a la partida en caso de que se haya perdido la conexión
+  void _joinGame() {
+    socket.emit('join', {"idPartida": widget.gameId});
+    print("📡 Enviando solicitud para unirse a la partida: ${widget.gameId}");
+  }
+
+  /// ✅ Maneja los eventos de socket
+  void _initializeSocketListeners() {
+    socket.on("new-move", (data) {
+      print("📥 MOVIMIENTO RECIBIDO: $data");
+      print("🔍 Tipo de 'data': ${data.runtimeType}");
+
+      // ✅ Si es una lista, extraer su primer elemento
+      if (data is List && data.isNotEmpty) {
+        print("🔹 data[0]: ${data[0]}");  // 🔍 Ver qué contiene el primer elemento
+        print("🔹 Tipo de data[0]: ${data[0].runtimeType}");
       }
+
+      // Ahora verificamos si el primer elemento es un mapa
+      if (data is List && data.isNotEmpty && data[0] is Map<String, dynamic>) {
+        var moveData = data[0];
+
+        if (moveData.containsKey("movimiento") && moveData.containsKey("board")) {
+          print("✅ Se encontraron las claves correctas en el JSON");
+          String movimiento = moveData["movimiento"];  // Ejemplo: "e2e4"
+          String from = movimiento.substring(0, 2);
+          String to = movimiento.substring(2, 4);
+
+          print("✅ Movimiento detectado: $from -> $to");
+
+          setState(() {
+            try {
+              var move = controller.game.move({
+                "from": from,
+                "to": to,
+                "promotion": "q"
+              });
+
+              if (move != null) {
+                print("♟️ Movimiento aplicado en el tablero: $from -> $to");
+                controller.notifyListeners();
+                _switchTimer();
+              } else {
+                print("❌ Movimiento inválido recibido.");
+              }
+            } catch (e) {
+              print("⚠️ Error al procesar el movimiento: $e");
+            }
+          });
+        } else {
+          print("❌ ERROR: 'moveData' no contiene 'movimiento' o 'board'.");
+        }
+      } else {
+        print("❌ ERROR: 'data' no es un List con Map<String, dynamic> dentro.");
+      }
+    });
+
+  }
+
+  /// ✅ Envía movimientos al servidor
+  Future<void> _sendMoveToServer(String from, String to) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? idJugador = prefs.getString('idJugador');
+    String movimiento = "$from$to";
+
+    if (idJugador != null) {
+      print("📡 ENVIANDO MOVIMIENTO: $from -> $to en partida ${widget.gameId}, jugador: $idJugador");
+      socket.emit("make-move", {
+        "movimiento": movimiento,
+        "idPartida": widget.gameId,
+        "idJugador": idJugador,
+      });
+    } else {
+      print("⚠️ ERROR: No se encontró el idJugador en SharedPreferences.");
+    }
+  }
+
+  /// ✅ Escucha los cambios en el tablero y envía los movimientos
+  void _listenToBoardChanges() {
+    controller.addListener(() {
       final history = controller.game.getHistory({'verbose': true});
 
       if (history.isNotEmpty) {
         final lastMove = history.last;
         final from = lastMove['from'];
         final to = lastMove['to'];
-        print('MATCHMAKING: Último movimiento: de $from a $to');
+
+        print("♟️ MOVIMIENTO DETECTADO: $from -> $to");
 
         if (lastMove.containsKey("from") && lastMove.containsKey("to")) {
-
-          print("MATCHMAKING:♟️ Movimiento detectado: $from -> $to");
-
           _sendMoveToServer(from, to);
           _switchTimer();
         }
-        }
-
-    });
-  }
-  void newSocket(){
-
-    socket = IO.io(dotenv.env['SERVER_BACKEND'], <String, dynamic>{
-      'transports': ['websocket'],
-      'autoConnect': true,
-    });
-
-    socket.connect();
-
-    socket.on("new-move", (data) {
-      print("♟️ MATCHMAKING: Movimiento recibido del servidor: $data");
-      setState(() {
-        try {
-          var move = controller.game.move({
-            "from": data['from'],
-            "to": data['to'],
-            "promotion": "q"
-          });
-
-          if (move != null) {
-            _switchTimer();
-            _sendMoveToServer(data['from'], data['to']);
-          } else {
-            print("❌ Movimiento inválido recibido: \${data['from']} -> \${data['to']}");
-          }
-        } catch (e) {
-          print("⚠️ Error al procesar el movimiento: \$e");
-        }
-      });
+      }
     });
   }
 
+  /// ✅ Cambia el temporizador
   void _startTimer() {
     _timerWhite = Timer.periodic(Duration(seconds: 1), (timer) {
       if (isWhiteTurn) {
@@ -114,20 +156,6 @@ class _BoardScreenState extends State<BoardScreen> {
     });
   }
 
-  Future<void> _sendMoveToServer(String? from, String? to) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? idJugador = prefs.getString('idJugador');
-    if (from != null && to != null) {
-      print("📡 MATCHMAKING: Enviando movimiento al servidor: $from -> $to");
-      socket.emit("make-move", {
-        "from": from,
-        "to": to,
-        "idPartida": gameId,
-        "idJugador": idJugador,
-      });
-    }
-  }
-
   void _switchTimer() {
     setState(() {
       isWhiteTurn = !isWhiteTurn;
@@ -138,7 +166,7 @@ class _BoardScreenState extends State<BoardScreen> {
   void dispose() {
     _timerWhite.cancel();
     _timerBlack.cancel();
-    super.dispose();
+    super.dispose();  // ❌ No desconectamos el socket aquí
   }
 
   @override
@@ -153,7 +181,7 @@ class _BoardScreenState extends State<BoardScreen> {
       body: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _buildPlayerInfo(playerColor == PlayerColor.white ? "Negras" : "Blancas", blackTime),
+          _buildPlayerInfo("Negras", blackTime),
           Expanded(
             child: Center(
               child: ChessBoard(
@@ -162,10 +190,8 @@ class _BoardScreenState extends State<BoardScreen> {
               ),
             ),
           ),
-          _buildPlayerInfo("Yo", whiteTime),
+          _buildPlayerInfo("Blancas", whiteTime),
           SizedBox(height: 10),
-          _buildChatButton(),
-          SizedBox(height: 20),
         ],
       ),
     );
@@ -176,58 +202,14 @@ class _BoardScreenState extends State<BoardScreen> {
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Column(
         children: [
+          Text(name,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+              textAlign: TextAlign.center),
           Text(
-            name,
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-            textAlign: TextAlign.center,
-          ),
-          Text(
-            "\${(time ~/ 60).toString().padLeft(2, '0')}:\${(time % 60).toString().padLeft(2, '0')}",
+            "${(time ~/ 60).toString().padLeft(2, '0')}:${(time % 60).toString().padLeft(2, '0')}",
             style: TextStyle(fontSize: 16, color: Colors.white),
           )
         ],
-      ),
-    );
-  }
-
-  Widget _buildChatButton() {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-      onPressed: () {
-        Navigator.pushNamed(context, '/chat');
-      },
-      child: Text('Abrir Chat', style: TextStyle(color: Colors.white)),
-    );
-  }
-
-  void _showCheckMateDialog({required bool didWin}) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.black,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        title: Text(didWin ? '¡Has ganado!' : 'Has perdido',
-            textAlign: TextAlign.center, style: TextStyle(color: Colors.white)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(didWin ? Icons.emoji_events : Icons.close,
-                size: 40, color: didWin ? Colors.yellow : Colors.redAccent),
-            SizedBox(height: 10),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-              onPressed: () { Navigator.pop(context);},
-              child: Text('Revisar Partida', style: TextStyle(color: Colors.white)),
-            ),
-            SizedBox(height: 10),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-              child: Text('Menú', style: TextStyle(color: Colors.white)),
-              onPressed: () {Navigator.pushReplacementNamed(context, Init_page.id);},
-            ),
-          ],
-        ),
       ),
     );
   }

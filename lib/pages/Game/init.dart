@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:frontend_android/pages/Game/settings.dart';
@@ -9,7 +10,7 @@ import 'package:frontend_android/pages/buildHead.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:frontend_android/pages/Presentation/wellcome.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import '../../services/socketService.dart';
 
 
 class Init_page extends StatefulWidget {
@@ -50,36 +51,22 @@ class _InitPageState extends State<Init_page> {
   void initState() {
     super.initState();
     _cargarUsuario();
-    _conectarSocket();
+    socket = SocketService().getSocket();
     encontrarPartida();
 
-  }
-
-  void _conectarSocket() async {
-    final backendUrl = dotenv.env['SERVER_BACKEND'];
-    if (backendUrl == null) {
-      throw Exception("SERVER_BACKEND no está definido en el .env");
-    }
-
-    socket = IO.io(backendUrl, <String, dynamic>{
-      'transports': ['websocket'],
-      'autoConnect': true,
-    });
-    //print("MATCHMAKING: conectando socket");
-    /*socket.connect();
-    print("[MATCHMAKING] ⚠️ Socket conectado: ${socket.connected}");
-    if (socket.disconnected) {
-      print("[MATCHMAKING] ⚠️ Socket no conectado");
-      return;
-    }*/
   }
 
 Future<void> encontrarPartida() async {
 
   String gameId= "";
   socket.on('game-ready', (data) {
-    print("[MATCHMAKING] 🎮 Partida lista: $data");
-    gameId = data;
+    var firstElement = data[0];
+    print("══════════════════════════════════════════════");
+    print("[DEBUG] 📩 Evento 'game-ready' recibido");
+    print("[DEBUG] 🛠 Tipo de 'data': ${data.runtimeType}");
+    print("[DEBUG] 📜 Contenido de 'data': $data");
+    print("══════════════════════════════════════════════");
+    gameId = firstElement['idPartida'].toString();
   });
 
 
@@ -96,7 +83,7 @@ Future<void> encontrarPartida() async {
     if (yo.isNotEmpty && yo.containsKey('color')) {
       final color = yo['color'] as String;
       print("🎯 Mi color: $color");
-
+      print("ESTO ES LO QUE TE LLEVAS: $gameId");
       Navigator.push(
         context,
         MaterialPageRoute(
