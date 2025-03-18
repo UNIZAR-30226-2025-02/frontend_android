@@ -43,8 +43,20 @@ class _BoardScreenState extends State<BoardScreen> {
             (controller.game.turn == Color.BLACK && playerColor == PlayerColor.white);
         _showCheckMateDialog(didWin: didIWin);
       }
-      _sendMoveToServer(null, null);
-      _switchTimer();
+      List moves = controller.game.history;
+      if (moves.isNotEmpty) {
+        var lastMove = moves.last; // Último movimiento en SAN (Ejemplo: "e2e4")
+
+        if (lastMove.containsKey("from") && lastMove.containsKey("to")) {
+          String from = lastMove["from"];
+          String to = lastMove["to"];
+
+          print("♟️ Movimiento detectado: $from -> $to");
+
+          _sendMoveToServer(from, to);
+          _switchTimer();
+        }
+      }
     });
   }
   void newSocket(){
