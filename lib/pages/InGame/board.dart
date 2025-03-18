@@ -26,6 +26,8 @@ class _BoardScreenState extends State<BoardScreen> {
   int whiteTime = 600;
   int blackTime = 600;
   bool isWhiteTurn = true;
+  List<Map<String, String>> messages = [];
+  TextEditingController messageController = TextEditingController();
 
   @override
   void initState() {
@@ -35,9 +37,11 @@ class _BoardScreenState extends State<BoardScreen> {
     print("✅ BoardScreen iniciado con gameId: ${widget.gameId}");
 
     _startTimer();
-    _joinGame();  // ✅ Asegurarse de unirse a la partida
+    _joinGame();
     _initializeSocketListeners();
     _listenToBoardChanges();
+    _listenToChatMessages();
+    _fetchChatMessages();
   }
 
   /// ✅ Unirse a la partida en caso de que se haya perdido la conexión
@@ -128,26 +132,29 @@ class _BoardScreenState extends State<BoardScreen> {
         final from = lastMove['from'];
         final to = lastMove['to'];
 
-        final turno = controller.game.turn; // "w" o "b"
-        final soyBlanco = widget.color == "white";
+        final turno = controller.game.turn.toString().split('.').last.trim(); // 🔥 Eliminamos espacios y extraemos "WHITE" o "BLACK"
+        final soyBlanco = playerColor == PlayerColor.white; // ✅ COMPARACIÓN CORRECTA
 
-        // ⛔ Bloquear si no es mi turno
+        print("📌 [DEBUG] Turno actual: '$turno'");
+        print("📌 [DEBUG] Soy blanco: $soyBlanco");
+        print("♟️ [DEBUG] playerColor asignado: $playerColor");
+
+        // ⛔ BLOQUEAR MOVIMIENTO SI NO ES SU COLOR
         if ((turno == "WHITE" && !soyBlanco) || (turno == "BLACK" && soyBlanco)) {
-          print("⛔ Movimiento cancelado: no es tu turno.");
-          controller.game.undo_move();
-          controller.loadFen(controller.game.fen); // refrescar visual
-          return;
+          print("⛔ [move] Movimiento bloqueado: No es tu turno.");
+          return; // ✅ No permite que se haga el movimiento
         }
-
-        print("♟ Movimiento local válido: $from -> $to");
-
-        if (lastMove.containsKey("from") && lastMove.containsKey("to")) {
-          _sendMoveToServer(from, to);
-          _switchTimer();
+        else{
+          if(lastMove.containsKey("from") && lastMove.containsKey("to")) {
+            print("✅ [MOVE] Movimiento válido detectado: $from -> $to");
+            _sendMoveToServer(from, to);
+            _switchTimer();
+          }
         }
       }
     });
   }
+
 
   /// ✅ Cambia el temporizador
   void _startTimer() {
@@ -180,35 +187,91 @@ class _BoardScreenState extends State<BoardScreen> {
     _timerBlack.cancel();
     super.dispose();  // ❌ No desconectamos el socket aquí
   }
+  void _listenToChatMessages() {
+    socket.on("new-message", (data) {
+      print("📩 Mensaje recibido en tiempo real: $data");
+      setState(() {
+        messages.add({"sender": data["sender"], "message": data["message"]});
+      });
+    });
+  }
+
+
+  Future<void> _fetchChatMessages() async {
+    socket.emit("fetch-messages", {"game_id": widget.gameId});
+    socket.on("messages-loaded", (data) {
+      setState(() {
+        messages = List<Map<String, String>>.from(data.map((msg) => {
+          "sender": msg["Id_usuario"],
+          "message": msg["Mensaje"]
+        }));
+      });
+    });
+  }
+
+  Future<void> _sendChatMessage() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? sender = prefs.getString('idJugador');
+    String message = messageController.text.trim();
+
+    if (message.isNotEmpty && sender != null) {
+      socket.emit("send-message", {
+        "game_id": widget.gameId,
+        "user_id": sender,
+        "message": message
+      });
+      setState(() {
+        messages.add({"sender": sender, "message": message});
+      });
+      messageController.clear();
+    }
+  }
+
   void _openChat() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
         child: Container(
           height: 300,
           padding: EdgeInsets.all(16),
           child: Column(
             children: [
               Expanded(
-                child: ListView(),
+                child: ListView.builder(
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    final message = messages[index];
+                    bool isMe = message["sender"] == playerColor.toString();
+                    return Align(
+                      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                      child: Container(
+                        margin: EdgeInsets.symmetric(vertical: 5),
+                        padding: EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: isMe ? Colors.blue[300] : Colors.grey[300],
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(message["message"]!),
+                      ),
+                    );
+                  },
+                ),
               ),
               Row(
                 children: [
                   Expanded(
                     child: TextField(
+                      controller: messageController,
                       decoration: InputDecoration(hintText: "Escribe un mensaje..."),
                     ),
                   ),
                   IconButton(
                     icon: Icon(Icons.send, color: Colors.blue),
-                    onPressed: () {},
+                    onPressed: _sendChatMessage,
                   ),
                 ],
               ),
@@ -218,6 +281,8 @@ class _BoardScreenState extends State<BoardScreen> {
       ),
     );
   }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
