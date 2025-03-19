@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:chess/chess.dart' as chess;
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -23,6 +24,7 @@ class _BoardScreenState extends State<BoardScreen> {
   late Timer _timerWhite;
   late Timer _timerBlack;
   late IO.Socket socket;
+  late chess.Chess chessGame;
   int whiteTime = 600;
   int blackTime = 600;
   bool isWhiteTurn = true;
@@ -31,7 +33,7 @@ class _BoardScreenState extends State<BoardScreen> {
   void initState() {
     super.initState();
     socket = SocketService().getSocket();
-
+    chessGame = chess.Chess();
     // ✅ Asegurar que playerColor se asigne correctamente
     playerColor = widget.color.trim().toLowerCase() == "white" ? PlayerColor.white : PlayerColor.black;
     print("✅ BoardScreen iniciado con playerColor: $playerColor");
