@@ -26,8 +26,6 @@ class _BoardScreenState extends State<BoardScreen> {
   int whiteTime = 600;
   int blackTime = 600;
   bool isWhiteTurn = true;
-  List<Map<String, String>> messages = [];
-  TextEditingController messageController = TextEditingController();
 
   @override
   void initState() {
@@ -200,156 +198,6 @@ class _BoardScreenState extends State<BoardScreen> {
   }
   ///------------------------------------------------------------------------------
 
-
-  /// ✅ Escucha mensajes en tiempo real y almacena el historial
-  void _listenToChatMessages() {
-    socket.on("chat-message", (data) { // 🔹 Aquí `data` se recibe correctamente del servidor
-      print("📩 [CHAT] Evento recibido del servidor: $data");
-
-      if (data is Map<String, dynamic> && data.containsKey("user_id") && data.containsKey("message")) {
-        String sender = data["user_id"];
-        String message = data["message"];
-
-        // 🔍 Evitar mensajes duplicados
-        String? lastMessage = messages.isNotEmpty ? messages.last["message"] : null;
-
-        if (lastMessage == null || lastMessage != message) {
-          setState(() {
-            messages.add({"sender": sender, "message": message});
-          });
-
-          print("✅ [CHAT] Mensaje agregado: $sender -> $message");
-        } else {
-          print("⚠️ [CHAT] Mensaje duplicado detectado.");
-        }
-      } else {
-        print("⚠️ [CHAT] Datos incorrectos: $data");
-      }
-    });
-  }
-
-
-
-  /// ✅ Enviar mensaje al servidor
-void _sendChatMessage() {
-  SharedPreferences.getInstance().then((prefs) {
-    String? sender = prefs.getString('idJugador');
-    String message = messageController.text.trim();
-
-    print("📤 [CHAT] Intentando enviar mensaje: '$message' de usuario '$sender' en partida '${widget.gameId}'");
-
-    if (message.isNotEmpty && sender != null) {
-      socket.emit("send-message", {
-        "game_id": widget.gameId,
-        "user_id": sender,
-        "message": message
-      });
-
-      print("✅ [CHAT] Mensaje enviado al servidor: $message en partida '${widget.gameId}'");
-
-      setState(() {
-        messages.add({"sender": sender, "message": message});
-      });
-
-      messageController.clear();
-    } else {
-      print("⚠️ [CHAT] Mensaje NO enviado: Campo vacío o usuario no encontrado.");
-    }
-  });
-}
-void _fetchChatMessages() {
-  print("📡 [CHAT] Solicitando mensajes para la partida: '${widget.gameId}'");
-
-  // ✅ Enviar la petición y esperar la respuesta
-  socket.emitWithAck("fetch-messages", {"game_id": widget.gameId}, ack: (data) {
-    print("📩 [CHAT] Mensajes recibidos del servidor para partida '${widget.gameId}': $data");
-
-    if (data is List && data.isNotEmpty) {
-      setState(() {
-        messages.clear(); // 🔥 Limpiar mensajes antes de agregar nuevos
-        messages.addAll(data.map((msg) => {
-          "sender": msg["Id_usuario"],
-          "message": msg["Mensaje"]
-        }));
-      });
-
-      print("✅ [CHAT] Mensajes cargados en la UI para partida '${widget.gameId}'.");
-    } else {
-      print("⚠️ [CHAT] No hay mensajes en la base de datos o formato incorrecto.");
-    }
-  });
-}
-
-
-
-void _openChat() {
-  // ✅ Cargar mensajes antes de abrir el chat
-  _fetchChatMessages();
-  _listenToChatMessages();
-
-  SharedPreferences.getInstance().then((prefs) {
-    String? idJugador = prefs.getString('idJugador');
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-        child: Container(
-          height: 300,
-          padding: EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Expanded(
-                child: ListView.builder(
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    final message = messages[index];
-                    bool isMe = message["sender"] == idJugador; // ✅ Comparar con el ID del usuario autenticado
-
-                    return Align(
-                      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                      child: Container(
-                        margin: EdgeInsets.symmetric(vertical: 5),
-                        padding: EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: isMe ? Colors.blue[300] : Colors.grey[300],
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(message["message"]!),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: messageController,
-                      decoration: InputDecoration(
-                        hintText: "Escribe un mensaje...",
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 10),
-                  FloatingActionButton(
-                    onPressed: _sendChatMessage,
-                    backgroundColor: Colors.blue,
-                    child: Icon(Icons.send, color: Colors.white),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  });
-}
 ///------------------------------------------------------------------------------
 @override
 Widget build(BuildContext context) {
@@ -407,14 +255,6 @@ Widget build(BuildContext context) {
           ),
         ),
       ],
-    ),
-    floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 50), // 🔥 Ajusta la distancia desde abajo
-        child: FloatingActionButton.extended(
-          onPressed: _openChat,
-          label: Text("Chat"),
-          icon: Icon(Icons.chat),
-          backgroundColor: Colors.blueAccent,)
     ),
   );
 }
