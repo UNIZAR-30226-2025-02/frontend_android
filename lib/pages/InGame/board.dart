@@ -26,8 +26,6 @@ class _BoardScreenState extends State<BoardScreen> {
   int whiteTime = 600;
   int blackTime = 600;
   bool isWhiteTurn = true;
-  List<Map<String, String>> messages = [];
-  TextEditingController messageController = TextEditingController();
 
   @override
   void initState() {
@@ -37,11 +35,9 @@ class _BoardScreenState extends State<BoardScreen> {
     print("✅ BoardScreen iniciado con gameId: ${widget.gameId}");
 
     _startTimer();
-    _joinGame();
+    _joinGame();  // ✅ Asegurarse de unirse a la partida
     _initializeSocketListeners();
     _listenToBoardChanges();
-    _listenToChatMessages();
-    _fetchChatMessages();
   }
 
   /// ✅ Unirse a la partida en caso de que se haya perdido la conexión
@@ -81,7 +77,6 @@ class _BoardScreenState extends State<BoardScreen> {
                 "to": to,
                 "promotion": "q"
               });
-              controller.loadFen(controller.game.fen);
 
               if (move != null) {
                 print("♟️ Movimiento aplicado en el tablero: $from -> $to");
@@ -132,30 +127,16 @@ class _BoardScreenState extends State<BoardScreen> {
         final from = lastMove['from'];
         final to = lastMove['to'];
 
-        final turno = controller.game.turn.toString().split('.').last.trim(); // 🔥 Eliminamos espacios y extraemos "WHITE" o "BLACK"
-        final soyBlanco = playerColor == PlayerColor.white; // ✅ COMPARACIÓN CORRECTA
+        print("♟️ MOVIMIENTO DETECTADO: $from -> $to");
 
-        print("📌 [DEBUG] Turno actual: '$turno'");
-        print("📌 [DEBUG] Soy blanco: $soyBlanco");
-        print("♟️ [DEBUG] playerColor asignado: $playerColor");
-
-        // ⛔ BLOQUEAR MOVIMIENTO SI NO ES SU COLOR
-        if ((turno == "WHITE" && !soyBlanco) || (turno == "BLACK" && soyBlanco)) {
-          print("⛔ [move] Movimiento bloqueado: No es tu turno.");
-          return; // ✅ No permite que se haga el movimiento
-        }
-        else{
-          if(lastMove.containsKey("from") && lastMove.containsKey("to")) {
-            print("✅ [MOVE] Movimiento válido detectado: $from -> $to");
-            _sendMoveToServer(from, to);
-            _switchTimer();
-          }
+        if (lastMove.containsKey("from") && lastMove.containsKey("to")) {
+          _sendMoveToServer(from, to);
+          _switchTimer();
         }
       }
     });
   }
 
-  ///------------------------------------------------------------------------------
   /// ✅ Cambia el temporizador
   void _startTimer() {
     _timerWhite = Timer.periodic(Duration(seconds: 1), (timer) {
@@ -187,155 +168,7 @@ class _BoardScreenState extends State<BoardScreen> {
     _timerBlack.cancel();
     super.dispose();  // ❌ No desconectamos el socket aquí
   }
-  ///------------------------------------------------------------------------------
-  /// ✅ Escuchar mensajes en tiempo real
-  /// ✅ Escucha mensajes en tiempo real y almacena el historial
-  void _listenToChatMessages() {
-    socket.on("new-message", (data) {
-      print("📩 [CHAT] Evento recibido del servidor: $data");
 
-      if (data is Map<String, dynamic> && data.containsKey("user_id") && data.containsKey("message")) {
-        String sender = data["user_id"];
-        String message = data["message"];
-
-        // 🔍 Obtener el último mensaje recibido (si existe)
-        String? lastMessage = messages.isNotEmpty ? messages.last["message"] : null;
-
-        // ⚡ Evitar mensajes duplicados
-        if (lastMessage == null || lastMessage != message) {
-          setState(() {
-            messages.add({"sender": sender, "message": message});
-          });
-
-          print("✅ [CHAT] Mensaje agregado a la lista: $sender -> $message");
-        } else {
-          print("⚠️ [CHAT] Mensaje duplicado detectado y no agregado.");
-        }
-      } else {
-        print("⚠️ [CHAT] Datos del mensaje incorrectos: $data");
-      }
-    });
-  }
-
-  /// ✅ Enviar mensaje al servidor
-  void _sendChatMessage() {
-    SharedPreferences.getInstance().then((prefs) {
-      String? sender = prefs.getString('idJugador');
-      String message = messageController.text.trim();
-
-      print("📤 [CHAT] Intentando enviar mensaje: '$message' de usuario '$sender' en partida '${widget.gameId}'");
-
-      if (message.isNotEmpty && sender != null) {
-        socket.emit("send-message", {
-          "game_id": widget.gameId,
-          "user_id": sender,
-          "message": message
-        });
-
-        print("✅ [CHAT] Mensaje enviado al servidor: $message en partida '${widget.gameId}'");
-
-        setState(() {
-          messages.add({"sender": sender, "message": message});
-        });
-
-        messageController.clear();
-      } else {
-        print("⚠️ [CHAT] Mensaje NO enviado: Campo vacío o usuario no encontrado.");
-      }
-    });
-  }
-  void _fetchChatMessages() {
-    print("📡 [CHAT] Solicitando mensajes para la partida: '${widget.gameId}'");
-
-    // ✅ Enviar la petición y esperar la respuesta
-    socket.emitWithAck("fetch-messages", {"game_id": widget.gameId}, ack: (data) {
-      print("📩 [CHAT] Mensajes recibidos del servidor para partida '${widget.gameId}': $data");
-
-      if (data is List && data.isNotEmpty) {
-        setState(() {
-          messages.clear(); // 🔥 Limpiar mensajes antes de agregar nuevos
-          messages.addAll(data.map((msg) => {
-            "sender": msg["Id_usuario"],
-            "message": msg["Mensaje"]
-          }));
-        });
-
-        print("✅ [CHAT] Mensajes cargados en la UI para partida '${widget.gameId}'.");
-      } else {
-        print("⚠️ [CHAT] No hay mensajes en la base de datos o formato incorrecto.");
-      }
-    });
-  }
-
-
-
-  void _openChat() {
-    // ✅ Cargar mensajes antes de abrir el chat
-    _fetchChatMessages();
-
-    SharedPreferences.getInstance().then((prefs) {
-      String? idJugador = prefs.getString('idJugador');
-
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-        builder: (context) => Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-          child: Container(
-            height: 300,
-            padding: EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: messages.length,
-                    itemBuilder: (context, index) {
-                      final message = messages[index];
-                      bool isMe = message["sender"] == idJugador; // ✅ Comparar con el ID del usuario autenticado
-
-                      return Align(
-                        alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                        child: Container(
-                          margin: EdgeInsets.symmetric(vertical: 5),
-                          padding: EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: isMe ? Colors.blue[300] : Colors.grey[300],
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(message["message"]!),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: messageController,
-                        decoration: InputDecoration(
-                          hintText: "Escribe un mensaje...",
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 10),
-                    FloatingActionButton(
-                      onPressed: _sendChatMessage,
-                      backgroundColor: Colors.blue,
-                      child: Icon(Icons.send, color: Colors.white),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    });
-  }
   ///------------------------------------------------------------------------------
 
   /// ✅ Volver a la pantalla anterior
@@ -363,7 +196,8 @@ class _BoardScreenState extends State<BoardScreen> {
     ));
     Navigator.pop(context); // Salir de la partida al rendirse
   }
-///------------------------------------------------------------------------------
+  ///------------------------------------------------------------------------------
+
 
   @override
   Widget build(BuildContext context) {
@@ -422,17 +256,9 @@ class _BoardScreenState extends State<BoardScreen> {
           ),
         ],
       ),
-    floatingActionButton: Padding(
-    padding: const EdgeInsets.only(bottom: 50), // 🔥 Ajusta la distancia desde abajo
-    child: FloatingActionButton.extended(
-    onPressed: _openChat,
-    label: Text("Chat"),
-    icon: Icon(Icons.chat),
-    backgroundColor: Colors.blueAccent,)
-      ),
-    );
-  }
+      );
 
+  }
 
   Widget _buildPlayerInfo(String name, int time) {
     return Padding(
