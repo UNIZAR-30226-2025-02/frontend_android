@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:chess/chess.dart' as chess;
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -24,7 +23,6 @@ class _BoardScreenState extends State<BoardScreen> {
   late Timer _timerWhite;
   late Timer _timerBlack;
   late IO.Socket socket;
-  late chess.Chess chessGame;
   int whiteTime = 600;
   int blackTime = 600;
   bool isWhiteTurn = true;
@@ -33,7 +31,6 @@ class _BoardScreenState extends State<BoardScreen> {
   void initState() {
     super.initState();
     socket = SocketService().getSocket();
-    chessGame = chess.Chess();
     // ✅ Asegurar que playerColor se asigne correctamente
     playerColor = widget.color.trim().toLowerCase() == "white" ? PlayerColor.white : PlayerColor.black;
     print("✅ BoardScreen iniciado con playerColor: $playerColor");
@@ -63,6 +60,7 @@ class _BoardScreenState extends State<BoardScreen> {
           String movimiento = moveData["movimiento"];  // Ejemplo: "e2e4"
           String from = movimiento.substring(0, 2);
           String to = movimiento.substring(2, 4);
+          String promotion = movimiento.length > 4 ? movimiento[4] : "";
 
           print("✅ Movimiento detectado: $from -> $to");
 
@@ -72,7 +70,7 @@ class _BoardScreenState extends State<BoardScreen> {
                 var move = controller.game.move({
                   "from": from,
                   "to": to,
-                  "promotion": "q"
+                  "promotion": promotion.isNotEmpty ? promotion : null, // ✅ Aplica promoción si existe
                 });
 
                 if (move != null) {
@@ -97,10 +95,14 @@ class _BoardScreenState extends State<BoardScreen> {
   }
 
   /// ✅ Envía movimientos al servidor
-  Future<void> _sendMoveToServer(String from, String to) async {
+  Future<void> _sendMoveToServer(String from, String to, String? promotion) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? idJugador = prefs.getString('idJugador');
     String movimiento = "$from$to";
+
+    if (promotion != null && promotion.isNotEmpty) {
+      movimiento = "$from$to$promotion"; // 🔥 Agrega la pieza elegida
+    }
 
     if (idJugador != null) {
       print("📡 ENVIANDO MOVIMIENTO: $from -> $to en partida ${widget.gameId}, jugador: $idJugador");
@@ -110,7 +112,7 @@ class _BoardScreenState extends State<BoardScreen> {
         "idJugador": idJugador,
       });
       //setState(() {
-        //controller.notifyListeners();
+      //controller.notifyListeners();
       //});
     } else {
       print("⚠️ ERROR: No se encontró el idJugador en SharedPreferences.");
@@ -125,6 +127,7 @@ class _BoardScreenState extends State<BoardScreen> {
         final lastMove = history.last;
         final from = lastMove['from']; // Ejemplo: "e2"
         final to = lastMove['to']; // Ejemplo: "e4"
+        String? promotion = lastMove.containsKey("promotion") ? lastMove["promotion"] : null;
 
         print("♟️ MOVIMIENTO DETECTADO: $from -> $to");
 
@@ -142,7 +145,7 @@ class _BoardScreenState extends State<BoardScreen> {
         print("📌 Tipo de piece.color: ${piece.color} (tipo: ${piece.color.runtimeType})");
         print("📌 Tipo de playerColor: $playerColor (tipo: ${playerColor.runtimeType})");
 
-        // 🔥 Convertir `piece.color` de `Color.BLACK` a `PlayerColor.black`
+        // 🔥 Convertir piece.color de Color.BLACK a PlayerColor.black
         PlayerColor piecePlayerColor = (piece.color == Color.WHITE) ? PlayerColor.white : PlayerColor.black;
 
         // ✅ Verificar que la pieza pertenece al jugador actual
@@ -152,11 +155,24 @@ class _BoardScreenState extends State<BoardScreen> {
           return;
         }
 
+        bool isPromotionMove =
+            (from[1] == "7" && to[1] == "8" && playerColor == PlayerColor.white) ||
+                (from[1] == "2" && to[1] == "1" && playerColor == PlayerColor.black);
+
+        if (isPromotionMove) {
+          print("👑 Promoción detectada: Pieza elegida -> ${promotion ?? "No detectada"}");
+
+          if (promotion == null || promotion.isEmpty) {
+            print("⚠️ ERROR: No se detectó la promoción correctamente.");
+            return;
+          }
+        }
+
         // ✅ Si es su turno y mueve su propia pieza, enviar movimiento al servidor y reflejar en el otro jugador
         if ((isWhiteTurn && playerColor == PlayerColor.white) ||
             (!isWhiteTurn && playerColor == PlayerColor.black)) {
           print("✅ Movimiento válido, enviando al servidor...");
-          _sendMoveToServer(from, to);
+          _sendMoveToServer(from, to, promotion);
           _changeTurn();
         } else {
           print("❌ Movimiento bloqueado: No es tu turno.");
