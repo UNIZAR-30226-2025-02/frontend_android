@@ -70,25 +70,27 @@ class _BoardScreenState extends State<BoardScreen> {
 
           print("✅ Movimiento detectado: $from -> $to");
 
-          setState(() {
-            try {
-              var move = controller.game.move({
-                "from": from,
-                "to": to,
-                "promotion": "q"
-              });
+          if(mounted){
+            setState(() {
+              try {
+                var move = controller.game.move({
+                  "from": from,
+                  "to": to,
+                  "promotion": "q"
+                });
 
-              if (move != null) {
-                print("♟️ Movimiento aplicado en el tablero: $from -> $to");
-                controller.notifyListeners();
-                _switchTimer();
-              } else {
-                print("❌ Movimiento inválido recibido.");
+                if (move != null) {
+                  print("♟️ Movimiento aplicado en el tablero: $from -> $to");
+                  controller.notifyListeners();
+                  _switchTimer();
+                } else {
+                  print("❌ Movimiento inválido recibido.");
+                }
+              } catch (e) {
+                print("⚠️ Error al procesar el movimiento: $e");
               }
-            } catch (e) {
-              print("⚠️ Error al procesar el movimiento: $e");
-            }
-          });
+            });
+          }
         } else {
           print("❌ ERROR: 'moveData' no contiene 'movimiento' o 'board'.");
         }
