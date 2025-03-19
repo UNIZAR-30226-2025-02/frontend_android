@@ -127,31 +127,11 @@ class _BoardScreenState extends State<BoardScreen> {
         final from = lastMove['from'];
         final to = lastMove['to'];
 
-        print("[DEBUG] ♟️ MOVIMIENTO DETECTADO: $from -> $to");
+        print("♟️ MOVIMIENTO DETECTADO: $from -> $to");
 
-        // 🔹 Verificar quién es el jugador actual
-        bool isPlayerWhite = playerColor == PlayerColor.white;
-
-        // 🔹 Imprimir información detallada para depuración
-        print("[DEBUG] 🧐 INFO DEBUG:");
-        print("[DEBUG]    - Jugador es Blancas: ${isPlayerWhite ? "✅ Sí" : "❌ No"}");
-        print("[DEBUG]    - Turno actual: ${isWhiteTurn ? "Blancas" : "Negras"}");
-        print("[DEBUG]    - Intentando mover: ${isPlayerWhite ? "Blancas" : "Negras"}");
-
-        // 🔹 Si el jugador intenta mover en el turno incorrecto, cancelar
-        if ((isWhiteTurn && !isPlayerWhite) || (!isWhiteTurn && isPlayerWhite == true)) {
-          print("[DEBUG] 🚫 [ERROR] No puedes mover en el turno del oponente.");
-          controller.game.undo(); // 🔙 Deshacer movimiento ilegal
-          return;
-        }
-
-        // 🔹 Enviar el movimiento solo si es válido y es el turno correcto
         if (lastMove.containsKey("from") && lastMove.containsKey("to")) {
-          print("[DEBUG] ✅ Movimiento válido. Enviando al servidor...");
           _sendMoveToServer(from, to);
           _switchTimer();
-        } else {
-          print("[DEBUG] ❌ Movimiento inválido detectado.");
         }
       }
     });
