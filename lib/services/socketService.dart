@@ -31,6 +31,9 @@ class SocketService {
       _isConnected = true;
     });
 
+    //socket.emit('new-connection', {});
+
+
     socket.onDisconnect((_) {
       print("🔴 SOCKET DESCONECTADO");
       _isConnected = false;
