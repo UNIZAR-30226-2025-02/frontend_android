@@ -75,14 +75,17 @@ class _LoginPageState extends State<Login_page> {
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
+        final accessToken = responseData['accessToken'];
+        final publicUser = responseData['publicUser'];
 
         SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString('idJugador', responseData['id']);
-        await prefs.setString('usuario', responseData['NombreUser']);
-        await prefs.setString('Correo', responseData['Correo']);
-        await prefs.setString('estadoPartida', responseData['EstadoPartida']);
-        await prefs.setString('estadoUser', responseData['estadoUser']);
-        await prefs.setString('fotoPerfil', responseData['FotoPerfil'] ?? "");
+        await prefs.setString('accessToken', accessToken);
+        await prefs.setString('idJugador', publicUser['id']);
+        await prefs.setString('usuario', publicUser['NombreUser']);
+        await prefs.setString('Correo', publicUser['Correo']);
+        await prefs.setString('estadoPartida', publicUser['EstadoPartida']);
+        await prefs.setString('estadoUser', publicUser['estadoUser']);
+        await prefs.setString('fotoPerfil', publicUser['FotoPerfil'] ?? "");
         playerInfo(prefs.getString('idJugador'),prefs.getString('usuario'), prefs.getString('Correo'),
             prefs.getString('estadoUser'), prefs.getString('fotoPerfil'));
 

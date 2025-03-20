@@ -26,8 +26,8 @@ class _InitPageState extends State<Init_page> {
   String? fotoPerfil;
   String selectedGameMode = "Clásica";
   String selectedGameModeKey = "clasica";
-
-  late IO.Socket socket;
+  late SocketService socketService;
+  IO.Socket? socket;
 
   final List<GameMode> gameModes = [
     GameMode("Clásica", Icons.extension, "10 min", "Modo tradicional de ajedrez.", Colors.brown),
@@ -51,15 +51,27 @@ class _InitPageState extends State<Init_page> {
   void initState() {
     super.initState();
     _cargarUsuario();
-    socket = SocketService().getSocket();
+    socketService = SocketService();
+    _initializeSocket();
     encontrarPartida();
 
+  }
+  Future<void> _initializeSocket() async {
+    await socketService.connect(); // ✅ Asegurar que el socket esté listo
+    IO.Socket connectedSocket = await socketService.getSocket();
+
+    if (mounted) {
+      setState(() {
+        socket = connectedSocket; // ✅ Ahora el socket está disponible
+      });
+      print("✅ Socket inicializado correctamente");
+    }
   }
 
 Future<void> encontrarPartida() async {
 
   String gameId= "";
-  socket.on('game-ready', (data) {
+  socket?.on('game-ready', (data) {
     var firstElement = data[0];
     print("══════════════════════════════════════════════");
     print("[DEBUG] 📩 Evento 'game-ready' recibido");
@@ -71,7 +83,9 @@ Future<void> encontrarPartida() async {
 
 
 
-  socket.on('color', (data) {
+  socket?.on('color', (data) {
+
+    print("ENTRPOOOO");
     final jugadores = List<Map<String, dynamic>>.from(data[0]['jugadores']);
 
 
@@ -95,19 +109,19 @@ Future<void> encontrarPartida() async {
     }
   });
 
-  socket.on('errorMessage', (msg) {
+  socket?.on('errorMessage', (msg) {
     print("[MATCHMAKING] ❌ Error recibido del backend: $msg");
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("❌ $msg")),
     );
   });
 
-  socket.onDisconnect((_) {
+  socket?.onDisconnect((_) {
     print("[MATCHMAKING] 🔌 Socket desconectado");
   });
 
   // Opcional para depuración extra
-  socket.onAny((event, data) {
+  socket?.onAny((event, data) {
     print("[MATCHMAKING] 📥 Evento recibido: $event - Data: $data");
   });
 }
@@ -312,7 +326,7 @@ Future<void> encontrarPartida() async {
 
             print("[MATCHMAKING] 🔍 Enviando solicitud de findGame con $idJugador: , mode: $selectedGameModeKey");
 
-            socket.emit("find-game", {
+            socket?.emit("find-game", {
               'idJugador': idJugador,
               'mode': selectedGameModeKey
             });
