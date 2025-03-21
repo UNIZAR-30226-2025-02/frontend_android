@@ -33,17 +33,24 @@ class _BoardScreenState extends State<BoardScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeSocket();
+    _initAsync();
+  }
+
+  Future<void> _initAsync() async {
+    await _initializeSocket();       // Esperamos correctamente
     chessGame = chess.Chess();
-    // ✅ Asegurar que playerColor se asigne correctamente
-    playerColor = widget.color.trim().toLowerCase() == "white" ? PlayerColor.white : PlayerColor.black;
+    playerColor = widget.color.trim().toLowerCase() == "white"
+        ? PlayerColor.white
+        : PlayerColor.black;
+
     print("✅ BoardScreen iniciado con playerColor: $playerColor");
 
     _startTimer();
-    _joinGame();  // ✅ Unirse a la partida
+    _joinGame();
     _initializeSocketListeners();
     _listenToBoardChanges();
   }
+
   Future<void> _initializeSocket() async {
     socket =  await SocketService().getSocket();
   }
@@ -145,26 +152,31 @@ class _BoardScreenState extends State<BoardScreen> {
         }
 
         print("📌 Pieza encontrada en $to: ${movedPiece.type}");
-
+/*
         if (_isPromotionMove(from, to, movedPiece)){
           piezaPromocion = movedPiece;
           print("CAMBIOOOOO ${piezaPromocion!.type}");
-        }
+        }*/
+        print("1 mov");
+
 
         // ✅ Obtener el color de la pieza movida
         PlayerColor piecePlayerColor = (movedPiece.color == chess.Color.WHITE)
             ? PlayerColor.white
             : PlayerColor.black;
-
+        print("2 mov");
         // ✅ Verificar que la pieza pertenece al jugador actual
         bool isMovingOwnPiece = (playerColor == piecePlayerColor);
+        print("3 mov");
         if (!isMovingOwnPiece) {
           print("❌ No puedes mover piezas del rival.");
           return;
         }
+        print("comprobar promocion");
 
         // ✅ Detectar si el movimiento es una promoción
-        if (_isPromotionMove(from, to, movedPiece)) {
+        /*if (_isPromotionMove(from, to, movedPiece)) {
+          print("Entra a promocion");
           String? promotionPiece = await _showPromotionDialog(context);
 
           if (promotionPiece != null) {
@@ -183,10 +195,11 @@ class _BoardScreenState extends State<BoardScreen> {
             print("⚠️ Promoción cancelada.");
             return; // 🔥 Si el usuario cancela, no debe continuar el movimiento
           }
-        } else {
+        } else {*/
           // ✅ Movimiento normal
+          print("enviando movimiento");
           _sendMoveToServer(from, to, "");
-        }
+        //}
 
         _changeTurn();
       }
