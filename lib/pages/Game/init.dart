@@ -61,7 +61,7 @@ class _InitPageState extends State<Init_page> {
     encontrarPartida(); // Ahora sí: ya puedes registrar listeners
   }
   Future<void> _initializeSocket() async {
-    await socketService.connect(); // ✅ Asegurar que el socket esté listo
+    await socketService.connect(context); // ✅ Asegurar que el socket esté listo
     IO.Socket connectedSocket = await socketService.getSocket();
 
     if (mounted) {
