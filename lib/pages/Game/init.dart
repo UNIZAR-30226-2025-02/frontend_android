@@ -50,11 +50,15 @@ class _InitPageState extends State<Init_page> {
   @override
   void initState() {
     super.initState();
-    _cargarUsuario();
     socketService = SocketService();
-    _initializeSocket();
-    encontrarPartida();
+    _cargarUsuario();
+    _initializeSocketAndStartMatchmaking();
+  }
 
+  Future<void> _initializeSocketAndStartMatchmaking() async {
+
+    await _initializeSocket(); // Se asegura de que socket esté listo
+    encontrarPartida(); // Ahora sí: ya puedes registrar listeners
   }
   Future<void> _initializeSocket() async {
     await socketService.connect(); // ✅ Asegurar que el socket esté listo
@@ -69,7 +73,6 @@ class _InitPageState extends State<Init_page> {
   }
 
 Future<void> encontrarPartida() async {
-
   String gameId= "";
   socket?.on('game-ready', (data) {
     var firstElement = data[0];
@@ -82,7 +85,7 @@ Future<void> encontrarPartida() async {
   });
 
 
-
+  print("subscrinbiendo evento color");
   socket?.on('color', (data) {
 
     print("ENTRPOOOO");
