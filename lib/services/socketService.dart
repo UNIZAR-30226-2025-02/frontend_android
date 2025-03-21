@@ -55,6 +55,7 @@ class SocketService {
     socket?.onConnect((_) {
       print("✅ SOCKET CONECTADO con éxito.");
       _isConnected = true;
+      print ("id del socket: ${socket.id}");
 
       // 📢 🔥 Registrar esta sesión en el backend
       print("📤 Registrando sesión en el servidor...");
@@ -74,12 +75,6 @@ class SocketService {
     socket?.onDisconnect((_) {
       print("🔴 SOCKET DESCONECTADO. Intentando reconectar...");
       _isConnected = false;
-      Future.delayed(Duration(seconds: 2), () {
-        if (!_isConnected) {
-          print("🔄 Reintentando conexión...");
-          socket?.connect();
-        }
-      });
     });
 
     socket?.onConnectError((err) {
@@ -93,6 +88,7 @@ class SocketService {
     /// 🔥 **Evento force-logout**
     socket?.on("force-logout", (data) async {
       print("🚨 Recibido evento 'force-logout' del servidor!");
+      socket?.disconnect();
       await _handleForceLogout(context);
     });
 
@@ -120,7 +116,7 @@ class SocketService {
 
     if (usuarioActual != null && idJugador != null) {
       print("📤 Enviando 'logout' al servidor con ID: $idJugador...");
-      socket?.emit("logout", {"idJugador": idJugador});
+
     } else {
       print("⚠️ No se pudo enviar 'logout' porque no hay usuario autenticado.");
     }
@@ -129,17 +125,12 @@ class SocketService {
     await prefs.clear(); // 🔥 Borrar sesión
 
     print("🔌 Desconectando el socket...");
-    socket?.disconnect();
+
 
     // 🔄 Evitar que el usuario siga reconectándose automáticamente después del logout
     socket?.clearListeners(); // 🔥 Eliminar todos los listeners previos
 
-    Future.delayed(Duration(seconds: 5), () {
-      print("🔄 Volviendo a inicializar el socket después de 5 segundos...");
-      if (!socket!.connected) {
-        socket?.connect(); // 🔄 Reintentar la conexión después del logout
-      }
-    });
+
 
     if (context.mounted) {
       print("📢 Mostrando alerta de cierre de sesión...");
