@@ -59,6 +59,7 @@ class _InitPageState extends State<Init_page> {
 
     await _initializeSocket(); // Se asegura de que socket esté listo
     encontrarPartida(); // Ahora sí: ya puedes registrar listeners
+
   }
   Future<void> _initializeSocket() async {
     await socketService.connect(context); // ✅ Asegurar que el socket esté listo
@@ -74,6 +75,22 @@ class _InitPageState extends State<Init_page> {
 
 Future<void> encontrarPartida() async {
   String gameId= "";
+  String color = "";
+  late final pgn;
+
+  socket?.on('existing-game' , (data){
+    print("Partida encontrada con data: $data");
+    gameId = data['gameID'];
+    color = data['color'];
+    pgn =  data['pgn'];
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BoardScreen(selectedGameMode, color, gameId),
+      ),
+    );
+
+  });
   socket?.on('game-ready', (data) {
     var firstElement = data[0];
     print("══════════════════════════════════════════════");
