@@ -7,8 +7,8 @@ import 'package:frontend_android/pages/Presentation/wellcome.dart';
 class SocketService {
   static final SocketService _instance = SocketService._internal();
   late IO.Socket socket;
-  bool _isConnected = false; // Flag para evitar múltiples conexiones
-  bool _isInitialized = false; // Evita múltiples inicializaciones
+  bool _isConnected = false;
+  bool _isInitialized = false;
 
   factory SocketService() {
     return _instance;
@@ -32,7 +32,7 @@ class SocketService {
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? token = prefs.getString('accessToken');
-    String? idJugador = prefs.getString('idJugador'); // 📌 Obtener ID del jugador
+    String? idJugador = prefs.getString('idJugador');
 
     if (token == null || idJugador == null) {
       print("⚠️ No se puede conectar porque no hay token o ID de usuario.");
@@ -45,112 +45,98 @@ class SocketService {
     socket = IO.io(backendUrl, <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': true,
-      'query': {
-        'token': token
-      }
+      'query': {'token': token}
     });
 
-    _setupListeners(context);
+    _setupListeners(context, idJugador);
 
-    socket?.onConnect((_) {
-      print("✅ SOCKET CONECTADO con éxito.");
+    socket.onConnect((_) {
+      print("✅ SOCKET CONECTADO con éxito. ID del socket: ${socket.id}");
       _isConnected = true;
-      print ("id del socket: ${socket.id}");
 
-      // 📢 🔥 Registrar esta sesión en el backend
-      print("📤 Registrando sesión en el servidor...");
-      socket?.emit("register-session", idJugador);
+      print("📤 Registrando sesión en el servidor con ID: $idJugador...");
+      socket.emit("register-session", idJugador);
     });
   }
 
-
-  void _setupListeners(BuildContext context) {
+  /// 🔹 Configura los listeners del socket
+  void _setupListeners(BuildContext context, String idJugador) {
     print("🛠 Configurando listeners del socket...");
 
-    socket?.onConnect((_) {
+    socket.onConnect((_) {
       print("✅ SOCKET CONECTADO con éxito.");
       _isConnected = true;
     });
 
-    socket?.onDisconnect((_) {
-      print("🔴 SOCKET DESCONECTADO. Intentando reconectar...");
-      _isConnected = false;
+    socket.onDisconnect((_) {
+      print("🔴 SOCKET DESCONECTADO.");
+      _showForceLogoutPopup(context, "Se ha perdido la conexión con el servidor.");
     });
 
-    socket?.onConnectError((err) {
+    socket.onConnectError((err) {
       print("⚠️ ERROR de conexión del socket: $err");
     });
 
-    socket?.onError((err) {
+    socket.onError((err) {
       print("❌ ERROR en el socket: $err");
     });
 
-    /// 🔥 **Evento force-logout**
-    socket?.on("force-logout", (data) async {
+    /// 🔥 **Evento force-logout** (Comparación correcta del ID del jugador)
+    socket.on("force-logout", (data) async {
       print("🚨 Recibido evento 'force-logout' del servidor!");
-      socket?.disconnect();
-      await _handleForceLogout(context);
+      print("📌 Data recibido: $data");
+
+      // 🔹 Extraer correctamente el ID del jugador del `Map`
+      String? idJugadorConectado;
+      if (data is List && data.isNotEmpty) {
+        if (data[0] is Map<String, dynamic> && data[0].containsKey('idJugador')) {
+          idJugadorConectado = data[0]['idJugador'];
+        }
+      } else if (data is Map<String, dynamic> && data.containsKey('idJugador')) {
+        idJugadorConectado = data['idJugador'];
+      }
+
+      if (idJugadorConectado == null) {
+        print("⚠️ No se recibió un ID de jugador válido en el evento 'force-logout'.");
+        return;
+      }
+
+      print("📌 ID del jugador que se ha conectado: $idJugadorConectado");
+      print("📌 ID del jugador local: $idJugador");
+
+      // 🔹 Si el jugador que se ha conectado es el mismo, expulsar al actual
+      if (idJugadorConectado == idJugador) {
+        print("🔴 Sesión duplicada detectada. Cerrando sesión...");
+        _showForceLogoutPopup(context, "Tu cuenta ha sido iniciada en otro dispositivo.");
+      } else {
+        print("⚠️ Recibido 'force-logout' pero el ID no coincide. Ignorado.");
+      }
     });
 
-    socket?.onAny((event, data) {
+    socket.onAny((event, data) {
       print("📥 Evento recibido: $event - Data: $data");
     });
 
     print("✅ Listeners configurados correctamente.");
   }
 
-  void _registerForceLogout(BuildContext context) {
-    print("🔄 Registrando evento 'force-logout'...");
-    socket?.on("force-logout", (data) async {
-      print("🚨 Recibido evento 'force-logout' del servidor!");
-      await _handleForceLogout(context);
-    });
-  }
-
-  Future<void> _handleForceLogout(BuildContext context) async {
-    print("🔴 Ejecutando _handleForceLogout()...");
-
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? usuarioActual = prefs.getString('usuario');
-    String? idJugador = prefs.getString('idJugador');
-
-    if (usuarioActual != null && idJugador != null) {
-      print("📤 Enviando 'logout' al servidor con ID: $idJugador...");
-
-    } else {
-      print("⚠️ No se pudo enviar 'logout' porque no hay usuario autenticado.");
-    }
-
-    print("🗑 Eliminando datos de usuario...");
-    await prefs.clear(); // 🔥 Borrar sesión
-
-    print("🔌 Desconectando el socket...");
-
-
-    // 🔄 Evitar que el usuario siga reconectándose automáticamente después del logout
-    socket?.clearListeners(); // 🔥 Eliminar todos los listeners previos
-
-
+  /// 🔹 Muestra un `AlertDialog` antes de cerrar sesión
+  void _showForceLogoutPopup(BuildContext context, String message) {
+    print("📢 Mostrando pop-up: $message");
 
     if (context.mounted) {
-      print("📢 Mostrando alerta de cierre de sesión...");
       showDialog(
         context: context,
-        barrierDismissible: false, // Evita que el usuario cierre el diálogo
+        barrierDismissible: false,
         builder: (BuildContext context) {
           return AlertDialog(
             title: Text("Sesión cerrada"),
-            content: Text("Tu cuenta ha sido iniciada en otro dispositivo."),
+            content: Text(message),
             actions: [
               TextButton(
-                onPressed: () {
-                  print("🔄 Redirigiendo a la pantalla de bienvenida...");
-                  Navigator.of(context).pop();
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (context) => Wellcome_page()),
-                        (Route<dynamic> route) => false,
-                  );
+                onPressed: () async {
+                  Navigator.of(context).pop(); // Cerrar el pop-up
+                  await _disconnectAndRedirect(context);
                 },
                 child: Text("Aceptar"),
               ),
@@ -158,33 +144,59 @@ class SocketService {
           );
         },
       );
-    } else {
-      print("⚠️ No se pudo mostrar la alerta porque el contexto ya no está montado.");
     }
   }
 
+  /// 🔹 Cierra la sesión y redirige al usuario a `Wellcome_page`
+  Future<void> _disconnectAndRedirect(BuildContext context) async {
+    print("🗑 Eliminando datos de usuario...");
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
 
+    print("🔌 Desconectando el socket...");
+    socket.clearListeners();
+    socket.disconnect();
+    socket.dispose();
+
+    _isConnected = false;
+    _isInitialized = false;
+
+    print("🔄 Redirigiendo a la pantalla de bienvenida...");
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => Wellcome_page()),
+          (Route<dynamic> route) => false,
+    );
+  }
+
+  /// 🔹 Conecta al socket si no está ya conectado
   Future<void> connect(BuildContext context) async {
     print("🔄 Intentando conectar al socket...");
     if (!_isConnected) {
-      await initializeSocket(context); // 🔥 Asegura que el socket esté inicializado antes de conectarse
-      socket?.connect();
+      await initializeSocket(context);
+      socket.connect();
       print("🔗 Socket en proceso de conexión...");
     } else {
       print("✅ El socket ya está conectado.");
     }
   }
 
+  /// 🔹 Desconecta el socket manualmente
   void disconnect() {
     print("🔌 Desconectando el socket manualmente...");
-    socket?.disconnect();
+    socket.clearListeners();
+    socket.disconnect();
+    socket.dispose();
+    _isConnected = false;
+    _isInitialized = false;
   }
 
+  /// 🔹 Obtiene la instancia del socket
   Future<IO.Socket> getSocket() async {
     if (!_isInitialized) {
       print("⚠️ El socket no estaba inicializado. Inicializándolo ahora...");
       await initializeSocket;
     }
-    return socket!;
+    return socket;
   }
 }
