@@ -37,7 +37,9 @@ class _BoardScreenState extends State<BoardScreen> {
   }
 
   Future<void> _initAsync() async {
-    await _initializeSocket();
+    await SocketService().connect(context);  // 👈 FORZAR CONEXIÓN COMPLETA
+    socket = await SocketService().getSocket();  // 👈 Asignar socket antes de listeners
+
     chessGame = chess.Chess();
     playerColor = widget.color.trim().toLowerCase() == "white"
         ? PlayerColor.white
@@ -45,9 +47,12 @@ class _BoardScreenState extends State<BoardScreen> {
 
     _startTimer();
     _joinGame();
-    _initializeSocketListeners();
+
+
+    _initializeSocketListeners();  // 👈 IMPORTANTE: después de tener socket
     _listenToBoardChanges();
   }
+
 
   Future<void> _initializeSocket() async {
     socket = await SocketService().getSocket();
@@ -84,15 +89,22 @@ class _BoardScreenState extends State<BoardScreen> {
       }
     });
 
-    // 🔁 Tablas ofrecidas por el rival
     socket.on("requestTie", (data) async {
       bool? accepted = await _showDrawOfferDialog(context);
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? idJugador = prefs.getString('idJugador');
+
       if (accepted == true && idJugador != null) {
         socket.emit('draw-accepted', {
           "idPartida": widget.gameId,
           "idJugador": idJugador,
+        });
+
+        // 👇 Mostrar popup también para quien acepta
+        Future.delayed(Duration.zero, () {
+          if (!context.mounted) return;
+          _showSimpleThenExitDialog(
+              "Has aceptado las tablas. La partida ha terminado en empate.");
         });
       } else if (idJugador != null) {
         socket.emit('draw-declined', {
@@ -102,34 +114,65 @@ class _BoardScreenState extends State<BoardScreen> {
       }
     });
 
-    // ✅ Tablas rechazadas por el rival
     socket.on("draw-declined", (data) {
-      _showSimpleDialog("El oponente ha rechazado las tablas.");
+      Future.delayed(Duration.zero, () {
+        if (!context.mounted) return;
+        _showSimpleDialog("El oponente ha rechazado las tablas.");
+      });
     });
 
-    socket.on("draw-accepted", (data) {
-      _showConfirmThenExitDialog("El oponente ha aceptado tu oferta de tablas.");
+    socket.on("draw-accepted", (data) async {
+      print("[SOCKET] draw-accepted recibido: $data");
+
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? idJugador = prefs.getString('idJugador');
+
+      final esMio = data["idJugador"] == idJugador;
+
+      Future.microtask(() {
+        if (!context.mounted) return;
+
+        if (esMio) {
+          _showSimpleThenExitDialog("Has aceptado las tablas. La partida ha terminado en empate.");
+        } else {
+          _showSimpleThenExitDialog("El oponente ha aceptado tu oferta de tablas.");
+        }
+      });
     });
 
-    socket.on("player-surrendered", (data) {
-      _showConfirmThenExitDialog("Tu rival se ha rendido. ¡Has ganado!");
-    });
 
+    socket.on("player-surrendered", (data) async {
+      print("[SOCKET] player-surrendered recibido: $data");
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? idJugador = prefs.getString('idJugador');
 
-    // ✅ Final de partida global
-    socket.on("gameOver", (data) {
-      String winner = data["winner"];
-      if (winner == "draw") {
-        _exitGame("La partida ha terminado en tablas.");
-      } else if (winner == widget.color) {
-        _exitGame("¡Has ganado!");
-      } else {
-        _exitGame("Has perdido. Tu rival ha ganado.");
+      if (data["idJugador"] != idJugador) {
+        print("[SOCKET] Tu rival se ha rendido");
+        _showSimpleThenExitDialog("Tu rival se ha rendido. ¡Has ganado!");
       }
     });
-  }
 
-  void _listenToBoardChanges() {
+    socket.on("gameOver", (data) {
+      print("[SOCKET] gameOver recibido: $data");
+
+      Future.microtask(() {
+        if (!context.mounted) return;
+
+        final winner = data["winner"];
+        print("[SOCKET] gameOver -> Ganador: $winner");
+        print("[SOCKET] Mi color: ${widget.color}");
+
+        if (winner == "draw") {
+          _exitGame("La partida ha terminado en tablas.");
+        } else if (winner == widget.color) {
+          _exitGame("¡Has ganado!");
+        } else {
+          _exitGame("Has perdido. Tu rival ha ganado.");
+        }
+      });
+    });
+  }
+    void _listenToBoardChanges() {
     controller.addListener(() async {
       final history = controller.game.getHistory({'verbose': true});
       if (history.isNotEmpty) {
@@ -147,6 +190,28 @@ class _BoardScreenState extends State<BoardScreen> {
         _changeTurn();
       }
     });
+  }
+  // ✅ Popup para cualquier final de partida
+  void _exitGame(String message) {
+    if (!context.mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text("Fin de la partida"),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () {
+              if (!context.mounted) return;
+              Navigator.of(context).pop();
+              Navigator.of(context).pop();
+            },
+            child: Text("Aceptar"),
+          ),
+        ],
+      ),
+    );
   }
 
   void _changeTurn() {
@@ -195,6 +260,7 @@ class _BoardScreenState extends State<BoardScreen> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? idJugador = prefs.getString('idJugador');
     if (idJugador != null) {
+      print("[DEBUG] perder");
       socket.emit('surrender', {
         "idPartida": widget.gameId,
         "idJugador": idJugador,
@@ -255,19 +321,22 @@ class _BoardScreenState extends State<BoardScreen> {
     );
   }
 
-  // ✅ Popup para tablas aceptadas por el rival
-  void _showDrawAcceptedDialog() {
+
+
+  void _showSimpleThenExitDialog(String message) {
+    if (!context.mounted) return;
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: Text("Tablas aceptadas"),
-        content: Text("El oponente ha aceptado tu oferta de tablas."),
+        title: Text("Información"),
+        content: Text(message),
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.of(context).pop(); // Cierra el dialog
-              Navigator.of(context).pop(); // Sale de BoardScreen
+              if (!context.mounted) return;
+              Navigator.of(context).pop();
+              Navigator.of(context).pop();
             },
             child: Text("Aceptar"),
           ),
@@ -276,26 +345,6 @@ class _BoardScreenState extends State<BoardScreen> {
     );
   }
 
-  // ✅ Popup para cualquier final de partida
-  void _exitGame(String message) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text("Fin de la partida"),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(); // Cierra el dialog
-              Navigator.of(context).pop(); // Sale de BoardScreen
-            },
-            child: Text("Aceptar"),
-          ),
-        ],
-      ),
-    );
-  }
 
   // ✅ Popup informativo que no cierra la partida
   void _showSimpleDialog(String message) {
@@ -357,14 +406,15 @@ class _BoardScreenState extends State<BoardScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               ElevatedButton(
-                onPressed: _offerDraw,
+                onPressed: _offerDraw, // correcto
                 child: Text("Ofrecer tablas"),
               ),
               ElevatedButton(
-                onPressed: _surrender,
+                onPressed: _surrender, // correcto
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                 child: Text("Rendirse"),
               ),
+
             ],
           ),
           SizedBox(height: 10),
