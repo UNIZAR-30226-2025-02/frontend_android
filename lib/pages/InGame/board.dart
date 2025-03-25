@@ -95,7 +95,7 @@ class _BoardScreenState extends State<BoardScreen> {
       String? idJugador = prefs.getString('idJugador');
 
       if (accepted == true && idJugador != null) {
-        socket.emit('draw-accepted', {
+        socket.emit('draw-accept', {
           "idPartida": widget.gameId,
           "idJugador": idJugador,
         });
@@ -127,15 +127,17 @@ class _BoardScreenState extends State<BoardScreen> {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? idJugador = prefs.getString('idJugador');
 
-      final esMio = data["idJugador"] == idJugador;
+      final esMio = data[0]['idJugador'] == idJugador;
 
       Future.microtask(() {
-        if (!context.mounted) return;
+        if (!context.mounted) {
+
+          return;}
 
         if (esMio) {
-          _showSimpleThenExitDialog("Has aceptado las tablas. La partida ha terminado en empate.");
+          //_showSimpleThenExitDialog("Has aceptado las tablas. La partida ha terminado en empate.");
         } else {
-          _showSimpleThenExitDialog("El oponente ha aceptado tu oferta de tablas.");
+          //_showSimpleThenExitDialog("El oponente ha aceptado tu oferta de tablas.");
         }
       });
     });
@@ -146,7 +148,7 @@ class _BoardScreenState extends State<BoardScreen> {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? idJugador = prefs.getString('idJugador');
 
-      if (data["idJugador"] != idJugador) {
+      if (data[0]['idJugador'] != idJugador) {
         print("[SOCKET] Tu rival se ha rendido");
         _showSimpleThenExitDialog("Tu rival se ha rendido. ¡Has ganado!");
       }
@@ -158,7 +160,7 @@ class _BoardScreenState extends State<BoardScreen> {
       Future.microtask(() {
         if (!context.mounted) return;
 
-        final winner = data["winner"];
+        final winner = data[0]['winner'];
         print("[SOCKET] gameOver -> Ganador: $winner");
         print("[SOCKET] Mi color: ${widget.color}");
 
