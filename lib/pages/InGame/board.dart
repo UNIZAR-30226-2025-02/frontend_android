@@ -37,13 +37,11 @@ class _BoardScreenState extends State<BoardScreen> {
   }
 
   Future<void> _initAsync() async {
-    await _initializeSocket();       // Esperamos correctamente
+    await _initializeSocket();
     chessGame = chess.Chess();
     playerColor = widget.color.trim().toLowerCase() == "white"
         ? PlayerColor.white
         : PlayerColor.black;
-
-    print("✅ BoardScreen iniciado con playerColor: $playerColor");
 
     _startTimer();
     _joinGame();
@@ -52,199 +50,108 @@ class _BoardScreenState extends State<BoardScreen> {
   }
 
   Future<void> _initializeSocket() async {
-    socket =  await SocketService().getSocket();
+    socket = await SocketService().getSocket();
   }
 
-  /// ✅ Unirse a la partida en caso de que se haya perdido la conexión
   void _joinGame() {
     socket.emit('join', {"idPartida": widget.gameId});
-    print("📡 Enviando solicitud para unirse a la partida: ${widget.gameId}");
   }
 
-  /// ✅ Maneja los eventos de socket
   void _initializeSocketListeners() {
     socket.on("new-move", (data) {
-      print("📥 MOVIMIENTO RECIBIDO: $data");
-
       if (data is List && data.isNotEmpty && data[0] is Map<String, dynamic>) {
         var moveData = data[0];
-
-        if (moveData.containsKey("movimiento") && moveData.containsKey("board")) {
-          print("✅ Movimiento recibido correctamente");
-          String movimiento = moveData["movimiento"];  // Ejemplo: "e2e4"
+        if (moveData.containsKey("movimiento")) {
+          String movimiento = moveData["movimiento"];
           String from = movimiento.substring(0, 2);
           String to = movimiento.substring(2, 4);
           String promotion = movimiento.length > 4 ? movimiento[4] : "";
 
-          print("✅ Movimiento detectado: $from -> $to");
-
-          if (mounted) {
-            setState(() {
-              try {
-                var move = controller.game.move({
-                  "from": from,
-                  "to": to,
-                  "promotion": promotion.isNotEmpty ? promotion : null, // ✅ Aplica promoción si existe
-                });
-
-                if (move != null) {
-                  print("♟️ Movimiento reflejado en el tablero: $from -> $to");
-                  controller.notifyListeners();
-                  _changeTurn(); // 🔄 Cambiar turno después del movimiento del oponente
-                } else {
-                  print("❌ Movimiento inválido recibido.");
-                }
-              } catch (e) {
-                print("⚠️ Error al procesar el movimiento: $e");
+          setState(() {
+            try {
+              var move = controller.game.move({
+                "from": from,
+                "to": to,
+                "promotion": promotion.isNotEmpty ? promotion : null,
+              });
+              if (move != null) {
+                controller.notifyListeners();
+                _changeTurn();
               }
-            });
-          }
-        } else {
-          print("❌ ERROR: 'moveData' no contiene 'movimiento' o 'board'.");
+            } catch (_) {}
+          });
         }
-      } else {
-        print("❌ ERROR: 'data' no es un List con Map<String, dynamic> dentro.");
       }
     });
-  }
 
-  /// ✅ Envía movimientos al servidor
-  Future<void> _sendMoveToServer(String from, String to, String promotion) async {
-    print("LLEGO AQUIII");
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? idJugador = prefs.getString('idJugador');
-    String movimiento = "$from$to";
-    print("LLEGO AQUIII 222222222");
-    if (piezaPromocion != null) {
-      print("👑 Promoción detectada: $from -> $to (${piezaPromocion!.type})");
-      movimiento = "$from$to${piezaPromocion!.type}"; // ✅ Usa la pieza elegida (q, r, b, n)
-    }
+    // 🔁 Tablas ofrecidas por el rival
+    socket.on("requestTie", (data) async {
+      bool? accepted = await _showDrawOfferDialog(context);
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? idJugador = prefs.getString('idJugador');
+      if (accepted == true && idJugador != null) {
+        socket.emit('draw-accepted', {
+          "idPartida": widget.gameId,
+          "idJugador": idJugador,
+        });
+      } else if (idJugador != null) {
+        socket.emit('draw-declined', {
+          "idPartida": widget.gameId,
+          "idJugador": idJugador,
+        });
+      }
+    });
 
-    if (idJugador != null) {
-      print("📡 ENVIANDO MOVIMIENTO: $from -> $to en partida ${widget.gameId}, jugador: $idJugador");
-      socket.emit("make-move", {
-        "movimiento": movimiento,
-        "idPartida": widget.gameId,
-        "idJugador": idJugador,
-      });
-      piezaPromocion = null;
-    } else {
-      print("⚠️ ERROR: No se encontró el idJugador en SharedPreferences.");
-    }
+    // ✅ Tablas rechazadas por el rival
+    socket.on("draw-declined", (data) {
+      _showSimpleDialog("El oponente ha rechazado las tablas.");
+    });
+
+    socket.on("draw-accepted", (data) {
+      _showConfirmThenExitDialog("El oponente ha aceptado tu oferta de tablas.");
+    });
+
+    socket.on("player-surrendered", (data) {
+      _showConfirmThenExitDialog("Tu rival se ha rendido. ¡Has ganado!");
+    });
+
+
+    // ✅ Final de partida global
+    socket.on("gameOver", (data) {
+      String winner = data["winner"];
+      if (winner == "draw") {
+        _exitGame("La partida ha terminado en tablas.");
+      } else if (winner == widget.color) {
+        _exitGame("¡Has ganado!");
+      } else {
+        _exitGame("Has perdido. Tu rival ha ganado.");
+      }
+    });
   }
 
   void _listenToBoardChanges() {
     controller.addListener(() async {
       final history = controller.game.getHistory({'verbose': true});
-
       if (history.isNotEmpty) {
         final lastMove = history.last;
-        final from = lastMove['from']; // Ejemplo: "e2"
-        final to = lastMove['to']; // Ejemplo: "e4"
-
-        print("♟️ MOVIMIENTO DETECTADO: $from -> $to");
-
-        // ✅ Obtener la pieza movida
+        final from = lastMove['from'];
+        final to = lastMove['to'];
         Piece? movedPiece = controller.game.get(to);
-        if (movedPiece == null) {
-          print("❌ No hay pieza en '$to'. Ignorando...");
-          return;
-        }
+        if (movedPiece == null) return;
 
-        print("📌 Pieza encontrada en $to: ${movedPiece.type}");
-/*
-        if (_isPromotionMove(from, to, movedPiece)){
-          piezaPromocion = movedPiece;
-          print("CAMBIOOOOO ${piezaPromocion!.type}");
-        }*/
-        print("1 mov");
+        PlayerColor piecePlayerColor =
+        (movedPiece.color == chess.Color.WHITE) ? PlayerColor.white : PlayerColor.black;
+        if (playerColor != piecePlayerColor) return;
 
-
-        // ✅ Obtener el color de la pieza movida
-        PlayerColor piecePlayerColor = (movedPiece.color == chess.Color.WHITE)
-            ? PlayerColor.white
-            : PlayerColor.black;
-        print("2 mov");
-        // ✅ Verificar que la pieza pertenece al jugador actual
-        bool isMovingOwnPiece = (playerColor == piecePlayerColor);
-        print("3 mov");
-        if (!isMovingOwnPiece) {
-          print("❌ No puedes mover piezas del rival.");
-          return;
-        }
-        print("comprobar promocion");
-
-        // ✅ Detectar si el movimiento es una promoción
-        /*if (_isPromotionMove(from, to, movedPiece)) {
-          print("Entra a promocion");
-          String? promotionPiece = await _showPromotionDialog(context);
-
-          if (promotionPiece != null) {
-            print("✅ Pieza seleccionada para promoción: $promotionPiece");
-
-            // ✅ Aplicar promoción MANUALMENTE sin cuadro de la librería
-            controller.game.move({
-              "from": from,
-              "to": to,
-              "promotion": promotionPiece,
-            });
-
-            controller.notifyListeners();
-            _sendMoveToServer(from, to, promotionPiece);
-          } else {
-            print("⚠️ Promoción cancelada.");
-            return; // 🔥 Si el usuario cancela, no debe continuar el movimiento
-          }
-        } else {*/
-          // ✅ Movimiento normal
-          print("enviando movimiento");
-          _sendMoveToServer(from, to, "");
-        //}
-
+        _sendMoveToServer(from, to, "");
         _changeTurn();
       }
     });
   }
-  bool _isPromotionMove(String from, String to, Piece movedPiece) {
-    final history = controller.game.getHistory({'verbose': true});
-    if (history.isEmpty) return false; // No hay historial de movimientos
 
-    final lastMove = history.last; // 🔥 Obtener el último movimiento
-    final String piece = lastMove["piece"]; // 🔥 Obtener la pieza antes de moverse
-    if (piece != "p") { // ✅ Verificar si era un peón
-      print("❌ La pieza no es un peón.");
-      return false;
-    }
-
-    final String to = lastMove["to"]; // 🔥 Casilla de destino (ej: "e8")
-    final String rank = to[1]; // 🔥 Extraer la fila ("8" o "1")
-
-    if (!((rank == "8" && playerColor == PlayerColor.white) ||
-        (rank == "1" && playerColor == PlayerColor.black))) {
-      print("❌ No está llegando a la fila de promoción.");
-      return false;
-    }
-    if (!lastMove.containsKey("flags") || !lastMove["flags"].contains("p")) {
-      print("❌ El movimiento no tiene la bandera de promoción.");
-      return false;
-    }
-    print("✅ Es un movimiento de promoción.");
-    return true;
-  }
-
-  /// ✅ Cambia el turno sin afectar el temporizador
   void _changeTurn() {
     setState(() {
       isWhiteTurn = !isWhiteTurn;
-      print("🔄 Turno cambiado: Ahora juegan las ${isWhiteTurn ? "blancas" : "negras"}");
-    });
-  }
-
-  void _revertLastMove() {
-    setState(() {
-      controller.game.undo(); // 🔄 Revierte el último movimiento
-      controller.notifyListeners();
-      print("🔄 Movimiento revertido porque no era tu turno.");
     });
   }
 
@@ -266,42 +173,161 @@ class _BoardScreenState extends State<BoardScreen> {
     });
   }
 
-  @override
-  void dispose() {
-    _timerWhite.cancel();
-    _timerBlack.cancel();
-    super.dispose();
+  Future<void> _sendMoveToServer(String from, String to, String promotion) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? idJugador = prefs.getString('idJugador');
+    String movimiento = "$from$to";
+    if (piezaPromocion != null) {
+      movimiento = "$from$to${piezaPromocion!.type}";
+    }
+
+    if (idJugador != null) {
+      socket.emit("make-move", {
+        "movimiento": movimiento,
+        "idPartida": widget.gameId,
+        "idJugador": idJugador,
+      });
+      piezaPromocion = null;
+    }
   }
 
-  Future<String?> _showPromotionDialog(BuildContext context) async {
-    return showDialog<String>(
+  Future<void> _surrender() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? idJugador = prefs.getString('idJugador');
+    if (idJugador != null) {
+      socket.emit('surrender', {
+        "idPartida": widget.gameId,
+        "idJugador": idJugador,
+      });
+    }
+  }
+
+  Future<void> _offerDraw() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? idJugador = prefs.getString('idJugador');
+    if (idJugador != null) {
+      socket.emit('draw-offer', {
+        "idPartida": widget.gameId,
+        "idJugador": idJugador,
+      });
+    }
+  }
+
+  void _showConfirmThenExitDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text("Información"),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Cierra el popup
+              Navigator.of(context).pop(); // Sale del BoardScreen
+            },
+            child: Text("Aceptar"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool?> _showDrawOfferDialog(BuildContext context) async {
+    return showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Elige tu promoción"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildPromotionButton(context, "♛ Guarra", "q"),
-              _buildPromotionButton(context, "♜ Torre", "r"),
-              _buildPromotionButton(context, "♝ Alfil", "b"),
-              _buildPromotionButton(context, "♞ Caballo", "n"),
-            ],
-          ),
+          title: Text("Oferta de tablas"),
+          content: Text("Tu oponente ha ofrecido tablas. ¿Aceptas?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text("Rechazar"),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text("Aceptar"),
+            ),
+          ],
         );
       },
     );
   }
 
-  Widget _buildPromotionButton(BuildContext context, String text, String value) {
-    return TextButton(
-      onPressed: () {
-        Navigator.pop(context, value); // Cierra el diálogo y devuelve la elección
-      },
-      child: Text(text, style: TextStyle(fontSize: 18)),
+  // ✅ Popup para tablas aceptadas por el rival
+  void _showDrawAcceptedDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text("Tablas aceptadas"),
+        content: Text("El oponente ha aceptado tu oferta de tablas."),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Cierra el dialog
+              Navigator.of(context).pop(); // Sale de BoardScreen
+            },
+            child: Text("Aceptar"),
+          ),
+        ],
+      ),
     );
   }
 
+  // ✅ Popup para cualquier final de partida
+  void _exitGame(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Text("Fin de la partida"),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Cierra el dialog
+              Navigator.of(context).pop(); // Sale de BoardScreen
+            },
+            child: Text("Aceptar"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ Popup informativo que no cierra la partida
+  void _showSimpleDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Información"),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text("Aceptar"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _timerWhite.cancel();
+    _timerBlack.cancel();
+
+    socket.off("new-move");
+    socket.off("player-surrendered");
+    socket.off("draw-accepted");
+    socket.off("draw-declined");
+    socket.off("requestTie");
+    socket.off("gameOver");
+
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -322,11 +348,25 @@ class _BoardScreenState extends State<BoardScreen> {
                 controller: controller,
                 boardOrientation: playerColor,
                 enableUserMoves: (isWhiteTurn && playerColor == PlayerColor.white) ||
-                    (!isWhiteTurn && playerColor == PlayerColor.black), // 🔥 Solo permite mover en el turno correcto
+                    (!isWhiteTurn && playerColor == PlayerColor.black),
               ),
             ),
           ),
           _buildPlayerInfo("Blancas", whiteTime),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              ElevatedButton(
+                onPressed: _offerDraw,
+                child: Text("Ofrecer tablas"),
+              ),
+              ElevatedButton(
+                onPressed: _surrender,
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: Text("Rendirse"),
+              ),
+            ],
+          ),
           SizedBox(height: 10),
         ],
       ),
