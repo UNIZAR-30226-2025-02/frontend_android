@@ -33,6 +33,9 @@ class _BoardScreenState extends State<BoardScreen> {
   int whiteTime = 600;
   int blackTime = 600;
   bool isWhiteTurn = true;
+  bool _isChatVisible = false;
+  final TextEditingController _chatController = TextEditingController();
+  List<String> _mensajesChat = [];
 
   @override
   void initState() {
@@ -395,8 +398,6 @@ class _BoardScreenState extends State<BoardScreen> {
 
     super.dispose();
   }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
@@ -405,47 +406,114 @@ class _BoardScreenState extends State<BoardScreen> {
         title: Text(widget.gameMode, style: TextStyle(color: Colors.white)),
         centerTitle: true,
       ),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: Stack(
         children: [
-          _buildPlayerInfo(
-            playerColor == PlayerColor.white ? "Negras" : "Blancas",
-            playerColor == PlayerColor.white ? blackTime : whiteTime,
-          ),
-          Expanded(
-            child: Center(
-              child: ChessBoard(
-                controller: controller,
-                boardOrientation: playerColor,
-                enableUserMoves: (isWhiteTurn && playerColor == PlayerColor.white) ||
-                    (!isWhiteTurn && playerColor == PlayerColor.black),
-              ),
-            ),
-          ),
-          _buildPlayerInfo(
-            playerColor == PlayerColor.white ? "Blancas" : "Negras",
-            playerColor == PlayerColor.white ? whiteTime : blackTime,
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              ElevatedButton(
-                onPressed: _offerDraw, // correcto
-                child: Text("Ofrecer tablas"),
+              _buildPlayerInfo(
+                playerColor == PlayerColor.white ? "Negras" : "Blancas",
+                playerColor == PlayerColor.white ? blackTime : whiteTime,
               ),
-              ElevatedButton(
-                onPressed: _surrender, // correcto
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                child: Text("Rendirse"),
+              Expanded(
+                child: Center(
+                  child: ChessBoard(
+                    controller: controller,
+                    boardOrientation: playerColor,
+                    enableUserMoves: (isWhiteTurn && playerColor == PlayerColor.white) ||
+                        (!isWhiteTurn && playerColor == PlayerColor.black),
+                  ),
+                ),
               ),
-
+              _buildPlayerInfo(
+                playerColor == PlayerColor.white ? "Blancas" : "Negras",
+                playerColor == PlayerColor.white ? whiteTime : blackTime,
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton(
+                    onPressed: _offerDraw,
+                    child: Text("Ofrecer tablas"),
+                  ),
+                  ElevatedButton(
+                    onPressed: _surrender,
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                    child: Text("Rendirse"),
+                  ),
+                ],
+              ),
+              SizedBox(height: 10),
             ],
           ),
-          SizedBox(height: 10),
+
+          // Botón de chat flotante
+          Positioned(
+            bottom: 80,
+            right: 20,
+            child: FloatingActionButton(
+              backgroundColor: Colors.blueAccent,
+              child: Icon(Icons.chat),
+              onPressed: () {
+                setState(() {
+                  _isChatVisible = !_isChatVisible;
+                });
+              },
+            ),
+          ),
+
+          // Panel de chat (solo si está visible)
+          if (_isChatVisible)
+            Positioned(
+              bottom: 150,
+              right: 20,
+              left: 20,
+              child: Container(
+                padding: EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                height: 200,
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: _mensajesChat.length,
+                        itemBuilder: (context, index) => Text(_mensajesChat[index]),
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _chatController,
+                            decoration: InputDecoration(hintText: 'Escribe un mensaje...'),
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.send, color: Colors.blue),
+                          onPressed: () {
+                            if (_chatController.text.trim().isNotEmpty) {
+                              setState(() {
+                                _mensajesChat.add("Tú: ${_chatController.text.trim()}");
+                                _chatController.clear();
+                              });
+                              // Aquí en el futuro puedes hacer: socket.emit('send-message', {...})
+                            }
+                          },
+                        )
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            )
         ],
       ),
     );
   }
+
 
   Widget _buildPlayerInfo(String name, int time) {
     return Padding(

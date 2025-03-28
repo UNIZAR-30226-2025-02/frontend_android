@@ -142,7 +142,7 @@ Future<void> encontrarPartida() async {
 
   // Opcional para depuración extra
   socket?.onAny((event, data) {
-    print("[MATCHMAKING] 📥 Evento recibido: $event - Data: $data");
+   // print("[MATCHMAKING] 📥 Evento recibido: $event - Data: $data");
   });
 }
 
