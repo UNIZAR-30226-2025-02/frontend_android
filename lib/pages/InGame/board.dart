@@ -108,6 +108,21 @@ class _BoardScreenState extends State<BoardScreen> {
       });
     });
 
+    socket.on('new-message', (data) {
+      print("📩 Mensaje recibido: $data");
+
+      final userIdRemitente = data[0]["user_id"];
+      final mensajeRecibido = data[0]["message"];
+
+      if (userIdRemitente != idJugador) {
+        setState(() {
+          _mensajesChat.add("Rival: $mensajeRecibido");
+        });
+      }
+    });
+
+
+
     socket.on("requestTie", (data) async {
       bool? accepted = await _showDrawOfferDialog(context);
       SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -383,6 +398,20 @@ class _BoardScreenState extends State<BoardScreen> {
       ),
     );
   }
+  void _enviarMensaje(String mensaje) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? userId = prefs.getString('idJugador');
+
+    if (userId != null && mensaje.trim().isNotEmpty) {
+      socket.emit('send-message', {
+        "game_id": widget.gameId,
+        "user_id": userId,
+        "message": mensaje.trim(),
+      });
+
+      _chatController.clear(); // Limpia el input
+    }
+  }
 
   @override
   void dispose() {
@@ -497,7 +526,7 @@ class _BoardScreenState extends State<BoardScreen> {
                             if (_chatController.text.trim().isNotEmpty) {
                               setState(() {
                                 _mensajesChat.add("Tú: ${_chatController.text.trim()}");
-                                _chatController.clear();
+                                _enviarMensaje(_chatController.text);
                               });
                               // Aquí en el futuro puedes hacer: socket.emit('send-message', {...})
                             }
