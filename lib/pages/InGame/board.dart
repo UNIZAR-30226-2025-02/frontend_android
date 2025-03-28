@@ -12,6 +12,9 @@ class BoardScreen extends StatefulWidget {
   final String color;
   final String gameId;
 
+
+
+
   BoardScreen(this.gameMode, this.color, this.gameId);
 
   @override
@@ -25,6 +28,7 @@ class _BoardScreenState extends State<BoardScreen> {
   late Timer _timerBlack;
   late IO.Socket socket;
   late chess.Chess chessGame;
+  String? idJugador;
   Piece? piezaPromocion;
   int whiteTime = 600;
   int blackTime = 600;
@@ -39,6 +43,8 @@ class _BoardScreenState extends State<BoardScreen> {
   Future<void> _initAsync() async {
     await SocketService().connect(context);  // 👈 FORZAR CONEXIÓN COMPLETA
     socket = await SocketService().getSocket();  // 👈 Asignar socket antes de listeners
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    idJugador = prefs.getString('idJugador');
 
     chessGame = chess.Chess();
     playerColor = widget.color.trim().toLowerCase() == "white"
@@ -87,6 +93,16 @@ class _BoardScreenState extends State<BoardScreen> {
           });
         }
       }
+    });
+
+    socket.on('get-game-status', (_) {
+      socket.emit('game-status', {
+        "estadoPartida": "ingame",
+        "timeLeft": {
+          "white": whiteTime,
+          "black": blackTime,
+        }
+      });
     });
 
     socket.on("requestTie", (data) async {
@@ -166,7 +182,7 @@ class _BoardScreenState extends State<BoardScreen> {
 
         if (winner == "draw") {
           _exitGame("La partida ha terminado en tablas.");
-        } else if (winner == widget.color) {
+        } else if (winner == idJugador) {
           _exitGame("¡Has ganado!");
         } else {
           _exitGame("Has perdido. Tu rival ha ganado.");
@@ -392,7 +408,10 @@ class _BoardScreenState extends State<BoardScreen> {
       body: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _buildPlayerInfo("Negras", blackTime),
+          _buildPlayerInfo(
+            playerColor == PlayerColor.white ? "Negras" : "Blancas",
+            playerColor == PlayerColor.white ? blackTime : whiteTime,
+          ),
           Expanded(
             child: Center(
               child: ChessBoard(
@@ -403,7 +422,10 @@ class _BoardScreenState extends State<BoardScreen> {
               ),
             ),
           ),
-          _buildPlayerInfo("Blancas", whiteTime),
+          _buildPlayerInfo(
+            playerColor == PlayerColor.white ? "Blancas" : "Negras",
+            playerColor == PlayerColor.white ? whiteTime : blackTime,
+          ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
