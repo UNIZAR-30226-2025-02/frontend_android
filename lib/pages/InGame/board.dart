@@ -12,9 +12,6 @@ class BoardScreen extends StatefulWidget {
   final String color;
   final String gameId;
 
-
-
-
   BoardScreen(this.gameMode, this.color, this.gameId);
 
   @override
@@ -34,8 +31,10 @@ class _BoardScreenState extends State<BoardScreen> {
   int blackTime = 600;
   bool isWhiteTurn = true;
   bool _isChatVisible = false;
+  bool _isMovesVisible = false;
   final TextEditingController _chatController = TextEditingController();
   List<String> _mensajesChat = [];
+  List<String> _historialMovimientos = [];
 
   @override
   void initState() {
@@ -44,8 +43,8 @@ class _BoardScreenState extends State<BoardScreen> {
   }
 
   Future<void> _initAsync() async {
-    await SocketService().connect(context);  // 👈 FORZAR CONEXIÓN COMPLETA
-    socket = await SocketService().getSocket();  // 👈 Asignar socket antes de listeners
+    await SocketService().connect(context);
+    socket = await SocketService().getSocket();
     SharedPreferences prefs = await SharedPreferences.getInstance();
     idJugador = prefs.getString('idJugador');
 
@@ -56,9 +55,7 @@ class _BoardScreenState extends State<BoardScreen> {
 
     _startTimer();
     _joinGame();
-
-
-    _initializeSocketListeners();  // 👈 IMPORTANTE: después de tener socket
+    _initializeSocketListeners();
     _listenToBoardChanges();
   }
 
@@ -210,7 +207,7 @@ class _BoardScreenState extends State<BoardScreen> {
       });
     });
   }
-    void _listenToBoardChanges() {
+  void _listenToBoardChanges() {
     controller.addListener(() async {
       final history = controller.game.getHistory({'verbose': true});
       if (history.isNotEmpty) {
@@ -226,6 +223,10 @@ class _BoardScreenState extends State<BoardScreen> {
 
         _sendMoveToServer(from, to, "");
         _changeTurn();
+
+        setState(() {
+          _historialMovimientos.add("${from.toUpperCase()}-${to.toUpperCase()}");
+        });
       }
     });
   }
@@ -429,6 +430,7 @@ class _BoardScreenState extends State<BoardScreen> {
 
     super.dispose();
   }
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
@@ -493,7 +495,21 @@ class _BoardScreenState extends State<BoardScreen> {
             ),
           ),
 
-          // Panel de chat (solo si está visible)
+          // Botón historial de movimientos
+          Positioned(
+            bottom: 150,
+            right: 20,
+            child: FloatingActionButton(
+              backgroundColor: Colors.orange,
+              child: Icon(Icons.list_alt),
+              onPressed: () {
+                setState(() {
+                  _isMovesVisible = !_isMovesVisible;
+                });
+              },
+            ),
+          ),
+
           if (_isChatVisible)
             Positioned(
               bottom: 150,
@@ -527,10 +543,9 @@ class _BoardScreenState extends State<BoardScreen> {
                           onPressed: () {
                             if (_chatController.text.trim().isNotEmpty) {
                               setState(() {
-                                _mensajesChat.add("Tú: ${_chatController.text.trim()}");
+                                _mensajesChat.add("Tú: \${_chatController.text.trim()}");
                                 _enviarMensaje(_chatController.text);
                               });
-                              // Aquí en el futuro puedes hacer: socket.emit('send-message', {...})
                             }
                           },
                         )
@@ -539,12 +554,37 @@ class _BoardScreenState extends State<BoardScreen> {
                   ],
                 ),
               ),
-            )
+            ),
+
+          if (_isMovesVisible)
+            Positioned(
+              bottom: 370,
+              right: 20,
+              left: 20,
+              child: Container(
+                padding: EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                height: 200,
+                child: Column(
+                  children: [
+                    Text("Movimientos", style: TextStyle(fontWeight: FontWeight.bold)),
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: _historialMovimientos.length,
+                        itemBuilder: (context, index) => Text(_historialMovimientos[index]),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
   }
-
 
   Widget _buildPlayerInfo(String name, int time) {
     return Padding(
