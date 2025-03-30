@@ -114,11 +114,13 @@ class _BoardScreenState extends State<BoardScreen> {
       final userIdRemitente = data[0]["user_id"];
       final mensajeRecibido = data[0]["message"];
 
-      if (userIdRemitente != idJugador) {
-        setState(() {
+      setState(() {
+        if (userIdRemitente == idJugador) {
+          _mensajesChat.add("Tú: $mensajeRecibido");
+        } else {
           _mensajesChat.add("Rival: $mensajeRecibido");
-        });
-      }
+        }
+      }); // ✅ Ahora está correctamente cerrado
     });
 
 
