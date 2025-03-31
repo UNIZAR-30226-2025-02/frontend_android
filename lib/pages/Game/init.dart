@@ -51,8 +51,12 @@ class _InitPageState extends State<Init_page> {
   void initState() {
     super.initState();
     socketService = SocketService();
-    _cargarUsuario();
-    _initializeSocketAndStartMatchmaking();
+    _startInitSequence();
+  }
+
+  Future<void> _startInitSequence() async {
+    await _cargarUsuario(); // Espera a que idJugador esté listo
+    await _initializeSocketAndStartMatchmaking();
   }
 
   Future<void> _initializeSocketAndStartMatchmaking() async {
@@ -73,80 +77,77 @@ class _InitPageState extends State<Init_page> {
     }
   }
 
-Future<void> encontrarPartida() async {
-  String gameId= "";
-  String color = "";
-  late final pgn;
+  Future<void> encontrarPartida() async {
+    String gameId = "";
+    String color = "";
+    late final pgn;
 
-  socket?.on('existing-game' , (data){
-    print("Partida encontrada con data: $data");
-    gameId = data['gameID'];
-    color = data['color'];
-    pgn =  data['pgn'];
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => BoardScreen(selectedGameMode, color, gameId),
-      ),
-    );
-
-  });
-  socket?.on('game-ready', (data) {
-    var firstElement = data[0];
-    print("══════════════════════════════════════════════");
-    print("[DEBUG] 📩 Evento 'game-ready' recibido");
-    print("[DEBUG] 🛠 Tipo de 'data': ${data.runtimeType}");
-    print("[DEBUG] 📜 Contenido de 'data': $data");
-    print("══════════════════════════════════════════════");
-    gameId = firstElement['idPartida'].toString();
-  });
-
-
-  print("subscrinbiendo evento color");
-  socket?.on('color', (data) {
-
-    print("ENTRPOOOO");
-    final jugadores = List<Map<String, dynamic>>.from(data[0]['jugadores']);
-
-
-    final yo = jugadores.firstWhere(
-          (jugador) => jugador['id'] == idJugador,
-      orElse: () => {},
-    );
-
-    if (yo.isNotEmpty && yo.containsKey('color')) {
-      final color = yo['color'] as String;
-      print("🎯 Mi color: $color");
-      print("ESTO ES LO QUE TE LLEVAS: $gameId");
+    socket?.on('existing-game', (data) {
+      print("Partida encontrada con data: $data");
+      gameId = data['gameID'];
+      color = data['color'];
+      pgn = data['pgn'];
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => BoardScreen(selectedGameMode, color, gameId),
         ),
       );
-    } else {
-      print("❌ No se encontró tu jugador en la lista.");
-    }
-  });
-
-  socket?.on('errorMessage', (msg) {
-    print("[MATCHMAKING] ❌ Error recibido del backend: $msg");
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("❌ $msg")),
-    );
-  });
-
-  socket?.onDisconnect((_) {
-    print("[MATCHMAKING] 🔌 Socket desconectado");
-  });
-
-  // Opcional para depuración extra
-  socket?.onAny((event, data) {
-   // print("[MATCHMAKING] 📥 Evento recibido: $event - Data: $data");
-  });
-}
+    });
+    socket?.on('game-ready', (data) {
+      var firstElement = data[0];
+      print("══════════════════════════════════════════════");
+      print("[DEBUG] 📩 Evento 'game-ready' recibido");
+      print("[DEBUG] 🛠 Tipo de 'data': ${data.runtimeType}");
+      print("[DEBUG] 📜 Contenido de 'data': $data");
+      print("══════════════════════════════════════════════");
+      gameId = firstElement['idPartida'].toString();
+    });
 
 
+    print("subscrinbiendo evento color");
+    socket?.on('color', (data) {
+      print("ENTRPOOOO");
+      final jugadores = List<Map<String, dynamic>>.from(data[0]['jugadores']);
+
+
+      final yo = jugadores.firstWhere(
+            (jugador) => jugador['id'] == idJugador,
+        orElse: () => {},
+      );
+
+      if (yo.isNotEmpty && yo.containsKey('color')) {
+        final color = yo['color'] as String;
+        print("🎯 Mi color: $color");
+        print("ESTO ES LO QUE TE LLEVAS: $gameId");
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => BoardScreen(selectedGameMode, color, gameId),
+          ),
+        );
+      } else {
+        print("❌ No se encontró tu jugador en la lista.");
+      }
+    });
+
+    socket?.on('errorMessage', (msg) {
+      print("[MATCHMAKING] ❌ Error recibido del backend: $msg");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("❌ $msg")),
+      );
+    });
+
+    socket?.onDisconnect((_) {
+      print("[MATCHMAKING] 🔌 Socket desconectado");
+    });
+
+    // Opcional para depuración extra
+    socket?.onAny((event, data) {
+      if (event == "ping") return; // Ignorar pings
+      print("[MATCHMAKING] 📥 Evento recibido: $event - Data: $data");
+    });
+  }
 
   Future<void> _cargarUsuario() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();

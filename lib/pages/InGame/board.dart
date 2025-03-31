@@ -88,7 +88,12 @@ class _BoardScreenState extends State<BoardScreen> {
               if (move != null) {
                 controller.notifyListeners();
                 _changeTurn();
+
+                setState(() {
+                  _historialMovimientos.add("${from.toUpperCase()}-${to.toUpperCase()}");
+                });
               }
+
             } catch (_) {}
           });
         }
@@ -543,7 +548,7 @@ class _BoardScreenState extends State<BoardScreen> {
                           onPressed: () {
                             if (_chatController.text.trim().isNotEmpty) {
                               setState(() {
-                                _mensajesChat.add("Tú: \${_chatController.text.trim()}");
+                                _mensajesChat.add("Tú: ${_chatController.text.trim()}");
                                 _enviarMensaje(_chatController.text);
                               });
                             }
