@@ -141,8 +141,8 @@ class _BoardScreenState extends State<BoardScreen> {
         // 👇 Mostrar popup también para quien acepta
         Future.delayed(Duration.zero, () {
           if (!context.mounted) return;
-          _showSimpleThenExitDialog(
-              "Has aceptado las tablas. La partida ha terminado en empate.");
+          /*_showSimpleThenExitDialog(
+              "Has aceptado las tablas. La partida ha terminado en empate.");*/
         });
       } else if (idJugador != null) {
         socket.emit('draw-declined', {
@@ -172,23 +172,19 @@ class _BoardScreenState extends State<BoardScreen> {
 
           return;}
 
-        if (esMio) {
-          //_showSimpleThenExitDialog("Has aceptado las tablas. La partida ha terminado en empate.");
-        } else {
-          //_showSimpleThenExitDialog("El oponente ha aceptado tu oferta de tablas.");
-        }
+        _showSimpleThenExitDialog("La partida ha terminado en empate.");
       });
     });
 
 
     socket.on("player-surrendered", (data) async {
-      print("[SOCKET] player-surrendered recibido: $data");
+      print("[SURREND] player-surrendered recibido: $data");
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? idJugador = prefs.getString('idJugador');
 
       if (data[0]['idJugador'] != idJugador) {
         print("[SOCKET] Tu rival se ha rendido");
-        _showSimpleThenExitDialog("Tu rival se ha rendido. ¡Has ganado!");
+        //_showSimpleThenExitDialog("Tu rival se ha rendido. ¡Has ganado!");
       }
     });
 
@@ -304,8 +300,8 @@ class _BoardScreenState extends State<BoardScreen> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? idJugador = prefs.getString('idJugador');
     if (idJugador != null) {
-      print("[DEBUG] perder");
-      socket.emit('surrender', {
+      print("[SURREND] perder");
+      socket.emit('resign', {
         "idPartida": widget.gameId,
         "idJugador": idJugador,
       });
@@ -379,6 +375,7 @@ class _BoardScreenState extends State<BoardScreen> {
           TextButton(
             onPressed: () {
               if (!context.mounted) return;
+              print("CLOSE: Cerrando popups y saliendo de partida...");
               Navigator.of(context).pop();
               Navigator.of(context).pop();
             },
@@ -502,8 +499,8 @@ class _BoardScreenState extends State<BoardScreen> {
 
           // Botón historial de movimientos
           Positioned(
-            bottom: 150,
-            right: 20,
+            bottom: 80,
+            left: 20,
             child: FloatingActionButton(
               backgroundColor: Colors.orange,
               child: Icon(Icons.list_alt),
@@ -579,7 +576,7 @@ class _BoardScreenState extends State<BoardScreen> {
                     Expanded(
                       child: ListView.builder(
                         itemCount: _historialMovimientos.length,
-                        itemBuilder: (context, index) => Text(_historialMovimientos[index]),
+                        itemBuilder: (context, index) => Text("${index + 1}. ${_historialMovimientos[index]}"),
                       ),
                     ),
                   ],
