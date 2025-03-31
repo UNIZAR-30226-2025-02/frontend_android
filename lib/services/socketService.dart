@@ -54,12 +54,15 @@ class SocketService {
       print("✅ SOCKET CONECTADO con éxito. ID del socket: ${socket.id}");
       _isConnected = true;
 
+      // 🔁 Re-registrar los listeners cada vez que se conecte
+      _setupListeners(context, idJugador);  // <--- AÑADE ESTO
+
       print("📤 Registrando sesión en el servidor con ID: $idJugador...");
       socket.emit("register-session", idJugador);
     });
+
   }
 
-  /// 🔹 Configura los listeners del socket
   void _setupListeners(BuildContext context, String idJugador) {
     print("🛠 Configurando listeners del socket...");
 
@@ -81,35 +84,34 @@ class SocketService {
       print("❌ ERROR en el socket: $err");
     });
 
-    /// 🔥 **Evento force-logout** (Comparación correcta del ID del jugador)
     socket.on("force-logout", (data) async {
       print("🚨 Recibido evento 'force-logout' del servidor!");
       print("📌 Data recibido: $data");
 
-      // 🔹 Extraer correctamente el ID del jugador del `Map`
       String? idJugadorConectado;
+      String? mensaje;
+
+      // Manejo flexible del formato recibido
       if (data is List && data.isNotEmpty) {
-        if (data[0] is Map<String, dynamic> && data[0].containsKey('idJugador')) {
-          idJugadorConectado = data[0]['idJugador'];
+        final primerElemento = data[0];
+        if (primerElemento is Map<String, dynamic>) {
+          idJugadorConectado = primerElemento['idJugador'];
+          mensaje = primerElemento['message'];
         }
-      } else if (data is Map<String, dynamic> && data.containsKey('idJugador')) {
+      } else if (data is Map<String, dynamic>) {
         idJugadorConectado = data['idJugador'];
+        mensaje = data['message'];
       }
 
-      if (idJugadorConectado == null) {
-        print("⚠️ No se recibió un ID de jugador válido en el evento 'force-logout'.");
-        return;
-      }
-
-      print("📌 ID del jugador que se ha conectado: $idJugadorConectado");
-      print("📌 ID del jugador local: $idJugador");
-
-      // 🔹 Si el jugador que se ha conectado es el mismo, expulsar al actual
-      if (idJugadorConectado == idJugador) {
-        print("🔴 Sesión duplicada detectada. Cerrando sesión...");
-        _showForceLogoutPopup(context, "Tu cuenta ha sido iniciada en otro dispositivo.");
+      // Fallback: si no viene el id, forzar cierre de sesión
+      if (idJugadorConectado == null || idJugadorConectado == idJugador) {
+        print("🔴 Sesión duplicada detectada o sin ID. Cerrando sesión...");
+        _showForceLogoutPopup(
+          context,
+          mensaje ?? "Tu cuenta ha sido iniciada en otro dispositivo.",
+        );
       } else {
-        print("⚠️ Recibido 'force-logout' pero el ID no coincide. Ignorado.");
+        print("⚠️ 'force-logout' recibido pero ID no coincide. Ignorado.");
       }
     });
 
@@ -120,7 +122,6 @@ class SocketService {
     print("✅ Listeners configurados correctamente.");
   }
 
-  /// 🔹 Muestra un `AlertDialog` antes de cerrar sesión
   void _showForceLogoutPopup(BuildContext context, String message) {
     print("📢 Mostrando pop-up: $message");
 
@@ -135,7 +136,7 @@ class SocketService {
             actions: [
               TextButton(
                 onPressed: () async {
-                  Navigator.of(context).pop(); // Cerrar el pop-up
+                  Navigator.of(context).pop();
                   await _disconnectAndRedirect(context);
                 },
                 child: Text("Aceptar"),
@@ -147,7 +148,6 @@ class SocketService {
     }
   }
 
-  /// 🔹 Cierra la sesión y redirige al usuario a `Wellcome_page`
   Future<void> _disconnectAndRedirect(BuildContext context) async {
     print("🗑 Eliminando datos de usuario...");
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -169,7 +169,6 @@ class SocketService {
     );
   }
 
-  /// 🔹 Conecta al socket si no está ya conectado
   Future<void> connect(BuildContext context) async {
     print("🔄 Intentando conectar al socket...");
     if (!_isConnected) {
@@ -181,7 +180,6 @@ class SocketService {
     }
   }
 
-  /// 🔹 Desconecta el socket manualmente
   void disconnect() {
     print("🔌 Desconectando el socket manualmente...");
     socket.clearListeners();
@@ -191,11 +189,11 @@ class SocketService {
     _isInitialized = false;
   }
 
-  /// 🔹 Obtiene la instancia del socket
-  Future<IO.Socket> getSocket() async {
+  /// ✅ CORREGIDO: se pasa el `BuildContext` y se llama bien a `initializeSocket`
+  Future<IO.Socket> getSocket(BuildContext context) async {
     if (!_isInitialized) {
       print("⚠️ El socket no estaba inicializado. Inicializándolo ahora...");
-      await initializeSocket;
+      await initializeSocket(context);
     }
     return socket;
   }

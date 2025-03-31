@@ -67,7 +67,7 @@ class _InitPageState extends State<Init_page> {
   }
   Future<void> _initializeSocket() async {
     await socketService.connect(context); // ✅ Asegurar que el socket esté listo
-    IO.Socket connectedSocket = await socketService.getSocket();
+    IO.Socket connectedSocket = await socketService.getSocket(context);
 
     if (mounted) {
       setState(() {

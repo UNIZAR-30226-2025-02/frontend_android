@@ -44,7 +44,7 @@ class _BoardScreenState extends State<BoardScreen> {
 
   Future<void> _initAsync() async {
     await SocketService().connect(context);
-    socket = await SocketService().getSocket();
+    socket = await SocketService().getSocket(context);
     SharedPreferences prefs = await SharedPreferences.getInstance();
     idJugador = prefs.getString('idJugador');
 
@@ -61,7 +61,7 @@ class _BoardScreenState extends State<BoardScreen> {
 
 
   Future<void> _initializeSocket() async {
-    socket = await SocketService().getSocket();
+    socket = await SocketService().getSocket(context);
   }
 
   void _joinGame() {
