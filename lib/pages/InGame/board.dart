@@ -29,9 +29,11 @@ class _BoardScreenState extends State<BoardScreen> {
   Piece? piezaPromocion;
   int whiteTime = 600;
   int blackTime = 600;
+  bool _gameEnded = false;
   bool isWhiteTurn = true;
   bool _isChatVisible = false;
   bool _isMovesVisible = false;
+  int incrementoPorJugada = 0;
   final TextEditingController _chatController = TextEditingController();
   List<String> _mensajesChat = [];
   List<String> _historialMovimientos = [];
@@ -56,6 +58,7 @@ class _BoardScreenState extends State<BoardScreen> {
     _startTimer();
     _joinGame();
     _initializeSocketListeners();
+    _configurarTiempoPorModo(widget.gameMode);
     _listenToBoardChanges();
   }
 
@@ -67,6 +70,57 @@ class _BoardScreenState extends State<BoardScreen> {
   void _joinGame() {
     socket.emit('join', {"idPartida": widget.gameId});
   }
+
+
+
+  Future<void> _handleTimeout({required bool isWhite}) async {
+    if (_gameEnded) return;
+    _gameEnded = true;
+
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? idJugador = prefs.getString('idJugador');
+
+    bool hasLost = (isWhite && playerColor == PlayerColor.white) ||
+        (!isWhite && playerColor == PlayerColor.black);
+
+    if (idJugador != null) {
+      socket.emit("gameOver", [
+        {
+          "winner": hasLost ? "opponent" : idJugador,
+          "idPartida": widget.gameId
+        }
+      ]);
+    }
+  }
+
+
+  void _configurarTiempoPorModo(String modo) {
+    switch (modo.toLowerCase()) {
+      case "clásica":
+        whiteTime = blackTime = 600; // 10 minutos
+        break;
+      case "principiante":
+        whiteTime = blackTime = 1800; // 30 minutos
+        break;
+      case "avanzado":
+        whiteTime = blackTime = 300; // 5 minutos
+        break;
+      case "relámpago":
+        whiteTime = blackTime = 180; // 3 minutos
+        break;
+      case "incremento":
+        whiteTime = blackTime = 900; // 15 minutos
+        incrementoPorJugada = 10;
+        break;
+      case "incremento exprés":
+        whiteTime = blackTime = 180; // 3 minutos
+        incrementoPorJugada = 2;
+        break;
+      default:
+        whiteTime = blackTime = 600;
+    }
+  }
+
 
   void _initializeSocketListeners() {
     socket.on("new-move", (data) {
@@ -225,12 +279,23 @@ class _BoardScreenState extends State<BoardScreen> {
         _sendMoveToServer(from, to, "");
         _changeTurn();
 
+        if (incrementoPorJugada > 0) {
+          setState(() {
+            if (playerColor == PlayerColor.white && !isWhiteTurn) {
+              whiteTime += incrementoPorJugada;
+            } else if (playerColor == PlayerColor.black && isWhiteTurn) {
+              blackTime += incrementoPorJugada;
+            }
+          });
+        }
+
         setState(() {
           _historialMovimientos.add("${from.toUpperCase()}-${to.toUpperCase()}");
         });
       }
     });
   }
+
   // ✅ Popup para cualquier final de partida
   void _exitGame(String message) {
     if (!context.mounted) return;
@@ -260,25 +325,28 @@ class _BoardScreenState extends State<BoardScreen> {
     });
   }
 
-  void _startTimer() {
-    _timerWhite = Timer.periodic(Duration(seconds: 1), (timer) {
-      if (isWhiteTurn && whiteTime > 0) {
-        setState(() {
-          whiteTime--;
-        });
-      }
-    });
+    void _startTimer() {
+      _timerWhite = Timer.periodic(Duration(seconds: 1), (timer) async {
+        if (isWhiteTurn && whiteTime > 0) {
+          setState(() {
+            whiteTime--;
+          });
+          if (whiteTime == 0) await _handleTimeout(isWhite: true);
+        }
+      });
 
-    _timerBlack = Timer.periodic(Duration(seconds: 1), (timer) {
-      if (!isWhiteTurn && blackTime > 0) {
-        setState(() {
-          blackTime--;
-        });
-      }
-    });
-  }
+      _timerBlack = Timer.periodic(Duration(seconds: 1), (timer) async {
+        if (!isWhiteTurn && blackTime > 0) {
+          setState(() {
+            blackTime--;
+          });
+          if (blackTime == 0) await _handleTimeout(isWhite: false);
+        }
+      });
+    }
 
-  Future<void> _sendMoveToServer(String from, String to, String promotion) async {
+
+    Future<void> _sendMoveToServer(String from, String to, String promotion) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? idJugador = prefs.getString('idJugador');
     String movimiento = "$from$to";

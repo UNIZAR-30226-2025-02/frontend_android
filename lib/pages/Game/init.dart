@@ -26,6 +26,11 @@ class _InitPageState extends State<Init_page> {
   String? fotoPerfil;
   String selectedGameMode = "Clásica";
   String selectedGameModeKey = "clasica";
+  bool _buscandoPartida = false;
+  bool _yaEntramosAPartida = false;
+  String? _gameId;
+  String? _gameColor;
+
   late SocketService socketService;
   IO.Socket? socket;
 
@@ -78,87 +83,53 @@ class _InitPageState extends State<Init_page> {
   }
 
   Future<void> encontrarPartida() async {
-    String gameId = "";
-    String color = "";
-    late final pgn;
-
     socket?.on('existing-game', (data) {
-      print("Partida encontrada con data: $data");
-      gameId = data['gameID'];
-      color = data['color'];
-      pgn = data['pgn'];
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => BoardScreen(selectedGameMode, color, gameId),
-        ),
+      if (_yaEntramosAPartida) return;
+      _yaEntramosAPartida = true;
+      final gameId = data['gameID'];
+      final color = data['color'];
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => BoardScreen(selectedGameMode, color, gameId)),
       );
     });
+
     socket?.on('game-ready', (data) {
-      var firstElement = data[0];
-      print("══════════════════════════════════════════════");
-      print("[DEBUG] 📩 Evento 'game-ready' recibido");
-      print("[DEBUG] 🛠 Tipo de 'data': ${data.runtimeType}");
-      print("[DEBUG] 📜 Contenido de 'data': $data");
-      print("══════════════════════════════════════════════");
-      gameId = firstElement['idPartida'].toString();
+      final idPartida = data[0]['idPartida'];
+      _gameId = idPartida;
+      _intentarEntrarAPartida();
     });
 
-
-    print("subscrinbiendo evento color");
     socket?.on('color', (data) {
-      print("ENTRPOOOO");
+      if (idJugador == null) return;
       final jugadores = List<Map<String, dynamic>>.from(data[0]['jugadores']);
-
-
-      final yo = jugadores.firstWhere(
-            (jugador) => jugador['id'] == idJugador,
-        orElse: () => {},
-      );
-
+      final yo = jugadores.firstWhere((jugador) => jugador['id'] == idJugador, orElse: () => {});
       if (yo.isNotEmpty && yo.containsKey('color')) {
-        final color = yo['color'] as String;
-        print("🎯 Mi color: $color");
-        print("ESTO ES LO QUE TE LLEVAS: $gameId");
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => BoardScreen(selectedGameMode, color, gameId),
-          ),
-        );
-      } else {
-        print("❌ No se encontró tu jugador en la lista.");
+        _gameColor = yo['color'];
+        _intentarEntrarAPartida();
       }
     });
+  }
 
-    socket?.on('errorMessage', (msg) {
-      print("[MATCHMAKING] ❌ Error recibido del backend: $msg");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("❌ $msg")),
+  void _intentarEntrarAPartida() {
+    if (_yaEntramosAPartida || _gameId == null || _gameColor == null) return;
+    _yaEntramosAPartida = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => BoardScreen(selectedGameMode, _gameColor!, _gameId!)),
       );
-    });
-
-    socket?.onDisconnect((_) {
-      print("[MATCHMAKING] 🔌 Socket desconectado");
-    });
-
-    // Opcional para depuración extra
-    socket?.onAny((event, data) {
-      if (event == "ping") return; // Ignorar pings
-      print("[MATCHMAKING] 📥 Evento recibido: $event - Data: $data");
     });
   }
 
   Future<void> _cargarUsuario() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
+    final foto = prefs.getString('fotoPerfil');
     setState(() {
       usuarioActual = prefs.getString('usuario');
       idJugador = prefs.getString('idJugador');
-      print(usuarioActual);
-      fotoPerfil = prefs.getString('fotoPerfil');
-      if (fotoPerfil == null || fotoPerfil!.isEmpty || fotoPerfil == "none") {
-        fotoPerfil = "assets/fotoPerfil.png";
-      }
+      fotoPerfil = (foto == null || foto == "none")
+          ? "assets/fotoPerfil.png"
+          : foto;
     });
   }
 
@@ -328,36 +299,58 @@ class _InitPageState extends State<Init_page> {
       child: SizedBox(
         width: double.infinity,
         height: 60,
-        child: ElevatedButton(
+        child: _buscandoPartida
+            ? Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.grey,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: null,
+              icon: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              ),
+              label: Text("Emparejando...", style: TextStyle(color: Colors.white)),
+            ),
+            SizedBox(width: 10),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: _cancelarEmparejamiento,
+              icon: Icon(Icons.close, color: Colors.white),
+              label: Text("Cancelar", style: TextStyle(color: Colors.white)),
+            )
+          ],
+        )
+            : ElevatedButton(
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.blueAccent,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
+          onPressed: () => _buscarPartida(context),
           child: Text('BUSCAR PARTIDA',
               style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-          onPressed: () {
-            if (usuarioActual == null) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("❌ Usuario no autenticado")),
-              );
-              return;
-            }
-
-            selectedGameModeKey = modoBackendMap[selectedGameMode] ?? "clasica";
-
-            print("[MATCHMAKING] 🔍 Enviando solicitud de findGame con $idJugador: , mode: $selectedGameModeKey");
-
-            socket?.emit("find-game", {
-              'idJugador': idJugador,
-              'mode': selectedGameModeKey
-            });
-
-
-
-          },
         ),
       ),
     );
+  }
+
+  void _cancelarEmparejamiento() {
+    setState(() {
+      _buscandoPartida = false;
+    });
+
+    socket?.emit('cancel-find-game', {
+      'idJugador': idJugador,
+    });
+
+    print("[MATCHMAKING] ❌ Emparejamiento cancelado manualmente.");
   }
 
   Widget _buildInfoButton(BuildContext context, String title, String description) {
@@ -368,7 +361,30 @@ class _InitPageState extends State<Init_page> {
       },
     );
   }
+
+  void _buscarPartida(BuildContext context) {
+    if (usuarioActual == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("❌ Usuario no autenticado")),
+      );
+      return;
+    }
+
+    setState(() {
+      _buscandoPartida = true;
+    });
+
+    selectedGameModeKey = modoBackendMap[selectedGameMode] ?? "clasica";
+
+    print("[MATCHMAKING] 🔍 Enviando solicitud de findGame con $idJugador, mode: $selectedGameModeKey");
+
+    socket?.emit("find-game", {
+      'idJugador': idJugador,
+      'mode': selectedGameModeKey
+    });
+  }
 }
+
 
 void _showInfoDialog(BuildContext context, String title, String description) {
   showDialog(
@@ -380,7 +396,8 @@ void _showInfoDialog(BuildContext context, String title, String description) {
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(color: Colors.blue),
         ),
-        title: Text(title, style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+        title: Text(title,
+            style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
         content: Text(description, style: TextStyle(color: Colors.white)),
         actions: [
           TextButton(
