@@ -84,7 +84,7 @@ class _BoardScreenState extends State<BoardScreen> {
         (!isWhite && playerColor == PlayerColor.black);
 
     if (idJugador != null) {
-      socket.emit("gameOver", [
+      socket.emit('gameOver', [
         {
           "winner": hasLost ? "opponent" : idJugador,
           "idPartida": widget.gameId
@@ -123,7 +123,7 @@ class _BoardScreenState extends State<BoardScreen> {
 
 
   void _initializeSocketListeners() {
-    socket.on("new-move", (data) {
+    socket.on('new-move', (data) {
       if (data is List && data.isNotEmpty && data[0] is Map<String, dynamic>) {
         var moveData = data[0];
         if (moveData.containsKey("movimiento")) {
@@ -181,7 +181,7 @@ class _BoardScreenState extends State<BoardScreen> {
 
 
 
-    socket.on("requestTie", (data) async {
+    socket.on('requestTie', (data) async {
       bool? accepted = await _showDrawOfferDialog(context);
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? idJugador = prefs.getString('idJugador');
@@ -206,14 +206,14 @@ class _BoardScreenState extends State<BoardScreen> {
       }
     });
 
-    socket.on("draw-declined", (data) {
+    socket.on('draw-declined', (data) {
       Future.delayed(Duration.zero, () {
         if (!context.mounted) return;
         _showSimpleDialog("El oponente ha rechazado las tablas.");
       });
     });
 
-    socket.on("draw-accepted", (data) async {
+    socket.on('draw-accepted', (data) async {
       print("[SOCKET] draw-accepted recibido: $data");
 
       SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -231,7 +231,7 @@ class _BoardScreenState extends State<BoardScreen> {
     });
 
 
-    socket.on("player-surrendered", (data) async {
+    socket.on('player-surrendered', (data) async {
       print("[SURREND] player-surrendered recibido: $data");
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? idJugador = prefs.getString('idJugador');
@@ -242,7 +242,7 @@ class _BoardScreenState extends State<BoardScreen> {
       }
     });
 
-    socket.on("gameOver", (data) {
+    socket.on('gameOver', (data) {
       print("[SOCKET] gameOver recibido: $data");
 
       Future.microtask(() {
@@ -355,7 +355,7 @@ class _BoardScreenState extends State<BoardScreen> {
     }
 
     if (idJugador != null) {
-      socket.emit("make-move", {
+      socket.emit('make-move', {
         "movimiento": movimiento,
         "idPartida": widget.gameId,
         "idJugador": idJugador,
@@ -445,7 +445,7 @@ class _BoardScreenState extends State<BoardScreen> {
               if (!context.mounted) return;
               print("CLOSE: Cerrando popups y saliendo de partida...");
               Navigator.of(context).pop();
-              Navigator.of(context).pop();
+              //Navigator.of(context).pop();
             },
             child: Text("Aceptar"),
           ),

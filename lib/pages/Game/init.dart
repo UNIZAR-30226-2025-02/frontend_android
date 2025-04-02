@@ -376,12 +376,13 @@ class _InitPageState extends State<Init_page> {
 
     selectedGameModeKey = modoBackendMap[selectedGameMode] ?? "clasica";
 
-    print("[MATCHMAKING] 🔍 Enviando solicitud de findGame con $idJugador, mode: $selectedGameModeKey");
 
-    socket?.emit("find-game", {
+
+    socket?.emit('find-game', {
       'idJugador': idJugador,
       'mode': selectedGameModeKey
     });
+    print("[MATCHMAKING] 🔍 Enviando solicitud de findGame con $idJugador, mode: $selectedGameModeKey");
   }
 }
 
