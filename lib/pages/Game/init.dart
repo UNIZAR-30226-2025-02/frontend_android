@@ -31,7 +31,7 @@ class _InitPageState extends State<Init_page> {
   String? _gameId;
   String? _gameColor;
 
-  late SocketService socketService;
+  SocketService socketService = SocketService();
   IO.Socket? socket;
 
   final List<GameMode> gameModes = [
@@ -55,7 +55,6 @@ class _InitPageState extends State<Init_page> {
   @override
   void initState() {
     super.initState();
-    socketService = SocketService();
     _startInitSequence();
   }
 
@@ -65,38 +64,30 @@ class _InitPageState extends State<Init_page> {
   }
 
   Future<void> _initializeSocketAndStartMatchmaking() async {
-
-    await _initializeSocket(); // Se asegura de que socket esté listo
+    await socketService.connect(context); // 👈 Context de LoginPage
+    socket = await socketService.getSocket(context);
     encontrarPartida(); // Ahora sí: ya puedes registrar listeners
-
   }
-  Future<void> _initializeSocket() async {
-    await socketService.connect(context); // ✅ Asegurar que el socket esté listo
-    IO.Socket connectedSocket = await socketService.getSocket(context);
 
-    if (mounted) {
-      setState(() {
-        socket = connectedSocket; // ✅ Ahora el socket está disponible
-      });
-      print("✅ Socket inicializado correctamente");
-    }
-  }
 
   Future<void> encontrarPartida() async {
     socket?.on('existing-game', (data) {
       if (_yaEntramosAPartida) return;
       _yaEntramosAPartida = true;
       final gameId = data['gameID'];
+      final pgn = data['pgn'];
       final color = data['color'];
+      final timeLeftW = data['timeLeftW'];
+      final timeLeftB = data['timeLeftB'];
+      print("$gameId y $pgn y $color y $timeLeftW y $timeLeftB" );
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => BoardScreen(selectedGameMode, color, gameId)),
+        MaterialPageRoute(builder: (_) => BoardScreen(selectedGameMode, color, gameId, pgn, timeLeftW, timeLeftB)),
       );
     });
 
     socket?.on('game-ready', (data) {
       final idPartida = data[0]['idPartida'];
       _gameId = idPartida;
-      _intentarEntrarAPartida();
     });
 
     socket?.on('color', (data) {
@@ -116,7 +107,7 @@ class _InitPageState extends State<Init_page> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => BoardScreen(selectedGameMode, _gameColor!, _gameId!)),
+        MaterialPageRoute(builder: (_) => BoardScreen(selectedGameMode, _gameColor!, _gameId!, "null", 0, 0)),
       );
     });
   }
@@ -158,6 +149,8 @@ class _InitPageState extends State<Init_page> {
 
     await prefs.remove('usuario');
     await prefs.remove('fotoPerfil');
+
+    socket?.disconnect();
 
     if (mounted) {
       Navigator.pop(context);

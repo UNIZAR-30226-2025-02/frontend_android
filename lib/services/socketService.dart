@@ -9,6 +9,8 @@ class SocketService {
   late IO.Socket socket;
   bool _isConnected = false;
   bool _isInitialized = false;
+  BuildContext? _latestContext;
+
 
   factory SocketService() {
     return _instance;
@@ -18,6 +20,8 @@ class SocketService {
 
   /// 🔹 Inicializa el socket y envía el token
   Future<void> initializeSocket(BuildContext context) async {
+    _latestContext = context;
+
     if (_isInitialized) {
       print("⚠️ El socket ya estaba inicializado. No se vuelve a inicializar.");
       return;
@@ -48,9 +52,10 @@ class SocketService {
       'query': {'token': token}
     });
 
+    //socket.clearListeners(); // ✅ evita duplicaciones
     _setupListeners(context, idJugador);
 
-    socket.onConnect((_) {
+    /*socket.onConnect((_) {
       print("✅ SOCKET CONECTADO con éxito. ID del socket: ${socket.id}");
       _isConnected = true;
 
@@ -59,7 +64,7 @@ class SocketService {
 
       print("📤 Registrando sesión en el servidor con ID: $idJugador...");
       socket.emit("register-session", idJugador);
-    });
+    });*/
 
   }
 
@@ -115,10 +120,6 @@ class SocketService {
       }
     });
 
-    socket.onAny((event, data) {
-      print("📥 Evento recibido: $event - Data: $data");
-    });
-
     print("✅ Listeners configurados correctamente.");
   }
 
@@ -170,6 +171,7 @@ class SocketService {
   }
 
   Future<void> connect(BuildContext context) async {
+    _latestContext=context;
     print("🔄 Intentando conectar al socket...");
     if (!_isConnected) {
       await initializeSocket(context);

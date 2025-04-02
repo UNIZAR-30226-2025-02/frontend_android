@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io' as IO;
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:frontend_android/pages/Login/password.dart';
@@ -7,6 +8,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:frontend_android/pages/Game/init.dart';
 import 'package:frontend_android/pages/Login/signin.dart';
 import 'package:frontend_android/pages/playerInfo.dart';
+import 'package:socket_io_client/src/socket.dart' as IO;
+
+import '../../services/socketService.dart';
+import '../InGame/board.dart';
 class Login_page extends StatefulWidget {
   static const String id = "login_page";
 
@@ -22,6 +27,22 @@ class _LoginPageState extends State<Login_page> {
   String? _mensajeErrorUser;
   String? _mensajeErrorPassword;
   bool _isLoading = false;
+
+  IO.Socket? socket;
+
+  SocketService socketService = SocketService();
+
+  Future<void> _initializeSocket() async {
+    await socketService.connect(context); // ✅ Asegurar que el socket esté listo
+    IO.Socket connectedSocket = await socketService.getSocket(context);
+
+    if (mounted) {
+      setState(() {
+        socket = connectedSocket as IO.Socket?; // ✅ Ahora el socket está disponible
+      });
+      print("✅ Socket inicializado correctamente");
+    }
+  }
 
   Future<void> _login() async {
     String user = _userController.text.trim();
@@ -88,8 +109,13 @@ class _LoginPageState extends State<Login_page> {
         await prefs.setString('fotoPerfil', publicUser['FotoPerfil'] ?? "");
         playerInfo(prefs.getString('idJugador'),prefs.getString('usuario'), prefs.getString('Correo'),
             prefs.getString('estadoUser'), prefs.getString('fotoPerfil'));
-
-        Navigator.pushReplacementNamed(context, Init_page.id);
+        try {
+          await _initializeSocket(); // conecta y espera
+          Navigator.pushReplacementNamed(context, Init_page.id); // solo si todo va bien
+        } catch (e) {
+          print("❌ Error al conectar socket: $e");
+          _mostrarSnackBar("No se pudo conectar con el servidor.");
+        }
       } else {
         _mostrarSnackBar("Usuario o contraseña incorrectos");
       }
