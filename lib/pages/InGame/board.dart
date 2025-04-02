@@ -143,7 +143,15 @@ class _BoardScreenState extends State<BoardScreen> {
               if (move != null) {
                 controller.notifyListeners();
                 _changeTurn();
-
+                if (incrementoPorJugada > 0) {
+                  setState(() {
+                    if (playerColor == PlayerColor.white && isWhiteTurn) {
+                      blackTime += incrementoPorJugada;
+                    } else if (playerColor == PlayerColor.black && !isWhiteTurn) {
+                      whiteTime += incrementoPorJugada;
+                    }
+                  });
+                }
                 setState(() {
                   _historialMovimientos.add("${from.toUpperCase()}-${to.toUpperCase()}");
                 });
