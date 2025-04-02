@@ -104,7 +104,7 @@ class _LoginPageState extends State<Login_page> {
         await prefs.setString('idJugador', publicUser['id']);
         await prefs.setString('usuario', publicUser['NombreUser']);
         await prefs.setString('Correo', publicUser['Correo']);
-        await prefs.setString('estadoPartida', publicUser['EstadoPartida']);
+        await prefs.setString('estadoPartida', publicUser['EstadoPartida']?? "NULL");
         await prefs.setString('estadoUser', publicUser['estadoUser']);
         await prefs.setString('fotoPerfil', publicUser['FotoPerfil'] ?? "");
         playerInfo(prefs.getString('idJugador'),prefs.getString('usuario'), prefs.getString('Correo'),

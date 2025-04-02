@@ -46,6 +46,7 @@ class _BoardScreenState extends State<BoardScreen> {
   void initState() {
     super.initState();
     _initAsync();
+    playerColor = widget.color == "white" ? PlayerColor.white : PlayerColor.black;
   }
 
   Future<void> _initAsync() async {
@@ -550,6 +551,7 @@ class _BoardScreenState extends State<BoardScreen> {
             bottom: 80,
             right: 20,
             child: FloatingActionButton(
+              heroTag: "chatFAB",
               backgroundColor: Colors.blueAccent,
               child: Icon(Icons.chat),
               onPressed: () {
@@ -565,6 +567,7 @@ class _BoardScreenState extends State<BoardScreen> {
             bottom: 80,
             left: 20,
             child: FloatingActionButton(
+              heroTag: "movesFAB",
               backgroundColor: Colors.orange,
               child: Icon(Icons.list_alt),
               onPressed: () {
