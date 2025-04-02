@@ -162,6 +162,14 @@ class _BoardScreenState extends State<BoardScreen> {
         }
       }
     });
+    socket.off('new-move');
+    socket.off('get-game-status');
+    socket.off('new-message');
+    socket.off('requestTie');
+    socket.off('draw-declined');
+    socket.off('draw-accepted');
+    socket.off('player-surrendered');
+    socket.off('gameOver');
 
     socket.on('get-game-status', (_) {
       socket.emit('game-status', {
@@ -477,9 +485,8 @@ class _BoardScreenState extends State<BoardScreen> {
   }
 
   @override
+  @override
   void dispose() {
-    _timerWhite.cancel();
-    _timerBlack.cancel();
 
     socket.off("new-move");
     socket.off("player-surrendered");
@@ -490,6 +497,7 @@ class _BoardScreenState extends State<BoardScreen> {
 
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
