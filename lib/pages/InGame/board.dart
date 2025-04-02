@@ -12,8 +12,11 @@ class BoardScreen extends StatefulWidget {
   final String gameMode;
   final String color;
   final String gameId;
+  final String pgn;
+  final int timeLeftW;
+  final int timeLeftB;
 
-  BoardScreen(this.gameMode, this.color, this.gameId);
+  BoardScreen(this.gameMode, this.color, this.gameId, this.pgn, this.timeLeftW, this.timeLeftB);
 
   @override
   _BoardScreenState createState() => _BoardScreenState();
@@ -28,8 +31,8 @@ class _BoardScreenState extends State<BoardScreen> {
   late chess.Chess chessGame;
   String? idJugador;
   Piece? piezaPromocion;
-  int whiteTime = 600;
-  int blackTime = 600;
+  int whiteTime = 0;
+  int blackTime = 0;
   bool _gameEnded = false;
   bool isWhiteTurn = true;
   bool _isChatVisible = false;
@@ -52,6 +55,16 @@ class _BoardScreenState extends State<BoardScreen> {
     idJugador = prefs.getString('idJugador');
 
     chessGame = chess.Chess();
+
+    if(widget.pgn != "null"){
+      chessGame.load_pgn(widget.pgn);
+    }
+    if(widget.timeLeftW != 0){
+      whiteTime = widget.timeLeftW;
+    }
+    if(widget.timeLeftB != 0){
+      blackTime = widget.timeLeftB;
+    }
     playerColor = widget.color.trim().toLowerCase() == "white"
         ? PlayerColor.white
         : PlayerColor.black;
@@ -118,7 +131,8 @@ class _BoardScreenState extends State<BoardScreen> {
         incrementoPorJugada = 2;
         break;
       default:
-        whiteTime = blackTime = 600;
+        whiteTime = whiteTime;
+        blackTime = blackTime;
     }
   }
 
@@ -158,10 +172,9 @@ class _BoardScreenState extends State<BoardScreen> {
     socket.on('get-game-status', (_) {
       socket.emit('game-status', {
         "estadoPartida": "ingame",
-        "timeLeft": {
-          "white": whiteTime,
-          "black": blackTime,
-        }
+        "timeLeftW": whiteTime,
+          "timeLeftB": blackTime,
+
       });
     });
 
