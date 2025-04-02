@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../../services/socketService.dart';
+import 'package:frontend_android/pages/Game/init.dart';
 
 class BoardScreen extends StatefulWidget {
   static const id = "board_page";
@@ -238,7 +239,7 @@ class _BoardScreenState extends State<BoardScreen> {
 
       if (data[0]['idJugador'] != idJugador) {
         print("[SOCKET] Tu rival se ha rendido");
-        //_showSimpleThenExitDialog("Tu rival se ha rendido. ¡Has ganado!");
+
       }
     });
 
@@ -309,8 +310,7 @@ class _BoardScreenState extends State<BoardScreen> {
           TextButton(
             onPressed: () {
               if (!context.mounted) return;
-              Navigator.of(context).pop();
-              Navigator.of(context).pop();
+              Navigator.pushReplacementNamed(context, Init_page.id);
             },
             child: Text("Aceptar"),
           ),
@@ -387,25 +387,7 @@ class _BoardScreenState extends State<BoardScreen> {
     }
   }
 
-  void _showConfirmThenExitDialog(String message) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text("Información"),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(); // Cierra el popup
-              Navigator.of(context).pop(); // Sale del BoardScreen
-            },
-            child: Text("Aceptar"),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Future<bool?> _showDrawOfferDialog(BuildContext context) async {
     return showDialog<bool>(
