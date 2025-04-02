@@ -16,6 +16,7 @@ class BoardScreen extends StatefulWidget {
   final int timeLeftW;
   final int timeLeftB;
 
+
   BoardScreen(this.gameMode, this.color, this.gameId, this.pgn, this.timeLeftW, this.timeLeftB);
 
   @override
@@ -30,7 +31,7 @@ class _BoardScreenState extends State<BoardScreen> {
   late IO.Socket socket;
   late chess.Chess chessGame;
   String? idJugador;
-  Piece? piezaPromocion;
+  //Piece? piezaPromocion;
   int whiteTime = 0;
   int blackTime = 0;
   bool _gameEnded = false;
@@ -41,6 +42,7 @@ class _BoardScreenState extends State<BoardScreen> {
   final TextEditingController _chatController = TextEditingController();
   List<String> _mensajesChat = [];
   List<String> _historialMovimientos = [];
+  bool _esperandoPromocion = false;
 
   @override
   void initState() {
@@ -277,22 +279,41 @@ class _BoardScreenState extends State<BoardScreen> {
       });
     });
   }
+
+
   void _listenToBoardChanges() {
-    controller.addListener(() async {
-      final history = controller.game.getHistory({'verbose': true});
-      if (history.isNotEmpty) {
+    controller.addListener(() {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        final history = controller.game.getHistory({'verbose': true});
+        if (history.isEmpty) return;
+
         final lastMove = history.last;
         final from = lastMove['from'];
         final to = lastMove['to'];
-        Piece? movedPiece = controller.game.get(to);
+        final movedPiece = controller.game.get(to);
         if (movedPiece == null) return;
 
-        PlayerColor piecePlayerColor =
-        (movedPiece.color == chess.Color.WHITE) ? PlayerColor.white : PlayerColor.black;
-        if (playerColor != piecePlayerColor) return;
+        final isPromotion = movedPiece.type == chess.PieceType.PAWN && (to.endsWith('4') || to.endsWith('1'));
+        if (isPromotion) {
+          // Deshacer movimiento automático
+          controller.undoMove();
 
-        _sendMoveToServer(from, to, "");
-        _changeTurn();
+          if (!context.mounted) return;
+          final selectedPiece = await _showPromotionDialog() ?? 'q';
+
+          controller.game.move({
+            "from": from,
+            "to": to,
+            "promotion": selectedPiece,
+          });
+          controller.notifyListeners();
+
+          _sendMoveToServer(from, to, selectedPiece);
+          _changeTurn();
+        } else {
+          _sendMoveToServer(from, to, "");
+          _changeTurn();
+        }
 
         if (incrementoPorJugada > 0) {
           setState(() {
@@ -307,8 +328,55 @@ class _BoardScreenState extends State<BoardScreen> {
         setState(() {
           _historialMovimientos.add("${from.toUpperCase()}-${to.toUpperCase()}");
         });
-      }
+      });
     });
+  }
+
+
+  Future<String?> _showPromotionDialog() async {
+    print("Promotion: entro en el dialogo");
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Promociona tu peón"),
+          content: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: ['q', 'r', 'b', 'n'].map((e) {
+              return IconButton(
+                icon: Text(
+                  _pieceUnicode(e, playerColor == PlayerColor.white ? chess.Color.WHITE : chess.Color.BLACK),
+                  style: TextStyle(fontSize: 32),
+                ), // O usa iconos según color
+                onPressed: () => Navigator.pop(context, e),
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
+  }
+
+  String _pieceUnicode(String piece, chess.Color color) {
+    const whitePieces = {'q': '♕', 'r': '♖', 'b': '♗', 'n': '♘'};
+    const blackPieces = {'q': '♛', 'r': '♜', 'b': '♝', 'n': '♞'};
+    return color == chess.Color.WHITE ? whitePieces[piece]! : blackPieces[piece]!;
+  }
+
+  chess.PieceType _promotionTypeFromChar(String char) {
+    switch (char) {
+      case 'q':
+        return chess.PieceType.QUEEN;
+      case 'r':
+        return chess.PieceType.ROOK;
+      case 'b':
+        return chess.PieceType.BISHOP;
+      case 'n':
+        return chess.PieceType.KNIGHT;
+      default:
+        return chess.PieceType.QUEEN;
+    }
   }
 
   // ✅ Popup para cualquier final de partida
@@ -364,9 +432,10 @@ class _BoardScreenState extends State<BoardScreen> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? idJugador = prefs.getString('idJugador');
     String movimiento = "$from$to";
-    if (piezaPromocion != null) {
-      movimiento = "$from$to${piezaPromocion!.type}";
+    if (promotion.isNotEmpty) {
+      movimiento = "$from$to$promotion";
     }
+
 
     if (idJugador != null) {
       socket.emit('make-move', {
@@ -374,7 +443,7 @@ class _BoardScreenState extends State<BoardScreen> {
         "idPartida": widget.gameId,
         "idJugador": idJugador,
       });
-      piezaPromocion = null;
+
     }
   }
 
