@@ -114,7 +114,7 @@ class SocketService {
       if (idJugadorConectado == null || idJugadorConectado == idJugador) {
         print("🔴 Sesión duplicada detectada o sin ID. Cerrando sesión...");
         showForceLogoutPopup(
-          context,
+          _latestContext,
           mensaje ?? "Tu cuenta ha sido iniciada en otro dispositivo.",
         );
       } else {
@@ -125,10 +125,10 @@ class SocketService {
     print("✅ Listeners configurados correctamente.");
   }
 
-  void showForceLogoutPopup(BuildContext context, String message) {
+  void showForceLogoutPopup(BuildContext? context, String message) {
     print("📢 Mostrando pop-up: $message");
 
-    if (context.mounted) {
+    if (context!.mounted) {
       showDialog(
         context: context,
         barrierDismissible: false,
