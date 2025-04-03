@@ -330,6 +330,16 @@ class _BoardScreenState extends State<BoardScreen> {
            if (movedPiece.type == PieceType.ROOK){
              promotion = "r";
            }
+           if (movedPiece.type == PieceType.BISHOP){
+             promotion = "b";
+           }
+           if (movedPiece.type == PieceType.QUEEN){
+             promotion = "q";
+           }
+           if (movedPiece.type == PieceType.KNIGHT){
+             promotion = "n";
+           }
+
            print("movimiento: $from y $to y $promotion");
            _sendMoveToServer(from, to, promotion);
         }
