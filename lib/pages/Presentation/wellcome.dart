@@ -17,14 +17,24 @@ class _Wellcome_pageState extends State<Wellcome_page> {
   List<Color> gradientColors2 = [Color(0xff2D2D2D), Color(0xff3A3A3A)];
   bool toggle = true;
 
+  late Timer _timer;
+
   @override
   void initState() {
     super.initState();
-    Timer.periodic(Duration(seconds: 4), (timer) {
-      setState(() {
-        toggle = !toggle;
-      });
+    _timer = Timer.periodic(Duration(seconds: 4), (timer) {
+      if (mounted) {
+        setState(() {
+          toggle = !toggle;
+        });
+      }
     });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel(); // <- Esto evita el memory leak
+    super.dispose();
   }
 
   @override

@@ -7,12 +7,18 @@ import 'package:frontend_android/pages/Game/profile.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../services/socketService.dart';
 import '../Presentation/wellcome.dart';
 import '../buildHead.dart';
 
-class Settings_page extends StatelessWidget {
+class Settings_page extends StatefulWidget {
   static const String id = "setting_page";
 
+  @override
+  _Settings_pageState createState() => _Settings_pageState();
+}
+
+class _Settings_pageState extends State<Settings_page> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -55,14 +61,14 @@ class Settings_page extends StatelessWidget {
                   Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(builder: (context) => Profile_page()),
-                        (route) => true, // Mantiene las rutas previas
+                        (route) => true,
                   );
                 }),
                 _buildMenuItem(Icons.group, 'AMIGOS', () {
                   Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(builder: (context) => Friends_Page()),
-                        (route) => true, // Mantiene las rutas previas
+                        (route) => true,
                   );
                 }),
                 _buildMenuItem(Icons.close, 'CERRAR SESIÓN', () {
@@ -73,7 +79,7 @@ class Settings_page extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: BottomNavBar(currentIndex: 4), // Índice de "Ajustes"
+      bottomNavigationBar: BottomNavBar(currentIndex: 4),
     );
   }
 
@@ -100,7 +106,7 @@ class Settings_page extends StatelessWidget {
     );
   }
 
-  void _confirmCloseSession(BuildContext context) async{
+  void _confirmCloseSession(BuildContext context) async {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -110,14 +116,15 @@ class Settings_page extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Cerrar el diálogo sin hacer nada
+                Navigator.of(context).pop(); // Cancelar
               },
               child: Text("Cancelar"),
             ),
             TextButton(
-              onPressed: () async{
-                Navigator.pop(context); // Cerrar el diálogo
-                await _cerrarSesion(context); // Ejecutar la función de cerrar sesión
+              onPressed: () async {
+                Navigator.of(context).pop(); // Cierra este diálogo primero
+                Future.delayed(Duration(milliseconds: 300)); // Pequeña espera
+                _cerrarSesion(context);
               },
               child: Text("Aceptar"),
             ),
@@ -128,6 +135,7 @@ class Settings_page extends StatelessWidget {
   }
 
   Future<void> _cerrarSesion(BuildContext context) async {
+    final BuildContext safeContext = context;
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? usuarioActual = prefs.getString('usuario');
 
@@ -150,22 +158,11 @@ class Settings_page extends StatelessWidget {
       }
     }
 
-    // Eliminar datos de sesión
     await prefs.clear();
 
-    if (!context.mounted) return;
-
-    // Mostrar mensaje de confirmación
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Has cerrado sesión')),
-    );
-
-    Future.microtask(() {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => Wellcome_page()),
-            (route) => false, // Elimina todas las rutas previas
-      );
-    });
+    if (mounted) {
+      print("🟢 Mostrando popup de cierre de sesión");
+      SocketService().showForceLogoutPopup(safeContext, "Tu sesión se ha cerrado correctamente.");
+    }
   }
 }

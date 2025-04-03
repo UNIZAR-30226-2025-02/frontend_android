@@ -128,13 +128,13 @@ class SocketService {
   void showForceLogoutPopup(BuildContext? context, String message) {
     print("📢 Mostrando pop-up: $message");
 
-    if (context!.mounted) {
+    if (context != null) {
       showDialog(
         context: context,
         barrierDismissible: false,
         builder: (BuildContext context) {
           return AlertDialog(
-            backgroundColor: Colors.black87,
+            backgroundColor: Colors.grey[900],
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(15),
               side: BorderSide(color: Colors.blueAccent, width: 1.5),
