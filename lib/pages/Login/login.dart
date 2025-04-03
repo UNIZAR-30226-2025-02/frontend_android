@@ -255,7 +255,7 @@ class _LoginPageState extends State<Login_page> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                "CheckMates",
+                "CheckMateX",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white,
@@ -268,9 +268,9 @@ class _LoginPageState extends State<Login_page> {
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   GestureDetector(
-                    onTap: () => print('Login'),
+                    onTap: () => print('Iniciar Sesión'),
                     child: Text(
-                      'Login',
+                      'Iniciar Sesión',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 20,
@@ -283,7 +283,7 @@ class _LoginPageState extends State<Login_page> {
                       Navigator.pushNamed(context, Signin_page.id);
                     },
                     child: Text(
-                      'Sign In',
+                      'Registrarse',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 20,
@@ -336,7 +336,7 @@ class _LoginPageState extends State<Login_page> {
   Widget _textFieldUser() {
     return _textField(
       _userController,
-      "User",
+      "Nombre de usuario",
       Icons.person_outline,
       _mensajeErrorUser,
     );
@@ -345,7 +345,7 @@ class _LoginPageState extends State<Login_page> {
   Widget _textFieldPassword() {
     return _textField(
       _passwordController,
-      "Password",
+      "Contraseña",
       Icons.lock,
       _mensajeErrorPassword,
       isPassword: true,
@@ -388,7 +388,7 @@ class _LoginPageState extends State<Login_page> {
   Widget _buttonLogin() {
     return ElevatedButton(
       onPressed: _login,
-      child: Text('Login'),
+      child: Text('Iniciar Sesión'),
     );
   }
 

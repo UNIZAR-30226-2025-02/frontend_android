@@ -140,7 +140,7 @@ class _SigninPageState extends State<Signin_page> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                "CheckMates",
+                "CheckMateX",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white,
@@ -157,7 +157,7 @@ class _SigninPageState extends State<Signin_page> {
                       Navigator.pushReplacementNamed(context, Login_page.id);
                     },
                     child: Text(
-                      'Login',
+                      'Iniciar Sesión',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 20,
@@ -166,7 +166,7 @@ class _SigninPageState extends State<Signin_page> {
                     ),
                   ),
                   Text(
-                    'Sign In',
+                    'Registrarse',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 20,
@@ -176,9 +176,9 @@ class _SigninPageState extends State<Signin_page> {
                 ],
               ),
               SizedBox(height: 30),
-              _textFieldEmail(),
-              SizedBox(height: 15.0),
               _textFieldUser(),
+              SizedBox(height: 15.0),
+              _textFieldEmail(),
               SizedBox(height: 15.0),
               _textFieldPassword(),
               SizedBox(height: 20),
@@ -192,15 +192,15 @@ class _SigninPageState extends State<Signin_page> {
   }
 
   Widget _textFieldEmail() {
-    return _textField(_emailController, "Email", Icons.email, _mensajeErrorCorreo);
+    return _textField(_emailController, "Correo electrónico", Icons.email, _mensajeErrorCorreo);
   }
 
   Widget _textFieldUser() {
-    return _textField(_userController, "User", Icons.person_outline, _mensajeErrorUser);
+    return _textField(_userController, "Nombre de usuario", Icons.person_outline, _mensajeErrorUser);
   }
 
   Widget _textFieldPassword() {
-    return _textField(_passwordController, "Password", Icons.lock, _mensajeErrorPassword, isPassword: true);
+    return _textField(_passwordController, "Contraseña", Icons.lock, _mensajeErrorPassword, isPassword: true);
   }
 
   Widget _textField(
@@ -240,7 +240,7 @@ class _SigninPageState extends State<Signin_page> {
     return ElevatedButton(
       onPressed: _registrarUsuario,
       child: Text(
-        'Sign in',
+        'Registrarse',
       ),
     );
   }
