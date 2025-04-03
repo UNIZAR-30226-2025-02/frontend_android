@@ -71,17 +71,24 @@ class _InitPageState extends State<Init_page> {
 
 
   Future<void> encontrarPartida() async {
-    socket?.on('existing-game', (data) {
+    socket?.on('existing-game', (data) async{
+      print("🧪 EXISTING-GAME DATA: $data (${data.runtimeType})");
       if (_yaEntramosAPartida) return;
       _yaEntramosAPartida = true;
-      final gameId = data['gameID'];
-      final pgn = data['pgn'];
-      final color = data['color'];
-      final timeLeftW = data['timeLeftW'];
-      final timeLeftB = data['timeLeftB'];
+      final gameData = data[0];
+      final gameId = gameData['gameID'];
+      final pgnRaw = gameData['pgn'];
+      final pgn = (pgnRaw is List)
+          ? pgnRaw.join('\n')  // 🔁 Unís el pgn en un String
+          : pgnRaw?.toString() ?? "";
+      final color = gameData['color'];
+      final timeLeftW = gameData['timeLeftW'];
+      final timeLeftB = gameData['timeLeftB'];
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String modoGuardado = prefs.getString('modoDeJuegoActivo') ?? "Clásica";
       print("$gameId y $pgn y $color y $timeLeftW y $timeLeftB" );
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => BoardScreen(selectedGameMode, color, gameId, pgn, timeLeftW, timeLeftB)),
+        MaterialPageRoute(builder: (_) => BoardScreen(modoGuardado, color, gameId, pgn, timeLeftW, timeLeftB)),
       );
     });
 
@@ -366,7 +373,7 @@ class _InitPageState extends State<Init_page> {
     );
   }
 
-  void _buscarPartida(BuildContext context) {
+  void _buscarPartida(BuildContext context) async{
     if (usuarioActual == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("❌ Usuario no autenticado")),
@@ -379,6 +386,9 @@ class _InitPageState extends State<Init_page> {
     });
 
     selectedGameModeKey = modoBackendMap[selectedGameMode] ?? "clasica";
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('modoDeJuegoActivo', selectedGameMode);
+
 
     socket?.emit('find-game', {
       'idJugador': idJugador,

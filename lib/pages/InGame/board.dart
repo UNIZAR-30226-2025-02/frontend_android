@@ -1,3 +1,4 @@
+
 import 'dart:async';
 import 'package:chess/chess.dart' as chess;
 import 'package:flutter_chess_board/flutter_chess_board.dart';
@@ -16,7 +17,6 @@ class BoardScreen extends StatefulWidget {
   final int timeLeftW;
   final int timeLeftB;
 
-
   BoardScreen(this.gameMode, this.color, this.gameId, this.pgn, this.timeLeftW, this.timeLeftB);
 
   @override
@@ -31,7 +31,7 @@ class _BoardScreenState extends State<BoardScreen> {
   late IO.Socket socket;
   late chess.Chess chessGame;
   String? idJugador;
-  //Piece? piezaPromocion;
+  Piece? piezaPromocion;
   int whiteTime = 0;
   int blackTime = 0;
   bool _gameEnded = false;
@@ -42,7 +42,9 @@ class _BoardScreenState extends State<BoardScreen> {
   final TextEditingController _chatController = TextEditingController();
   List<String> _mensajesChat = [];
   List<String> _historialMovimientos = [];
-  bool _esperandoPromocion = false;
+  String? _selectedSquare;
+  List<String> _legalDestinations = [];
+
 
   @override
   void initState() {
@@ -61,6 +63,7 @@ class _BoardScreenState extends State<BoardScreen> {
 
     if(widget.pgn != "null"){
       chessGame.load_pgn(widget.pgn);
+      controller.loadPGN(widget.pgn);
     }
     if(widget.timeLeftW != 0){
       whiteTime = widget.timeLeftW;
@@ -112,6 +115,10 @@ class _BoardScreenState extends State<BoardScreen> {
 
 
   void _configurarTiempoPorModo(String modo) {
+    if (widget.timeLeftW != 0 || widget.timeLeftB != 0) {
+      return; // ⛔ Ya tenemos los tiempos desde el backend, no sobrescribas
+    }
+
     switch (modo.toLowerCase()) {
       case "clásica":
         whiteTime = blackTime = 600; // 10 minutos
@@ -176,7 +183,7 @@ class _BoardScreenState extends State<BoardScreen> {
       socket.emit('game-status', {
         "estadoPartida": "ingame",
         "timeLeftW": whiteTime,
-          "timeLeftB": blackTime,
+        "timeLeftB": blackTime,
 
       });
     });
@@ -279,41 +286,22 @@ class _BoardScreenState extends State<BoardScreen> {
       });
     });
   }
-
-
   void _listenToBoardChanges() {
-    controller.addListener(() {
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        final history = controller.game.getHistory({'verbose': true});
-        if (history.isEmpty) return;
-
+    controller.addListener(() async {
+      final history = controller.game.getHistory({'verbose': true});
+      if (history.isNotEmpty) {
         final lastMove = history.last;
         final from = lastMove['from'];
         final to = lastMove['to'];
-        final movedPiece = controller.game.get(to);
+        Piece? movedPiece = controller.game.get(to);
         if (movedPiece == null) return;
 
-        final isPromotion = movedPiece.type == chess.PieceType.PAWN && (to.endsWith('4') || to.endsWith('1'));
-        if (isPromotion) {
-          // Deshacer movimiento automático
-          controller.undoMove();
+        PlayerColor piecePlayerColor =
+        (movedPiece.color == chess.Color.WHITE) ? PlayerColor.white : PlayerColor.black;
+        if (playerColor != piecePlayerColor) return;
 
-          if (!context.mounted) return;
-          final selectedPiece = await _showPromotionDialog() ?? 'q';
-
-          controller.game.move({
-            "from": from,
-            "to": to,
-            "promotion": selectedPiece,
-          });
-          controller.notifyListeners();
-
-          _sendMoveToServer(from, to, selectedPiece);
-          _changeTurn();
-        } else {
-          _sendMoveToServer(from, to, "");
-          _changeTurn();
-        }
+        _sendMoveToServer(from, to, "");
+        _changeTurn();
 
         if (incrementoPorJugada > 0) {
           setState(() {
@@ -328,55 +316,8 @@ class _BoardScreenState extends State<BoardScreen> {
         setState(() {
           _historialMovimientos.add("${from.toUpperCase()}-${to.toUpperCase()}");
         });
-      });
+      }
     });
-  }
-
-
-  Future<String?> _showPromotionDialog() async {
-    print("Promotion: entro en el dialogo");
-    return showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("Promociona tu peón"),
-          content: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: ['q', 'r', 'b', 'n'].map((e) {
-              return IconButton(
-                icon: Text(
-                  _pieceUnicode(e, playerColor == PlayerColor.white ? chess.Color.WHITE : chess.Color.BLACK),
-                  style: TextStyle(fontSize: 32),
-                ), // O usa iconos según color
-                onPressed: () => Navigator.pop(context, e),
-              );
-            }).toList(),
-          ),
-        );
-      },
-    );
-  }
-
-  String _pieceUnicode(String piece, chess.Color color) {
-    const whitePieces = {'q': '♕', 'r': '♖', 'b': '♗', 'n': '♘'};
-    const blackPieces = {'q': '♛', 'r': '♜', 'b': '♝', 'n': '♞'};
-    return color == chess.Color.WHITE ? whitePieces[piece]! : blackPieces[piece]!;
-  }
-
-  chess.PieceType _promotionTypeFromChar(String char) {
-    switch (char) {
-      case 'q':
-        return chess.PieceType.QUEEN;
-      case 'r':
-        return chess.PieceType.ROOK;
-      case 'b':
-        return chess.PieceType.BISHOP;
-      case 'n':
-        return chess.PieceType.KNIGHT;
-      default:
-        return chess.PieceType.QUEEN;
-    }
   }
 
   // ✅ Popup para cualquier final de partida
@@ -407,35 +348,33 @@ class _BoardScreenState extends State<BoardScreen> {
     });
   }
 
-    void _startTimer() {
-      _timerWhite = Timer.periodic(Duration(seconds: 1), (timer) async {
-        if (isWhiteTurn && whiteTime > 0) {
-          setState(() {
-            whiteTime--;
-          });
-          if (whiteTime == 0) await _handleTimeout(isWhite: true);
-        }
-      });
+  void _startTimer() {
+    _timerWhite = Timer.periodic(Duration(seconds: 1), (timer) async {
+      if (isWhiteTurn && whiteTime > 0) {
+        setState(() {
+          whiteTime--;
+        });
+        if (whiteTime == 0) await _handleTimeout(isWhite: true);
+      }
+    });
 
-      _timerBlack = Timer.periodic(Duration(seconds: 1), (timer) async {
-        if (!isWhiteTurn && blackTime > 0) {
-          setState(() {
-            blackTime--;
-          });
-          if (blackTime == 0) await _handleTimeout(isWhite: false);
-        }
-      });
-    }
+    _timerBlack = Timer.periodic(Duration(seconds: 1), (timer) async {
+      if (!isWhiteTurn && blackTime > 0) {
+        setState(() {
+          blackTime--;
+        });
+        if (blackTime == 0) await _handleTimeout(isWhite: false);
+      }
+    });
+  }
 
-
-    Future<void> _sendMoveToServer(String from, String to, String promotion) async {
+  Future<void> _sendMoveToServer(String from, String to, String promotion) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? idJugador = prefs.getString('idJugador');
     String movimiento = "$from$to";
-    if (promotion.isNotEmpty) {
-      movimiento = "$from$to$promotion";
+    if (piezaPromocion != null) {
+      movimiento = "$from$to${piezaPromocion!.type}";
     }
-
 
     if (idJugador != null) {
       socket.emit('make-move', {
@@ -443,7 +382,7 @@ class _BoardScreenState extends State<BoardScreen> {
         "idPartida": widget.gameId,
         "idJugador": idJugador,
       });
-
+      piezaPromocion = null;
     }
   }
 
@@ -470,8 +409,6 @@ class _BoardScreenState extends State<BoardScreen> {
     }
   }
 
-
-
   Future<bool?> _showDrawOfferDialog(BuildContext context) async {
     return showDialog<bool>(
       context: context,
@@ -493,8 +430,6 @@ class _BoardScreenState extends State<BoardScreen> {
       },
     );
   }
-
-
 
   void _showSimpleThenExitDialog(String message) {
     if (!context.mounted) return;
@@ -519,7 +454,6 @@ class _BoardScreenState extends State<BoardScreen> {
     );
   }
 
-
   // ✅ Popup informativo que no cierra la partida
   void _showSimpleDialog(String message) {
     showDialog(
@@ -536,6 +470,7 @@ class _BoardScreenState extends State<BoardScreen> {
       ),
     );
   }
+
   void _enviarMensaje(String mensaje) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? userId = prefs.getString('idJugador');
@@ -549,6 +484,12 @@ class _BoardScreenState extends State<BoardScreen> {
 
       _chatController.clear(); // Limpia el input
     }
+  }
+
+  String _squareName(int row, int col) {
+    final files = 'abcdefgh';
+    final ranks = '87654321';
+    return files[col] + ranks[row];
   }
 
   @override
