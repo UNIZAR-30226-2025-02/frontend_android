@@ -147,38 +147,65 @@ class _BoardScreenState extends State<BoardScreen> {
 
 
   void _initializeSocketListeners() {
+
     socket.on('new-move', (data) {
-      if (data is List && data.isNotEmpty && data[0] is Map<String, dynamic>) {
-        var moveData = data[0];
-        if (moveData.containsKey("movimiento")) {
-          String movimiento = moveData["movimiento"];
-          String from = movimiento.substring(0, 2);
-          String to = movimiento.substring(2, 4);
-          String promotion = movimiento.length > 4 ? movimiento[4] : "";
+      print("promotion: Recibido movimiento: $data");
+
+    if (data is List && data.isNotEmpty && data[0] is Map<String, dynamic>) {
+      print("promotion: entro al if is list");
+      var moveData = data[0];
+      if (moveData.containsKey("movimiento")) {
+        print("promotion: entro a if moveData");
+        String? promotion;
+        String movimiento = moveData["movimiento"];
+        String from = movimiento.substring(0, 2);
+        String to = movimiento.substring(2, 4);
+
+
+        if (movimiento.length == 5) {
+          promotion = movimiento[4];
+          print("Promotion: promoción detectada: $promotion");
+        } else {
+          promotion = "";
+          print("Promotion: sin promoción");
+        }
+
+          promotion = "";
+          print("promotion: promocion vacia");
+
+
+        print("Promotion: movimiento recibido $movimiento");
+        try {
+          print("promotion: intentando...");
+          if (promotion.isNotEmpty) {
+            print("promotion: not empty");
+            controller.makeMoveWithPromotion(
+              from: from,
+              to: to,
+              pieceToPromoteTo: promotion,
+            );
+          } else {
+            controller.makeMove(
+              from: from,
+              to: to,
+            );
+          }
+
+          _changeTurn();
 
           setState(() {
-            try {
-              var move = controller.game.move({
-                "from": from,
-                "to": to,
-                "promotion": promotion.isNotEmpty ? promotion : null,
-              });
-              if (move != null) {
-                controller.notifyListeners();
-                _changeTurn();
-
-                setState(() {
-                  _historialMovimientos.add("${from.toUpperCase()}-${to.toUpperCase()}");
-                });
-              }
-
-            } catch (_) {}
+            _historialMovimientos.add("${from.toUpperCase()}-${to.toUpperCase()}-$promotion");
           });
+
+        } catch (e) {
+          print("❌ Error al aplicar el movimiento recibido: $e");
         }
       }
-    });
+    }
+  });
 
-    socket.on('get-game-status', (_) {
+
+  socket.on('get-game-status', (_) {
       socket.emit('game-status', {
         "estadoPartida": "ingame",
         "timeLeftW": whiteTime,
@@ -291,6 +318,8 @@ class _BoardScreenState extends State<BoardScreen> {
         final lastMove = history.last;
         final from = lastMove['from'];
         final to = lastMove['to'];
+        final promotion = lastMove['promotion'];
+
         Piece? movedPiece = controller.game.get(to);
         if (movedPiece == null) return;
 
@@ -298,7 +327,7 @@ class _BoardScreenState extends State<BoardScreen> {
         (movedPiece.color == chess.Color.WHITE) ? PlayerColor.white : PlayerColor.black;
         if (playerColor != piecePlayerColor) return;
 
-        _sendMoveToServer(from, to, "");
+        _sendMoveToServer(from, to, promotion);
         _changeTurn();
 
         if (incrementoPorJugada > 0) {
@@ -413,13 +442,19 @@ class _BoardScreenState extends State<BoardScreen> {
     });
   }
 
-  Future<void> _sendMoveToServer(String from, String to, String promotion) async {
+  Future<void> _sendMoveToServer(String from, String to, String? promotion) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? idJugador = prefs.getString('idJugador');
-    String movimiento = "$from$to";
-    if (piezaPromocion != null) {
-      movimiento = "$from$to${piezaPromocion!.type}";
+    String movimiento;
+
+    print("promotion: la variable promocion es: $promotion");
+    if (promotion != null) {
+      movimiento = "$from$to$promotion";
     }
+    else{
+      movimiento = "$from$to";
+    }
+    print("Promotion: enviando movimiento al server: $movimiento");
 
     if (idJugador != null) {
       socket.emit('make-move', {
@@ -427,7 +462,7 @@ class _BoardScreenState extends State<BoardScreen> {
         "idPartida": widget.gameId,
         "idJugador": idJugador,
       });
-      piezaPromocion = null;
+
     }
   }
 
@@ -684,6 +719,7 @@ class _BoardScreenState extends State<BoardScreen> {
                 child: Center(
                   child: ChessBoard(
                     controller: controller,
+
                     boardOrientation: playerColor,
                     enableUserMoves: (isWhiteTurn && playerColor == PlayerColor.white) ||
                         (!isWhiteTurn && playerColor == PlayerColor.black),
