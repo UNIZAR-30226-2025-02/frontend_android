@@ -247,26 +247,44 @@ class _InitPageState extends State<Init_page> {
   }
 
   Widget _buildGameButton(BuildContext context, GameMode mode) {
+    final bool isSelected = selectedGameMode == mode.name;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.grey[300],
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.blue, width: 2),
+          border: Border.all(
+            color: Colors.blue,
+            width: 2,
+          ),
         ),
         child: ListTile(
           leading: Icon(mode.icon, size: 28, color: mode.color),
-          title: Text(mode.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          title: Text(
+            mode.name,
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          ),
           subtitle: Row(
             children: [
               _buildInfoButton(context, mode.name, mode.description),
               SizedBox(width: 8),
-              Text(mode.time, style: TextStyle(color: Colors.black87, fontSize: 16)),
+              Text(
+                mode.time,
+                style: TextStyle(color: Colors.black87, fontSize: 16),
+              ),
             ],
           ),
           trailing: ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isSelected ? Colors.white : Colors.blue,
+              foregroundColor: isSelected ? Colors.blue : Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              side: BorderSide(color: Colors.blue),
+            ),
             onPressed: () {
               setState(() {
                 selectedGameMode = mode.name;
@@ -278,6 +296,7 @@ class _InitPageState extends State<Init_page> {
       ),
     );
   }
+
   Widget _buildBuscarPartidaButton(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16.0),
