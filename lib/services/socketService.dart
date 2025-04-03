@@ -78,7 +78,9 @@ class SocketService {
 
     socket.onDisconnect((_) {
       print("🔴 SOCKET DESCONECTADO.");
-      _showForceLogoutPopup(context, "Se ha perdido la conexión con el servidor.");
+      if (context.mounted){
+        showForceLogoutPopup(context, "Se ha perdido la conexión con el servidor.");
+      }
     });
 
     socket.onConnectError((err) {
@@ -111,7 +113,7 @@ class SocketService {
       // Fallback: si no viene el id, forzar cierre de sesión
       if (idJugadorConectado == null || idJugadorConectado == idJugador) {
         print("🔴 Sesión duplicada detectada o sin ID. Cerrando sesión...");
-        _showForceLogoutPopup(
+        showForceLogoutPopup(
           context,
           mensaje ?? "Tu cuenta ha sido iniciada en otro dispositivo.",
         );
@@ -123,7 +125,7 @@ class SocketService {
     print("✅ Listeners configurados correctamente.");
   }
 
-  void _showForceLogoutPopup(BuildContext context, String message) {
+  void showForceLogoutPopup(BuildContext context, String message) {
     print("📢 Mostrando pop-up: $message");
 
     if (context.mounted) {

@@ -150,16 +150,8 @@ class _InitPageState extends State<Init_page> {
     await prefs.remove('usuario');
     await prefs.remove('fotoPerfil');
 
-    socket?.disconnect();
-
-    if (mounted) {
-      Navigator.pop(context);
-      Future.delayed(Duration(milliseconds: 100), () {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => Wellcome_page()),
-              (Route<dynamic> route) => false,
-        );
-      });
+    if (context.mounted) {
+      SocketService().showForceLogoutPopup(context, "Tu sesión se ha cerrado correctamente.");
     }
   }
 
@@ -369,8 +361,6 @@ class _InitPageState extends State<Init_page> {
 
     selectedGameModeKey = modoBackendMap[selectedGameMode] ?? "clasica";
 
-
-
     socket?.emit('find-game', {
       'idJugador': idJugador,
       'mode': selectedGameModeKey
@@ -378,7 +368,6 @@ class _InitPageState extends State<Init_page> {
     print("[MATCHMAKING] 🔍 Enviando solicitud de findGame con $idJugador, mode: $selectedGameModeKey");
   }
 }
-
 
 void _showInfoDialog(BuildContext context, String title, String description) {
   showDialog(
