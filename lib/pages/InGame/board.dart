@@ -42,8 +42,10 @@ class _BoardScreenState extends State<BoardScreen> {
   final TextEditingController _chatController = TextEditingController();
   List<String> _mensajesChat = [];
   List<String> _historialMovimientos = [];
-  String? _selectedSquare;
-  List<String> _legalDestinations = [];
+  String nombreBlancas = "Blancas";
+  String nombreNegras = "Negras";
+  int eloBlancas = 0;
+  int eloNegras = 0;
 
 
   @override
@@ -75,6 +77,11 @@ class _BoardScreenState extends State<BoardScreen> {
         ? PlayerColor.white
         : PlayerColor.black;
 
+    nombreBlancas = prefs.getString('nombreBlancas') ?? "Blancas";
+    nombreNegras = prefs.getString('nombreNegras') ?? "Negras";
+    eloBlancas = prefs.getInt('eloBlancas') ?? 0;
+    eloNegras = prefs.getInt('eloNegras') ?? 0;
+
     _startTimer();
     _joinGame();
     _initializeSocketListeners();
@@ -82,16 +89,9 @@ class _BoardScreenState extends State<BoardScreen> {
     _listenToBoardChanges();
   }
 
-
-  Future<void> _initializeSocket() async {
-    socket = await SocketService().getSocket(context);
-  }
-
   void _joinGame() {
     socket.emit('join', {"idPartida": widget.gameId});
   }
-
-
 
   Future<void> _handleTimeout({required bool isWhite}) async {
     if (_gameEnded) return;
@@ -112,7 +112,6 @@ class _BoardScreenState extends State<BoardScreen> {
       ]);
     }
   }
-
 
   void _configurarTiempoPorModo(String modo) {
     if (widget.timeLeftW != 0 || widget.timeLeftB != 0) {
@@ -203,8 +202,6 @@ class _BoardScreenState extends State<BoardScreen> {
       }); // ✅ Ahora está correctamente cerrado
     });
 
-
-
     socket.on('requestTie', (data) async {
       bool? accepted = await _showDrawOfferDialog(context);
       SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -231,6 +228,7 @@ class _BoardScreenState extends State<BoardScreen> {
     });
 
     socket.on('draw-declined', (data) {
+      print("[SOCKET] draw-declined recibido: $data");
       Future.delayed(Duration.zero, () {
         if (!context.mounted) return;
         _showSimpleDialog("El oponente ha rechazado las tablas.");
@@ -320,24 +318,71 @@ class _BoardScreenState extends State<BoardScreen> {
     });
   }
 
-  // ✅ Popup para cualquier final de partida
   void _exitGame(String message) {
     if (!context.mounted) return;
+
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text("Fin de la partida"),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () {
-              if (!context.mounted) return;
-              Navigator.pushReplacementNamed(context, Init_page.id);
-            },
-            child: Text("Aceptar"),
+      builder: (context) => Dialog(
+        backgroundColor: Colors.grey[900],
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                message == "¡Has ganado!"
+                    ? Icons.emoji_events
+                    : message.contains("tablas")
+                    ? Icons.handshake
+                    : Icons.sentiment_dissatisfied,
+                size: 60,
+                color: message == "¡Has ganado!"
+                    ? Colors.amber
+                    : message.contains("tablas")
+                    ? Colors.blueAccent
+                    : Colors.redAccent,
+              ),
+              SizedBox(height: 20),
+              Text(
+                "Fin de la partida",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 10),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white70, fontSize: 18),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+                onPressed: () {
+                  if (!context.mounted) return;
+                  Navigator.pushReplacementNamed(context, Init_page.id);
+                },
+                child: Text(
+                  "Volver al inicio",
+                  style: TextStyle(fontSize: 16, color: Colors.white),
+                ),
+              )
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -398,6 +443,64 @@ class _BoardScreenState extends State<BoardScreen> {
     }
   }
 
+  Future<void> _confirmarRendicion() async {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.grey[900],
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.flag, size: 48, color: Colors.redAccent),
+                SizedBox(height: 16),
+                Text(
+                  "¿Seguro que quieres rendirte?",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.redAccent,
+                      ),
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: Text("Cancelar"),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: () async {
+                        Navigator.of(context).pop();
+                        await _surrender();
+                      },
+                      child: Text("Rendirse"),
+                    ),
+                  ],
+                )
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _offerDraw() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? idJugador = prefs.getString('idJugador');
@@ -407,6 +510,62 @@ class _BoardScreenState extends State<BoardScreen> {
         "idJugador": idJugador,
       });
     }
+  }
+
+  void _confirmDrawOffer() {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.grey[900],
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.help_outline, size: 48, color: Colors.blueAccent),
+              SizedBox(height: 16),
+              Text(
+                "¿Deseas ofrecer tablas?",
+                style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 12),
+              Text(
+                "Tu oponente podrá aceptarlas o rechazarlas.",
+                style: TextStyle(color: Colors.white70, fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  TextButton(
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.redAccent,
+                    ),
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text("Cancelar"),
+                  ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      _offerDraw();
+                    },
+                    child: Text("Ofrecer"),
+                  ),
+                ],
+              )
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<bool?> _showDrawOfferDialog(BuildContext context) async {
@@ -486,14 +645,9 @@ class _BoardScreenState extends State<BoardScreen> {
     }
   }
 
-  String _squareName(int row, int col) {
-    final files = 'abcdefgh';
-    final ranks = '87654321';
-    return files[col] + ranks[row];
-  }
-
   @override
   void dispose() {
+    print("[DISPOSE] Cerrando BoardScreen...");
     _timerWhite.cancel();
     _timerBlack.cancel();
 
@@ -506,6 +660,7 @@ class _BoardScreenState extends State<BoardScreen> {
 
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -521,7 +676,8 @@ class _BoardScreenState extends State<BoardScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _buildPlayerInfo(
-                playerColor == PlayerColor.white ? "Negras" : "Blancas",
+                playerColor == PlayerColor.white ? nombreNegras : nombreBlancas,
+                playerColor == PlayerColor.white ? eloNegras : eloBlancas,
                 playerColor == PlayerColor.white ? blackTime : whiteTime,
               ),
               Expanded(
@@ -535,20 +691,21 @@ class _BoardScreenState extends State<BoardScreen> {
                 ),
               ),
               _buildPlayerInfo(
-                playerColor == PlayerColor.white ? "Blancas" : "Negras",
+                playerColor == PlayerColor.white ? nombreBlancas : nombreNegras,
+                playerColor == PlayerColor.white ? eloBlancas : eloNegras,
                 playerColor == PlayerColor.white ? whiteTime : blackTime,
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   ElevatedButton(
-                    onPressed: _offerDraw,
-                    child: Text("Ofrecer tablas"),
+                    onPressed: () => _confirmDrawOffer(),
+                    child: Text("Ofrecer tablas", style: TextStyle(color: Colors.blue)),
                   ),
                   ElevatedButton(
-                    onPressed: _surrender,
+                    onPressed: _confirmarRendicion,
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                    child: Text("Rendirse"),
+                    child: Text("Rendirse", style: TextStyle(color: Colors.white)),
                   ),
                 ],
               ),
@@ -664,18 +821,19 @@ class _BoardScreenState extends State<BoardScreen> {
     );
   }
 
-  Widget _buildPlayerInfo(String name, int time) {
+  Widget _buildPlayerInfo(String nombre, int elo, int tiempo) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Column(
         children: [
-          Text(name,
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-              textAlign: TextAlign.center),
           Text(
-            "${(time ~/ 60).toString().padLeft(2, '0')}:${(time % 60).toString().padLeft(2, '0')}",
+            "$nombre (ELO: $elo)",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+          Text(
+            "${(tiempo ~/ 60).toString().padLeft(2, '0')}:${(tiempo % 60).toString().padLeft(2, '0')}",
             style: TextStyle(fontSize: 16, color: Colors.white),
-          )
+          ),
         ],
       ),
     );

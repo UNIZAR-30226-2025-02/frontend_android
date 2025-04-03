@@ -46,7 +46,7 @@ class _InitPageState extends State<Init_page> {
   final Map<String, String> modoBackendMap = {
     "Clásica": "Punt_10",
     "Principiante": "Punt_30",
-    "Avanzado": "Punt5",
+    "Avanzado": "Punt_5",
     "Relámpago": "Punt_3",
     "Incremento": "Punt_5_10",
     "Incremento exprés": "Punt_3_2",
@@ -97,12 +97,26 @@ class _InitPageState extends State<Init_page> {
       _gameId = idPartida;
     });
 
-    socket?.on('color', (data) {
+    socket?.on('color', (data) async{
       if (idJugador == null) return;
       final jugadores = List<Map<String, dynamic>>.from(data[0]['jugadores']);
       final yo = jugadores.firstWhere((jugador) => jugador['id'] == idJugador, orElse: () => {});
+      final rival = jugadores.firstWhere((jugador) => jugador['id'] != idJugador, orElse: () => {});
       if (yo.isNotEmpty && yo.containsKey('color')) {
         _gameColor = yo['color'];
+        final prefs = await SharedPreferences.getInstance();
+
+        if (_gameColor == 'white') {
+          await prefs.setString('nombreBlancas', yo['nombreW']);
+          await prefs.setInt('eloBlancas', yo['eloW']);
+          await prefs.setString('nombreNegras', rival['nombreB']);
+          await prefs.setInt('eloNegras', rival['eloB']);
+        } else {
+          await prefs.setString('nombreNegras', yo['nombreB']);
+          await prefs.setInt('eloNegras', yo['eloB']);
+          await prefs.setString('nombreBlancas', rival['nombreW']);
+          await prefs.setInt('eloBlancas', rival['eloW']);
+        }
         _intentarEntrarAPartida();
       }
     });
@@ -357,7 +371,7 @@ class _InitPageState extends State<Init_page> {
       _buscandoPartida = false;
     });
 
-    socket?.emit('cancel-find-game', {
+    socket?.emit('cancel-pairing', {
       'idJugador': idJugador,
     });
 
@@ -385,7 +399,7 @@ class _InitPageState extends State<Init_page> {
       _buscandoPartida = true;
     });
 
-    selectedGameModeKey = modoBackendMap[selectedGameMode] ?? "clasica";
+    selectedGameModeKey = modoBackendMap[selectedGameMode] ?? "Clásica";
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('modoDeJuegoActivo', selectedGameMode);
 

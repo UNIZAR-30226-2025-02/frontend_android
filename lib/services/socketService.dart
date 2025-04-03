@@ -134,15 +134,29 @@ class SocketService {
         barrierDismissible: false,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: Text("Sesión cerrada"),
-            content: Text(message),
+            backgroundColor: Colors.black87,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+              side: BorderSide(color: Colors.blueAccent, width: 1.5),
+            ),
+            title: Row(
+              children: [
+                Icon(Icons.logout, color: Colors.blueAccent),
+                SizedBox(width: 8),
+                Text("Sesión cerrada", style: TextStyle(color: Colors.white)),
+              ],
+            ),
+            content: Text(
+              message,
+              style: TextStyle(color: Colors.white70),
+            ),
             actions: [
               TextButton(
                 onPressed: () async {
                   Navigator.of(context).pop();
                   await _disconnectAndRedirect(context);
                 },
-                child: Text("Aceptar"),
+                child: Text("Aceptar", style: TextStyle(color: Colors.blueAccent)),
               ),
             ],
           );
