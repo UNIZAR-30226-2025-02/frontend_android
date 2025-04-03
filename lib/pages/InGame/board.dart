@@ -170,10 +170,6 @@ class _BoardScreenState extends State<BoardScreen> {
           print("Promotion: sin promoción");
         }
 
-          promotion = "";
-          print("promotion: promocion vacia");
-
-
         print("Promotion: movimiento recibido $movimiento");
         try {
           print("promotion: intentando...");
@@ -314,20 +310,35 @@ class _BoardScreenState extends State<BoardScreen> {
   void _listenToBoardChanges() {
     controller.addListener(() async {
       final history = controller.game.getHistory({'verbose': true});
+      print("🧠 Historial completo: $history");
       if (history.isNotEmpty) {
         final lastMove = history.last;
         final from = lastMove['from'];
         final to = lastMove['to'];
-        final promotion = lastMove['promotion'];
-
+        final String flags = lastMove['flags'];
+        String? promotion;
         Piece? movedPiece = controller.game.get(to);
+        print("esto es la real promocion: ${movedPiece!.type}");
         if (movedPiece == null) return;
-
         PlayerColor piecePlayerColor =
         (movedPiece.color == chess.Color.WHITE) ? PlayerColor.white : PlayerColor.black;
         if (playerColor != piecePlayerColor) return;
 
-        _sendMoveToServer(from, to, promotion);
+        final isPromotion = isRealPromotion(flags, to);
+
+        if (isPromotion){
+           if (movedPiece.type == PieceType.ROOK){
+             promotion = "r";
+           }
+           print("movimiento: $from y $to y $promotion");
+           _sendMoveToServer(from, to, promotion);
+        }
+        else{
+          print("Cabron");
+          promotion = "";
+          _sendMoveToServer(from, to, promotion);
+        }
+
         _changeTurn();
 
         if (incrementoPorJugada > 0) {
@@ -345,6 +356,20 @@ class _BoardScreenState extends State<BoardScreen> {
         });
       }
     });
+  }
+
+  bool isRealPromotion(String piece, String to) {
+    // Sacar la fila (rank) del destino: '8', '1', etc.
+    final rank = to[1];
+    print("❤️esto es $rank y esto $piece");
+
+    if (rank == null) return false;
+
+    final isPawn = piece == 'np';
+    final isWhitePromotion = rank == "8";
+    final isBlackPromotion = rank == "1";
+
+    return isPawn && (isWhitePromotion || isBlackPromotion);
   }
 
   void _exitGame(String message) {
@@ -719,7 +744,6 @@ class _BoardScreenState extends State<BoardScreen> {
                 child: Center(
                   child: ChessBoard(
                     controller: controller,
-
                     boardOrientation: playerColor,
                     enableUserMoves: (isWhiteTurn && playerColor == PlayerColor.white) ||
                         (!isWhiteTurn && playerColor == PlayerColor.black),
