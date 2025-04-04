@@ -9,7 +9,6 @@ import 'package:frontend_android/pages/Game/botton_nav_bar.dart';
 import 'package:frontend_android/pages/buildHead.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:frontend_android/pages/Presentation/wellcome.dart';
 import '../../services/socketService.dart';
 
 
@@ -211,7 +210,7 @@ class _InitPageState extends State<Init_page> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.grey[900],
       appBar: BuildHeadLogo(
         actions: [
           usuarioActual == null
@@ -236,19 +235,12 @@ class _InitPageState extends State<Init_page> {
       ),
       body: Column(
         children: [
-          if (usuarioActual != null)
-            Padding(
-              padding: const EdgeInsets.all(10.0),
-              child: Text(
-                'Bienvenido, $usuarioActual',
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
+          SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text(
               'PARTIDAS ONLINE',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22),
             ),
           ),
           Expanded(
@@ -417,7 +409,7 @@ void _showInfoDialog(BuildContext context, String title, String description) {
     context: context,
     builder: (context) {
       return AlertDialog(
-        backgroundColor: Colors.black87,
+        backgroundColor: Colors.grey[900],
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(color: Colors.blue),

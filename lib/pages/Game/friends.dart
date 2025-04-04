@@ -97,7 +97,7 @@ class _FriendsPageState extends State<Friends_Page> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.grey[900],
       appBar: BuildHeadLogo(actions: [
         IconButton(
           icon: Icon(Icons.account_circle, color: Colors.white, size: 32),
@@ -111,6 +111,7 @@ class _FriendsPageState extends State<Friends_Page> {
       ]),
       body: Column(
         children: [
+          SizedBox(height: 16),
           Container(
             padding: EdgeInsets.all(8),
             child: TextField(
@@ -118,7 +119,8 @@ class _FriendsPageState extends State<Friends_Page> {
                 filled: true,
                 fillColor: Colors.white,
                 hintText: 'Buscar por nombre de usuario',
-                prefixIcon: Icon(Icons.search),
+                hintStyle: TextStyle(color: Colors.black),
+                prefixIcon: Icon(Icons.search, color: Colors.black),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),

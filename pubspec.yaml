@@ -54,7 +54,11 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+  # 🔽 NUEVO: Íconos personalizados
+  flutter_launcher_icons: ^0.13.1
 
+  # 🔽 NUEVO: Splash personalizado
+  flutter_native_splash: ^2.3.5
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
@@ -64,12 +68,25 @@ flutter:
     - assets/logo.png
     - assets/logoNombre.png
     - assets/fotoPerfil.png
+    - assets/logosplash.png
     - .env
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+flutter_icons:
+  android: true
+  ios: false
+  image_path: "assets/logo.png"
+
+flutter_native_splash:
+  color: "#121212"
+  image: assets/logosplash.png
+  android: true
+  ios: false
+  android_gravity: center
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -30,6 +30,7 @@ class _BoardScreenState extends State<BoardScreen> {
   late Timer _timerBlack;
   late IO.Socket socket;
   late chess.Chess chessGame;
+  late String gameMode;
   String? idJugador;
   Piece? piezaPromocion;
   int whiteTime = 0;
@@ -60,19 +61,21 @@ class _BoardScreenState extends State<BoardScreen> {
     socket = await SocketService().getSocket(context);
     SharedPreferences prefs = await SharedPreferences.getInstance();
     idJugador = prefs.getString('idJugador');
-
     chessGame = chess.Chess();
 
     if(widget.pgn != "null"){
       chessGame.load_pgn(widget.pgn);
       controller.loadPGN(widget.pgn);
     }
-    if(widget.timeLeftW != 0){
+    if (widget.timeLeftW != 0){
       whiteTime = widget.timeLeftW;
     }
-    if(widget.timeLeftB != 0){
+    if (widget.timeLeftB != 0){
       blackTime = widget.timeLeftB;
     }
+
+    gameMode = widget.gameMode;
+
     playerColor = widget.color.trim().toLowerCase() == "white"
         ? PlayerColor.white
         : PlayerColor.black;
@@ -115,7 +118,7 @@ class _BoardScreenState extends State<BoardScreen> {
 
   void _configurarTiempoPorModo(String modo) {
     if (widget.timeLeftW != 0 || widget.timeLeftB != 0) {
-      return; // ⛔ Ya tenemos los tiempos desde el backend, no sobrescribas
+      return;
     }
 
     switch (modo.toLowerCase()) {
@@ -145,36 +148,27 @@ class _BoardScreenState extends State<BoardScreen> {
     }
   }
 
-
   void _initializeSocketListeners() {
 
     socket.on('new-move', (data) {
-      print("promotion: Recibido movimiento: $data");
 
     if (data is List && data.isNotEmpty && data[0] is Map<String, dynamic>) {
-      print("promotion: entro al if is list");
       var moveData = data[0];
+
       if (moveData.containsKey("movimiento")) {
-        print("promotion: entro a if moveData");
         String? promotion;
         String movimiento = moveData["movimiento"];
         String from = movimiento.substring(0, 2);
         String to = movimiento.substring(2, 4);
 
-
         if (movimiento.length == 5) {
           promotion = movimiento[4];
-          print("Promotion: promoción detectada: $promotion");
         } else {
           promotion = "";
-          print("Promotion: sin promoción");
         }
 
-        print("Promotion: movimiento recibido $movimiento");
         try {
-          print("promotion: intentando...");
           if (promotion.isNotEmpty) {
-            print("promotion: not empty");
             controller.makeMoveWithPromotion(
               from: from,
               to: to,
@@ -200,7 +194,6 @@ class _BoardScreenState extends State<BoardScreen> {
     }
   });
 
-
   socket.on('get-game-status', (_) {
       socket.emit('game-status', {
         "estadoPartida": "ingame",
@@ -211,8 +204,6 @@ class _BoardScreenState extends State<BoardScreen> {
     });
 
     socket.on('new-message', (data) {
-      print("📩 Mensaje recibido: $data");
-
       final userIdRemitente = data[0]["user_id"];
       final mensajeRecibido = data[0]["message"];
 
@@ -222,7 +213,7 @@ class _BoardScreenState extends State<BoardScreen> {
         } else {
           _mensajesChat.add("Rival: $mensajeRecibido");
         }
-      }); // ✅ Ahora está correctamente cerrado
+      });
     });
 
     socket.on('requestTie', (data) async {
@@ -239,8 +230,6 @@ class _BoardScreenState extends State<BoardScreen> {
         // 👇 Mostrar popup también para quien acepta
         Future.delayed(Duration.zero, () {
           if (!context.mounted) return;
-          /*_showSimpleThenExitDialog(
-              "Has aceptado las tablas. La partida ha terminado en empate.");*/
         });
       } else if (idJugador != null) {
         socket.emit('draw-declined', {
@@ -251,7 +240,6 @@ class _BoardScreenState extends State<BoardScreen> {
     });
 
     socket.on('draw-declined', (data) {
-      print("[SOCKET] draw-declined recibido: $data");
       Future.delayed(Duration.zero, () {
         if (!context.mounted) return;
         _showSimpleDialog("El oponente ha rechazado las tablas.");
@@ -259,43 +247,27 @@ class _BoardScreenState extends State<BoardScreen> {
     });
 
     socket.on('draw-accepted', (data) async {
-      print("[SOCKET] draw-accepted recibido: $data");
-
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? idJugador = prefs.getString('idJugador');
-
-      final esMio = data[0]['idJugador'] == idJugador;
-
       Future.microtask(() {
         if (!context.mounted) {
-
-          return;}
-
-        _showSimpleThenExitDialog("La partida ha terminado en empate.");
+          return;
+        }
       });
     });
 
-
     socket.on('player-surrendered', (data) async {
-      print("[SURREND] player-surrendered recibido: $data");
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? idJugador = prefs.getString('idJugador');
 
       if (data[0]['idJugador'] != idJugador) {
         print("[SOCKET] Tu rival se ha rendido");
-
       }
     });
 
     socket.on('gameOver', (data) {
-      print("[SOCKET] gameOver recibido: $data");
-
       Future.microtask(() {
         if (!context.mounted) return;
 
         final winner = data[0]['winner'];
-        print("[SOCKET] gameOver -> Ganador: $winner");
-        print("[SOCKET] Mi color: ${widget.color}");
 
         if (winner == "draw") {
           _exitGame("La partida ha terminado en tablas.");
@@ -307,10 +279,11 @@ class _BoardScreenState extends State<BoardScreen> {
       });
     });
   }
+
   void _listenToBoardChanges() {
     controller.addListener(() async {
       final history = controller.game.getHistory({'verbose': true});
-      print("🧠 Historial completo: $history");
+
       if (history.isNotEmpty) {
         final lastMove = history.last;
         final from = lastMove['from'];
@@ -318,10 +291,12 @@ class _BoardScreenState extends State<BoardScreen> {
         final String flags = lastMove['flags'];
         String? promotion;
         Piece? movedPiece = controller.game.get(to);
-        print("esto es la real promocion: ${movedPiece!.type}");
+
         if (movedPiece == null) return;
+
         PlayerColor piecePlayerColor =
         (movedPiece.color == chess.Color.WHITE) ? PlayerColor.white : PlayerColor.black;
+
         if (playerColor != piecePlayerColor) return;
 
         final isPromotion = isRealPromotion(flags, to);
@@ -340,11 +315,9 @@ class _BoardScreenState extends State<BoardScreen> {
              promotion = "n";
            }
 
-           print("movimiento: $from y $to y $promotion");
            _sendMoveToServer(from, to, promotion);
         }
         else{
-          print("Cabron");
           promotion = "";
           _sendMoveToServer(from, to, promotion);
         }
@@ -369,9 +342,7 @@ class _BoardScreenState extends State<BoardScreen> {
   }
 
   bool isRealPromotion(String piece, String to) {
-    // Sacar la fila (rank) del destino: '8', '1', etc.
     final rank = to[1];
-    print("❤️esto es $rank y esto $piece");
 
     if (rank == null) return false;
 
@@ -482,14 +453,12 @@ class _BoardScreenState extends State<BoardScreen> {
     String? idJugador = prefs.getString('idJugador');
     String movimiento;
 
-    print("promotion: la variable promocion es: $promotion");
     if (promotion != null) {
       movimiento = "$from$to$promotion";
     }
     else{
       movimiento = "$from$to";
     }
-    print("Promotion: enviando movimiento al server: $movimiento");
 
     if (idJugador != null) {
       socket.emit('make-move', {
@@ -504,8 +473,8 @@ class _BoardScreenState extends State<BoardScreen> {
   Future<void> _surrender() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? idJugador = prefs.getString('idJugador');
+
     if (idJugador != null) {
-      print("[SURREND] perder");
       socket.emit('resign', {
         "idPartida": widget.gameId,
         "idJugador": idJugador,
@@ -641,61 +610,136 @@ class _BoardScreenState extends State<BoardScreen> {
   Future<bool?> _showDrawOfferDialog(BuildContext context) async {
     return showDialog<bool>(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("Oferta de tablas"),
-          content: Text("Tu oponente ha ofrecido tablas. ¿Aceptas?"),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text("Rechazar"),
+        return Dialog(
+          backgroundColor: Colors.grey[900],
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.handshake,
+                  size: 60,
+                  color: Colors.blueAccent,
+                ),
+                SizedBox(height: 20),
+                Text(
+                  "Oferta de tablas",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  "Tu oponente ha ofrecido tablas. ¿Aceptas?",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white70, fontSize: 18),
+                ),
+                SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      ),
+                      onPressed: () => Navigator.pop(context, false),
+                      child: Text(
+                        "Rechazar",
+                        style: TextStyle(fontSize: 16, color: Colors.white),
+                      ),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blueAccent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      ),
+                      onPressed: () => Navigator.pop(context, true),
+                      child: Text(
+                        "Aceptar",
+                        style: TextStyle(fontSize: 16, color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text("Aceptar"),
-            ),
-          ],
+          ),
         );
       },
     );
   }
 
-  void _showSimpleThenExitDialog(String message) {
-    if (!context.mounted) return;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text("Información"),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () {
-              if (!context.mounted) return;
-              print("CLOSE: Cerrando popups y saliendo de partida...");
-              Navigator.of(context).pop();
-              //Navigator.of(context).pop();
-            },
-            child: Text("Aceptar"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ✅ Popup informativo que no cierra la partida
   void _showSimpleDialog(String message) {
+    if (!context.mounted) return;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text("Información"),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text("Aceptar"),
+      barrierDismissible: true, // Puedes cerrar tocando fuera del dialog
+      builder: (context) => Dialog(
+        backgroundColor: Colors.grey[900],
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.info_outline,
+                size: 60,
+                color: Colors.blueAccent,
+              ),
+              SizedBox(height: 20),
+              Text(
+                "Información",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 10),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white70, fontSize: 18),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: Text(
+                  "Aceptar",
+                  style: TextStyle(fontSize: 16, color: Colors.white),
+                ),
+              )
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -734,10 +778,10 @@ class _BoardScreenState extends State<BoardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.grey[900],
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: Text(widget.gameMode, style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.grey[900],
+        title: Text(gameMode, style: TextStyle(color: Colors.white)),
         centerTitle: true,
       ),
       body: Stack(

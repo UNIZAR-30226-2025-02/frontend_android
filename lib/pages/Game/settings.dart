@@ -22,7 +22,7 @@ class _Settings_pageState extends State<Settings_page> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black, // Fondo oscuro
+      backgroundColor: Colors.grey[900], // Fondo oscuro
       appBar: BuildHeadLogo(actions: [
         IconButton(
           icon: Icon(Icons.account_circle, color: Colors.white, size: 32),
@@ -36,8 +36,9 @@ class _Settings_pageState extends State<Settings_page> {
       ]),
       body: Column(
         children: [
+          SizedBox(height: 16),
           Container(
-            color: Colors.grey[850],
+            color: Colors.grey[900],
             padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -46,11 +47,11 @@ class _Settings_pageState extends State<Settings_page> {
                   'AJUSTES',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 18,
+                    fontSize: 22,
                     color: Colors.white,
                   ),
                 ),
-                Icon(Icons.settings, color: Colors.white),
+                Icon(Icons.settings, color: Colors.white, size: 36),
               ],
             ),
           ),

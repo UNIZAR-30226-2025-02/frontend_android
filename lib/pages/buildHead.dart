@@ -9,24 +9,37 @@ class BuildHeadLogo extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.transparent, // Hacemos el fondo transparente
+      elevation: 0,
+      flexibleSpace: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.black,
+              Colors.grey[900]!,
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+      ),
       leading: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Image.asset("assets/logo.png", height: 40),
+        padding: const EdgeInsets.all(3.0),
+        child: Image.asset("assets/logo.png", height: 70),
       ),
       title: Row(
-        mainAxisAlignment: MainAxisAlignment.center, // ✅ Asegura centrado
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Expanded(
             child: Image.asset(
               "assets/logoNombre.png",
-              height: 40,
+              height: 50,
             ),
           ),
         ],
       ),
-      centerTitle: true, // ✅ Para refuerzo de centrado en algunos casos
-      actions: actions ?? [const SizedBox(width: 48)], // ✅ Si no hay `actions`, deja un espacio fijo
+      centerTitle: true,
+      actions: actions ?? [const SizedBox(width: 48)],
     );
   }
 
@@ -34,10 +47,7 @@ class BuildHeadLogo extends StatelessWidget implements PreferredSizeWidget {
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 }
 
-
-
 class BuildHeadArrow extends StatelessWidget implements PreferredSizeWidget {
-
   final List<Widget>? actions;
 
   BuildHeadArrow({super.key, this.actions});
@@ -45,14 +55,29 @@ class BuildHeadArrow extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: Colors.grey[850],
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      flexibleSpace: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.black,
+              Colors.grey[900]!,
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+      ),
       centerTitle: true,
       iconTheme: IconThemeData(color: Colors.white),
-      title: Image.asset("assets/logoNombre.png", height: 40),
-    actions: actions,);
+      title: Image.asset("assets/logoNombre.png", height: 50),
+      actions: actions,
+    );
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+  Size get preferredSize => const Size.fromHeight(80);
 }
+
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:frontend_android/pages/Game/init.dart';
 import 'package:frontend_android/pages/Game/settings.dart';
@@ -9,6 +10,10 @@ import 'package:frontend_android/pages/Presentation/wellcome.dart';
 import 'package:frontend_android/pages/Game/profile.dart';
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
   await dotenv.load();
   runApp(MyApp());
 }
