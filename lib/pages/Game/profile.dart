@@ -1,26 +1,88 @@
+import 'dart:convert';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:http/http.dart' as http;
 import 'package:frontend_android/pages/buildHead.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class Profile_page  extends StatefulWidget {
+class Profile_page extends StatefulWidget {
   static const String id = "profile_page";
 
   @override
   _ProfilePageState createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<Profile_page > {
-  String playerName = "Jugador123";
-  int friends = 10;
-  int gamesPlayed = 100;
-  double winRate = 55.0;
-  int maxStreak = 5;
+class _ProfilePageState extends State<Profile_page> {
+  // Datos del usuario (valores por defecto)
+  String playerName = "Cargando...";
+  String profileImage = "assets/fotoPerfil.png";
+  int friends = 0;
+  int gamesPlayed = 0;
+  double winRate = 0.0;
+  int maxStreak = 0;
+
+  // URL base del servidor backend (se obtiene de la variable de entorno)
+  late final String? serverBackend;
+  // ID del usuario (por ejemplo, obtenido de SharedPreferences)
+  late final String? userId;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchUserInfo();
+  }
+
+  Future<void> fetchUserInfo() async {
+    // Recuperar el ID del usuario desde SharedPreferences
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    userId = prefs.getString('idJugador');
+
+    // Obtener la URL del backend desde el archivo .env
+    serverBackend = dotenv.env['SERVER_BACKEND'];
+
+    if (userId == null || serverBackend == null) {
+      print("Falta el id del usuario o la URL del backend");
+      return;
+    }
+
+    // Construir la URL para obtener la información, pasando el id del usuario
+    final url = Uri.parse('${serverBackend}getUserInfo?id=$userId');
+    try {
+      final response = await http.get(url, headers: {
+        "Content-Type": "application/json",
+        // Agrega autorización si fuera necesario, por ejemplo: "Authorization": "Bearer $token"
+      });
+      if (response.statusCode == 200) {
+        // Se espera que el backend retorne un JSON que incluya las siguientes propiedades:
+        // "NombreUser", "FotoPerfil", "friends", "gamesPlayed", "winRate" y "maxStreak"
+        final data = jsonDecode(response.body);
+        setState(() {
+          playerName = data['NombreUser'] ?? playerName;
+          // Si la foto de perfil es "none", mantenemos la imagen predeterminada
+          profileImage = (data['FotoPerfil'] != null && data['FotoPerfil'] != "none")
+              ? data['FotoPerfil']
+              : "assets/fotoPerfil.png";
+
+          // Actualizamos las estadísticas si existen; de lo contrario se mantiene el valor por defecto.
+          friends = data['friends'] ?? friends;
+          gamesPlayed = data['gamesPlayed'] ?? gamesPlayed;
+          winRate = (data['winRate'] != null) ? (data['winRate'] as num).toDouble() : winRate;
+          maxStreak = data['maxStreak'] ?? maxStreak;
+        });
+      } else {
+        print("Error al obtener el perfil: ${response.statusCode}");
+      }
+    } catch (error) {
+      print("Error en fetchUserInfo: $error");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[900],
-      appBar:BuildHeadArrow(),
+      appBar: BuildHeadArrow(),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
         child: Column(
@@ -49,7 +111,13 @@ class _ProfilePageState extends State<Profile_page > {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              CircleAvatar(radius: 35, backgroundImage: AssetImage("assets/fotoPerfil.png")),
+              // Si profileImage es una URL externa se puede usar NetworkImage, de lo contrario se usa AssetImage.
+              CircleAvatar(
+                radius: 35,
+                backgroundImage: profileImage.startsWith("assets")
+                    ? AssetImage(profileImage) as ImageProvider
+                    : NetworkImage(profileImage),
+              ),
               ElevatedButton.icon(
                 onPressed: _showEditNameDialog,
                 icon: Icon(Icons.edit),
@@ -59,25 +127,39 @@ class _ProfilePageState extends State<Profile_page > {
             ],
           ),
           SizedBox(height: 10),
-          Text(playerName,
-              style: TextStyle(color: Colors.blueAccent, fontSize: 22, fontWeight: FontWeight.bold)),
+          Text(
+            playerName,
+            style: TextStyle(
+                color: Colors.blueAccent,
+                fontSize: 22,
+                fontWeight: FontWeight.bold),
+          ),
           Divider(color: Colors.white24),
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            _buildProfileStat("Amigos", friends.toString()),
-            _buildProfileStat("Partidas", gamesPlayed.toString()),
-            _buildProfileStat("Victorias", "$winRate%"),
-            _buildProfileStat("Racha", maxStreak.toString()),
-          ]),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildProfileStat("Amigos", friends.toString()),
+              _buildProfileStat("Partidas", gamesPlayed.toString()),
+              _buildProfileStat("Victorias", "$winRate%"),
+              _buildProfileStat("Racha", maxStreak.toString()),
+            ],
+          ),
         ],
       ),
     );
   }
 
   Widget _buildProfileStat(String title, String value) {
-    return Column(children: [
-      Text(value, style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-      Text(title, style: TextStyle(color: Colors.white70, fontSize: 14))
-    ]);
+    return Column(
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+              color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        Text(title, style: TextStyle(color: Colors.white70, fontSize: 14))
+      ],
+    );
   }
 
   Widget _buildGameModeCharts() {
@@ -128,21 +210,36 @@ class _ProfilePageState extends State<Profile_page > {
             children: [
               Icon(modeIcons[mode], color: modeColors[mode], size: 32),
               SizedBox(height: 6),
-              Text(mode, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              Text(
+                mode,
+                style: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold),
+              ),
               SizedBox(height: 10),
               Expanded(
-                child: LineChart(LineChartData(
-                  gridData: FlGridData(show: true),
-                  titlesData: FlTitlesData(show: false),
-                  borderData: FlBorderData(show: false),
-                  lineBarsData: [LineChartBarData(
-                    spots: scores.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value)).toList(),
-                    isCurved: true,
-                    color: Colors.blueAccent,
-                    barWidth: 2,
-                    dotData: FlDotData(show: false),
-                  )],
-                )),
+                child: LineChart(
+                  LineChartData(
+                    gridData: FlGridData(show: true),
+                    titlesData: FlTitlesData(show: false),
+                    borderData: FlBorderData(show: false),
+                    lineBarsData: [
+                      LineChartBarData(
+                        spots: scores
+                            .asMap()
+                            .entries
+                            .map(
+                              (e) =>
+                              FlSpot(e.key.toDouble(), e.value),
+                        )
+                            .toList(),
+                        isCurved: true,
+                        color: Colors.blueAccent,
+                        barWidth: 2,
+                        dotData: FlDotData(show: false),
+                      )
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
@@ -150,8 +247,103 @@ class _ProfilePageState extends State<Profile_page > {
       }).toList(),
     );
   }
+  Future<bool> updateUserName(String newName) async {
+    // Aseguramos que ya se hayan cargado userId y serverBackend
+    if (userId == null || serverBackend == null) {
+      print("No se encontró el id del usuario o la URL del backend");
+      return false;
+    }
+
+    // Construimos la URL para el endpoint de edición
+    final url = Uri.parse('${serverBackend}editUser');
+
+    // Preparamos el cuerpo de la solicitud JSON con los datos requeridos por el backend.
+    final bodyData = jsonEncode({
+      "id": userId,
+      "NombreUser": newName,
+      "FotoPerfil": profileImage, // Se envía el valor actual de la foto.
+    });
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: bodyData,
+      );
+      if (response.statusCode == 200) {
+        print("Nombre actualizado exitosamente.");
+        return true;
+      } else {
+        print("Error al actualizar el nombre: ${response.statusCode}");
+        return false;
+      }
+    } catch (error) {
+      print("Error en la solicitud de actualización: $error");
+      return false;
+    }
+  }
 
   void _showEditNameDialog() {
-    // Lógica para editar nombre aquí
+    final TextEditingController _nameController = TextEditingController(text: playerName);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Editar nombre'),
+          content: TextField(
+            controller: _nameController,
+            decoration: InputDecoration(
+              labelText: 'Nuevo nombre',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Cierra el diálogo sin guardar cambios
+              },
+              child: Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () async {
+                // Capturamos el nuevo nombre introducido.
+                String newName = _nameController.text;
+
+                // Llamamos a la función para actualizar el nombre en el backend.
+                bool success = await updateUserName(newName);
+
+                if (success) {
+                  // Si se actualizó correctamente, actualizamos la UI y cerramos el diálogo.
+                  setState(() {
+                    playerName = newName;
+                  });
+                  Navigator.of(context).pop();
+                } else {
+                  // Si hay error, mostramos un pop up indicando que ese nombre ya está en uso.
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: Text('Error'),
+                      content: Text('El nombre de usuario "$newName" ya está en uso'),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(ctx).pop();
+                          },
+                          child: Text('OK'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+              },
+              child: Text('Guardar'),
+            ),
+          ],
+        );
+      },
+    );
   }
+
+
 }
