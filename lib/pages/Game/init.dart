@@ -10,6 +10,7 @@ import 'package:frontend_android/pages/buildHead.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/socketService.dart';
+import '../../widgets/app_layout.dart';
 
 
 class Init_page extends StatefulWidget {
@@ -144,96 +145,10 @@ class _InitPageState extends State<Init_page> {
     });
   }
 
-  Future<void> _cerrarSesion(BuildContext context) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? usuarioActual = prefs.getString('usuario');
-
-    if (usuarioActual != null) {
-      try {
-        String? backendUrl = dotenv.env['SERVER_BACKEND'];
-        final response = await http.post(
-          Uri.parse("${backendUrl}logout"),
-          headers: {"Content-Type": "application/json"},
-          body: jsonEncode({"NombreUser": usuarioActual}),
-        );
-
-        if (response.statusCode == 200) {
-          print("✅ Sesión cerrada correctamente en el servidor.");
-        } else {
-          print("❌ Error al cerrar sesión en el servidor: ${response.body}");
-        }
-      } catch (e) {
-        print("❌ Error de conexión al servidor: $e");
-      }
-    }
-
-    await prefs.remove('usuario');
-    await prefs.remove('fotoPerfil');
-
-    if (context.mounted) {
-      SocketService().showForceLogoutPopup(context, "Tu sesión se ha cerrado correctamente.");
-    }
-  }
-
-  void _mostrarOpcionesUsuario(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (context) {
-        return Container(
-          padding: EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: Icon(Icons.settings),
-                title: Text("Configuración"),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.pushNamed(context, Settings_page.id);
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.logout, color: Colors.red),
-                title: Text("Cerrar Sesión", style: TextStyle(color: Colors.red)),
-                onTap: () {
-                  _cerrarSesion(context);
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[900],
-      appBar: BuildHeadLogo(
-        actions: [
-          usuarioActual == null
-              ? IconButton(
-            icon: Icon(Icons.account_circle, color: Colors.white, size: 32),
-            onPressed: () {
-              Navigator.pushNamed(context, Login_page.id);
-            },
-          )
-              : Padding(
-            padding: EdgeInsets.only(right: 12),
-            child: GestureDetector(
-              onTap: () => _mostrarOpcionesUsuario(context),
-              child: CircleAvatar(
-                radius: 18,
-                backgroundColor: Colors.white,
-                backgroundImage: AssetImage(fotoPerfil!),
-              ),
-            ),
-          ),
-        ],
-      ),
-      body: Column(
+    return AppLayout(
+      child: Column(
         children: [
           SizedBox(height: 16),
           Container(

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend_android/pages/Game/botton_nav_bar.dart';
-import 'package:frontend_android/pages/buildHead.dart';
-
-import '../Login/login.dart';
+import 'package:frontend_android/widgets/app_layout.dart'; // 👈 usa tu AppLayout
 
 class GameMode {
   final String name;
@@ -16,6 +14,7 @@ class GameMode {
 
 class Friends_Page extends StatefulWidget {
   static const String id = "friends_page";
+
   @override
   _FriendsPageState createState() => _FriendsPageState();
 }
@@ -96,20 +95,8 @@ class _FriendsPageState extends State<Friends_Page> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[900],
-      appBar: BuildHeadLogo(actions: [
-        IconButton(
-          icon: Icon(Icons.account_circle, color: Colors.white, size: 32),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => Login_page()),
-            );
-          },
-        ),
-      ]),
-      body: Column(
+    return AppLayout(
+      child: Column(
         children: [
           SizedBox(height: 16),
           Container(
@@ -179,9 +166,9 @@ class _FriendsPageState extends State<Friends_Page> {
                 ],
               ),
             ),
+          BottomNavBar(currentIndex: 3),
         ],
       ),
-      bottomNavigationBar: BottomNavBar(currentIndex: 3),
     );
   }
 }

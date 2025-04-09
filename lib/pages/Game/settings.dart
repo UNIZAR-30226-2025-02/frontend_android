@@ -9,7 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../services/socketService.dart';
 import '../Presentation/wellcome.dart';
-import '../buildHead.dart';
+import '../../widgets/app_layout.dart'; // 👈 importa AppLayout
 
 class Settings_page extends StatefulWidget {
   static const String id = "setting_page";
@@ -21,20 +21,8 @@ class Settings_page extends StatefulWidget {
 class _Settings_pageState extends State<Settings_page> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[900], // Fondo oscuro
-      appBar: BuildHeadLogo(actions: [
-        IconButton(
-          icon: Icon(Icons.account_circle, color: Colors.white, size: 32),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => Wellcome_page()),
-            );
-          },
-        ),
-      ]),
-      body: Column(
+    return AppLayout(
+      child: Column(
         children: [
           SizedBox(height: 16),
           Container(
@@ -78,9 +66,9 @@ class _Settings_pageState extends State<Settings_page> {
               ],
             ),
           ),
+          BottomNavBar(currentIndex: 4),
         ],
       ),
-      bottomNavigationBar: BottomNavBar(currentIndex: 4),
     );
   }
 
@@ -112,22 +100,36 @@ class _Settings_pageState extends State<Settings_page> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Cerrar sesión"),
-          content: Text("¿Estás seguro de que quieres cerrar sesión?"),
+          backgroundColor: Colors.grey[900],
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+            side: BorderSide(color: Colors.blueAccent, width: 1.5),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.logout, color: Colors.blueAccent),
+              SizedBox(width: 8),
+              Text("Cerrar sesión", style: TextStyle(color: Colors.white)),
+            ],
+          ),
+          content: Text(
+            "¿Estás seguro de que quieres cerrar sesión?",
+            style: TextStyle(color: Colors.white70),
+          ),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop(); // Cancelar
               },
-              child: Text("Cancelar"),
+              child: Text("Cancelar", style: TextStyle(color: Colors.blueAccent)),
             ),
             TextButton(
               onPressed: () async {
-                Navigator.of(context).pop(); // Cierra este diálogo primero
-                Future.delayed(Duration(milliseconds: 300)); // Pequeña espera
+                Navigator.of(context).pop(); // Cierra el diálogo
+                await Future.delayed(Duration(milliseconds: 300));
                 _cerrarSesion(context);
               },
-              child: Text("Aceptar"),
+              child: Text("Aceptar", style: TextStyle(color: Colors.blueAccent)),
             ),
           ],
         );
@@ -136,7 +138,6 @@ class _Settings_pageState extends State<Settings_page> {
   }
 
   Future<void> _cerrarSesion(BuildContext context) async {
-    final BuildContext safeContext = context;
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? usuarioActual = prefs.getString('usuario');
 
@@ -162,8 +163,7 @@ class _Settings_pageState extends State<Settings_page> {
     await prefs.clear();
 
     if (mounted) {
-      print("🟢 Mostrando popup de cierre de sesión");
-      SocketService().showForceLogoutPopup(safeContext, "Tu sesión se ha cerrado correctamente.");
+      SocketService().showForceLogoutPopup("Tu sesión se ha cerrado correctamente.");
     }
   }
 }

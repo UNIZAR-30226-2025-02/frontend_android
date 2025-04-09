@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:frontend_android/pages/Presentation/wellcome.dart';
 
+import '../main.dart';
+
 class SocketService {
   static final SocketService _instance = SocketService._internal();
   late IO.Socket socket;
@@ -79,7 +81,7 @@ class SocketService {
     socket.onDisconnect((_) {
       print("🔴 SOCKET DESCONECTADO.");
       if (context.mounted){
-        showForceLogoutPopup(context, "Se ha perdido la conexión con el servidor.");
+        showForceLogoutPopup("Se ha perdido la conexión con el servidor.");
       }
     });
 
@@ -114,7 +116,6 @@ class SocketService {
       if (idJugadorConectado == null || idJugadorConectado == idJugador) {
         print("🔴 Sesión duplicada detectada o sin ID. Cerrando sesión...");
         showForceLogoutPopup(
-          _latestContext,
           mensaje ?? "Tu cuenta ha sido iniciada en otro dispositivo.",
         );
       } else {
@@ -125,8 +126,10 @@ class SocketService {
     print("✅ Listeners configurados correctamente.");
   }
 
-  void showForceLogoutPopup(BuildContext? context, String message) {
+  void showForceLogoutPopup(String message) {
     print("📢 Mostrando pop-up: $message");
+    final context = navigatorKey.currentContext;
+    if (context == null) return;
 
     if (context != null) {
       showDialog(

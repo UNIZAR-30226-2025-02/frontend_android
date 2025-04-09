@@ -1,28 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:frontend_android/widgets/app_layout.dart';
 import 'package:frontend_android/pages/Game/botton_nav_bar.dart';
-
-import '../Login/login.dart';
-import '../buildHead.dart';
 
 class Ranking_page extends StatelessWidget {
   static const String id = "ranking_page";
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[900], // Fondo oscuro
-      appBar: BuildHeadLogo(actions: [
-        IconButton(
-          icon: Icon(Icons.account_circle, color: Colors.white, size: 32),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => Login_page()),
-            );
-          },
-        ),
-      ],),
-      body: Column(
+    return AppLayout(
+      child: Column(
         children: [
           SizedBox(height: 16),
           Container(
@@ -39,7 +25,6 @@ class Ranking_page extends StatelessWidget {
                     color: Colors.white,
                   ),
                 ),
-                SizedBox(width: 8),
                 Icon(Icons.emoji_events, color: Colors.white, size: 36),
               ],
             ),
@@ -56,9 +41,9 @@ class Ranking_page extends StatelessWidget {
               ],
             ),
           ),
+          BottomNavBar(currentIndex: 1),
         ],
       ),
-      bottomNavigationBar: BottomNavBar(currentIndex: 1), // Índice de "Ranking"
     );
   }
 

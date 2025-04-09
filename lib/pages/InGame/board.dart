@@ -1,4 +1,3 @@
-
 import 'dart:async';
 import 'package:chess/chess.dart' as chess;
 import 'package:flutter_chess_board/flutter_chess_board.dart';
@@ -39,6 +38,7 @@ class _BoardScreenState extends State<BoardScreen> {
   bool isWhiteTurn = true;
   bool _isChatVisible = false;
   bool _isMovesVisible = false;
+  bool _isLoaded = false;
   int incrementoPorJugada = 0;
   final TextEditingController _chatController = TextEditingController();
   List<String> _mensajesChat = [];
@@ -90,6 +90,9 @@ class _BoardScreenState extends State<BoardScreen> {
     _initializeSocketListeners();
     _configurarTiempoPorModo(widget.gameMode);
     _listenToBoardChanges();
+    setState(() {
+      _isLoaded = true;
+    });
   }
 
   void _joinGame() {
@@ -781,60 +784,144 @@ class _BoardScreenState extends State<BoardScreen> {
       backgroundColor: Colors.grey[900],
       appBar: AppBar(
         backgroundColor: Colors.grey[900],
-        title: Text(gameMode, style: TextStyle(color: Colors.white)),
+        title: Text(
+          _isLoaded ? gameMode : "",
+          style: TextStyle(color: Colors.white),
+        ),
         centerTitle: true,
       ),
-      body: Stack(
+      body: !_isLoaded
+          ? Center(
+        child: CircularProgressIndicator(color: Colors.blueAccent),
+      )
+          : Stack(
         children: [
-          Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildPlayerInfo(
-                playerColor == PlayerColor.white ? nombreNegras : nombreBlancas,
-                playerColor == PlayerColor.white ? eloNegras : eloBlancas,
-                playerColor == PlayerColor.white ? blackTime : whiteTime,
-              ),
-              Expanded(
-                child: Center(
-                  child: ChessBoard(
-                    controller: controller,
-                    boardOrientation: playerColor,
-                    enableUserMoves: (isWhiteTurn && playerColor == PlayerColor.white) ||
-                        (!isWhiteTurn && playerColor == PlayerColor.black),
+          SafeArea(
+            child: Column(
+              children: [
+                SizedBox(height: 36), // margen superior
+
+                // 🧍‍♂️ Rival
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            playerColor == PlayerColor.white ? nombreNegras : nombreBlancas,
+                            style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            "ELO: ${playerColor == PlayerColor.white ? eloNegras : eloBlancas}",
+                            style: TextStyle(color: Colors.white70, fontSize: 16),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        "${((playerColor == PlayerColor.white ? blackTime : whiteTime) ~/ 60).toString().padLeft(2, '0')}:${((playerColor == PlayerColor.white ? blackTime : whiteTime) % 60).toString().padLeft(2, '0')}",
+                        style: TextStyle(color: Colors.white, fontSize: 20),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-              _buildPlayerInfo(
-                playerColor == PlayerColor.white ? nombreBlancas : nombreNegras,
-                playerColor == PlayerColor.white ? eloBlancas : eloNegras,
-                playerColor == PlayerColor.white ? whiteTime : blackTime,
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton(
-                    onPressed: () => _confirmDrawOffer(),
-                    child: Text("Ofrecer tablas", style: TextStyle(color: Colors.blue)),
+
+                SizedBox(height: 12), // entre nombre y tablero
+
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: SizedBox(
+                    height: MediaQuery.of(context).size.width * 0.95, // tablero cuadrado proporcional
+                    child: ChessBoard(
+                      controller: controller,
+                      boardOrientation: playerColor,
+                      enableUserMoves:
+                      (isWhiteTurn && playerColor == PlayerColor.white) ||
+                          (!isWhiteTurn && playerColor == PlayerColor.black),
+                    ),
                   ),
-                  ElevatedButton(
-                    onPressed: _confirmarRendicion,
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                    child: Text("Rendirse", style: TextStyle(color: Colors.white)),
+                ),
+
+                SizedBox(height: 12),
+
+                // 🧍‍♂️ Tú
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            playerColor == PlayerColor.white ? nombreBlancas : nombreNegras,
+                            style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            "ELO: ${playerColor == PlayerColor.white ? eloBlancas : eloNegras}",
+                            style: TextStyle(color: Colors.white70, fontSize: 16),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        "${((playerColor == PlayerColor.white ? whiteTime : blackTime) ~/ 60).toString().padLeft(2, '0')}:${((playerColor == PlayerColor.white ? whiteTime : blackTime) % 60).toString().padLeft(2, '0')}",
+                        style: TextStyle(color: Colors.white, fontSize: 20),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              SizedBox(height: 10),
-            ],
+                ),
+
+                SizedBox(height: 36), // aire antes de los botones
+
+                // 🎯 Botones de acción
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: _confirmDrawOffer,
+                        icon: Icon(Icons.handshake, color: Colors.blue),
+                        label: Text("Ofrecer tablas"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.blue,
+                          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: _confirmarRendicion,
+                        icon: Icon(Icons.flag, color: Colors.white),
+                        label: Text("Rendirse"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
 
-          // Botón de chat flotante
+          // 💬 FAB Chat
           Positioned(
-            bottom: 80,
-            right: 20,
+            bottom: 100, // 🧼 más espacio
+            left: 45,
             child: FloatingActionButton(
               heroTag: "chatFAB",
               backgroundColor: Colors.blueAccent,
-              child: Icon(Icons.chat),
+              child: Icon(Icons.chat, color: Colors.white),
               onPressed: () {
                 setState(() {
                   _isChatVisible = !_isChatVisible;
@@ -843,14 +930,14 @@ class _BoardScreenState extends State<BoardScreen> {
             ),
           ),
 
-          // Botón historial de movimientos
+          // 📜 FAB Movimientos
           Positioned(
-            bottom: 80,
-            left: 20,
+            bottom: 100,
+            right: 45,
             child: FloatingActionButton(
               heroTag: "movesFAB",
-              backgroundColor: Colors.orange,
-              child: Icon(Icons.list_alt),
+              backgroundColor: Colors.blueAccent,
+              child: Icon(Icons.list_alt, color: Colors.white),
               onPressed: () {
                 setState(() {
                   _isMovesVisible = !_isMovesVisible;
@@ -861,14 +948,21 @@ class _BoardScreenState extends State<BoardScreen> {
 
           if (_isChatVisible)
             Positioned(
-              bottom: 150,
+              bottom: 170,
               right: 20,
               left: 20,
               child: Container(
-                padding: EdgeInsets.all(10),
+                padding: EdgeInsets.all(12), // Más espacio interior
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
+                  color: Colors.grey[850], // Fondo oscuro acorde con el tema
+                  borderRadius: BorderRadius.circular(16), // Bordes redondeados
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 10,
+                      offset: Offset(0, 4), // Sombra suave abajo
+                    ),
+                  ],
                 ),
                 height: 200,
                 child: Column(
@@ -876,7 +970,10 @@ class _BoardScreenState extends State<BoardScreen> {
                     Expanded(
                       child: ListView.builder(
                         itemCount: _mensajesChat.length,
-                        itemBuilder: (context, index) => Text(_mensajesChat[index]),
+                        itemBuilder: (context, index) => Text(
+                          _mensajesChat[index],
+                          style: TextStyle(color: Colors.white), // Texto blanco para contraste
+                        ),
                       ),
                     ),
                     Row(
@@ -884,11 +981,20 @@ class _BoardScreenState extends State<BoardScreen> {
                         Expanded(
                           child: TextField(
                             controller: _chatController,
-                            decoration: InputDecoration(hintText: 'Escribe un mensaje...'),
+                            decoration: InputDecoration(
+                              hintText: 'Escribe un mensaje...',
+                              hintStyle: TextStyle(color: Colors.grey[900]),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
+                              filled: true,
+                              fillColor: Colors.white, // Fondo sutil del campo de texto
+                            ),
                           ),
                         ),
                         IconButton(
-                          icon: Icon(Icons.send, color: Colors.blue),
+                          icon: Icon(Icons.send, color: Colors.blueAccent), // Icono en azul
                           onPressed: () {
                             if (_chatController.text.trim().isNotEmpty) {
                               setState(() {
@@ -907,23 +1013,36 @@ class _BoardScreenState extends State<BoardScreen> {
 
           if (_isMovesVisible)
             Positioned(
-              bottom: 370,
+              bottom: 170,
               right: 20,
               left: 20,
               child: Container(
-                padding: EdgeInsets.all(10),
+                padding: EdgeInsets.all(12), // Más espacio interior
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
+                  color: Colors.grey[850], // Fondo oscuro acorde con el tema
+                  borderRadius: BorderRadius.circular(16), // Bordes redondeados
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 10,
+                      offset: Offset(0, 4), // Sombra suave abajo
+                    ),
+                  ],
                 ),
                 height: 200,
                 child: Column(
                   children: [
-                    Text("Movimientos", style: TextStyle(fontWeight: FontWeight.bold)),
+                    Text(
+                      "Movimientos",
+                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
                     Expanded(
                       child: ListView.builder(
                         itemCount: _historialMovimientos.length,
-                        itemBuilder: (context, index) => Text("${index + 1}. ${_historialMovimientos[index]}"),
+                        itemBuilder: (context, index) => Text(
+                          "${index + 1}. ${_historialMovimientos[index]}",
+                          style: TextStyle(color: Colors.white70), // Texto en gris suave
+                        ),
                       ),
                     ),
                   ],
