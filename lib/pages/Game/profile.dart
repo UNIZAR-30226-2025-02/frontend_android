@@ -247,8 +247,103 @@ class _ProfilePageState extends State<Profile_page> {
       }).toList(),
     );
   }
+  Future<bool> updateUserName(String newName) async {
+    // Aseguramos que ya se hayan cargado userId y serverBackend
+    if (userId == null || serverBackend == null) {
+      print("No se encontró el id del usuario o la URL del backend");
+      return false;
+    }
+
+    // Construimos la URL para el endpoint de edición
+    final url = Uri.parse('${serverBackend}editUser');
+
+    // Preparamos el cuerpo de la solicitud JSON con los datos requeridos por el backend.
+    final bodyData = jsonEncode({
+      "id": userId,
+      "NombreUser": newName,
+      "FotoPerfil": profileImage, // Se envía el valor actual de la foto.
+    });
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: bodyData,
+      );
+      if (response.statusCode == 200) {
+        print("Nombre actualizado exitosamente.");
+        return true;
+      } else {
+        print("Error al actualizar el nombre: ${response.statusCode}");
+        return false;
+      }
+    } catch (error) {
+      print("Error en la solicitud de actualización: $error");
+      return false;
+    }
+  }
 
   void _showEditNameDialog() {
-    // Lógica para editar el nombre del usuario
+    final TextEditingController _nameController = TextEditingController(text: playerName);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Editar nombre'),
+          content: TextField(
+            controller: _nameController,
+            decoration: InputDecoration(
+              labelText: 'Nuevo nombre',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Cierra el diálogo sin guardar cambios
+              },
+              child: Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () async {
+                // Capturamos el nuevo nombre introducido.
+                String newName = _nameController.text;
+
+                // Llamamos a la función para actualizar el nombre en el backend.
+                bool success = await updateUserName(newName);
+
+                if (success) {
+                  // Si se actualizó correctamente, actualizamos la UI y cerramos el diálogo.
+                  setState(() {
+                    playerName = newName;
+                  });
+                  Navigator.of(context).pop();
+                } else {
+                  // Si hay error, mostramos un pop up indicando que ese nombre ya está en uso.
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: Text('Error'),
+                      content: Text('El nombre de usuario "$newName" ya está en uso'),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(ctx).pop();
+                          },
+                          child: Text('OK'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+              },
+              child: Text('Guardar'),
+            ),
+          ],
+        );
+      },
+    );
   }
+
+
 }
