@@ -16,17 +16,54 @@ class Profile_page extends StatefulWidget {
 class _ProfilePageState extends State<Profile_page> {
   // Datos del usuario (valores por defecto)
   String playerName = "Cargando...";
-  String profileImage = "assets/fotoPerfil.png";
+  // Nuevo valor por defecto usando la nueva ruta:
+  String profileImage = "assets/fotosPerfil/fotoPerfil.png";
   int friends = 0;
   int gamesPlayed = 0;
   double winRate = 0.0;
   int maxStreak = 0;
-  int actualStreak = 0;
 
   // URL base del servidor backend (se obtiene de la variable de entorno)
-  String? serverBackend;
+  late final String? serverBackend;
   // ID del usuario (por ejemplo, obtenido de SharedPreferences)
-  String? userId;
+  late final String? userId;
+
+  // Lista de nombres de archivos (sin ruta) de las imágenes disponibles
+  List<String> multiavatarImages = [
+    "avatar_1.webp",
+    "avatar_2.webp",
+    "avatar_3.webp",
+    "avatar_4.webp",
+    "avatar_5.webp",
+    "avatar_6.webp",
+    "avatar_7.webp",
+    "avatar_8.webp",
+    "avatar_9.webp",
+    "avatar_10.webp",
+    "avatar_11.webp",
+    "avatar_12.webp",
+    "avatar_13.webp",
+    "avatar_14.webp",
+    "avatar_15.webp",
+    "avatar_16.webp",
+    "avatar_17.webp",
+    "avatar_18.webp",
+    "avatar_19.webp",
+    "avatar_20.webp",
+    "avatar_21.webp",
+    "avatar_22.webp",
+    "avatar_23.webp",
+    "avatar_24.webp",
+    "avatar_25.webp",
+    "avatar_26.webp",
+    "avatar_27.webp",
+    "avatar_28.webp",
+    "avatar_29.webp",
+    "avatar_30.webp",
+    "avatar_31.webp",
+    "avatar_32.webp",
+
+  ];
 
   @override
   void initState() {
@@ -49,42 +86,27 @@ class _ProfilePageState extends State<Profile_page> {
 
     // Construir la URL para obtener la información, pasando el id del usuario
     final url = Uri.parse('${serverBackend}getUserInfo?id=$userId');
-
-    print("userId: $userId");
-    print("serverBackend: $serverBackend");
-    print("URL que estoy llamando: ${serverBackend}getUserInfo?id=$userId");
-
     try {
       final response = await http.get(url, headers: {
         "Content-Type": "application/json",
         // Agrega autorización si fuera necesario, por ejemplo: "Authorization": "Bearer $token"
       });
-      print("STATUS CODE: ${response.statusCode}");
-      print("RESPONSE BODY: ${response.body}");
-
       if (response.statusCode == 200) {
         // Se espera que el backend retorne un JSON que incluya las siguientes propiedades:
         // "NombreUser", "FotoPerfil", "friends", "gamesPlayed", "winRate" y "maxStreak"
         final data = jsonDecode(response.body);
         setState(() {
           playerName = data['NombreUser'] ?? playerName;
-
+          // Si la foto de perfil es "none", usamos la imagen predeterminada con la nueva ruta.
           profileImage = (data['FotoPerfil'] != null && data['FotoPerfil'] != "none")
-              ? data['FotoPerfil']
-              : "assets/fotoPerfil.png";
+              ? data['FotoPerfil'] // Se espera solo el nombre del archivo
+              : "assets/fotosPerfil/fotoPerfil.png";
 
-          friends = data['Amistades'] ?? 0;  // Si no lo tenés en el backend aún, ponelo en 0 o quitalo
-
-          gamesPlayed = data['totalGames'] ?? 0;
-
-          // winRate = (victorias / partidas totales) * 100
-          winRate = (data['totalGames'] > 0)
-              ? ((data['totalWins'] / data['totalGames']) * 100).toDouble()
-              : 0.0;
-
-          maxStreak = data['maxStreak'] ?? 0;
-
-          actualStreak = data['actualStreak'] ?? 0;
+          // Actualizamos las estadísticas si existen; de lo contrario, se mantiene el valor por defecto.
+          friends = data['friends'] ?? friends;
+          gamesPlayed = data['gamesPlayed'] ?? gamesPlayed;
+          winRate = (data['winRate'] != null) ? (data['winRate'] as num).toDouble() : winRate;
+          maxStreak = data['maxStreak'] ?? maxStreak;
         });
       } else {
         print("Error al obtener el perfil: ${response.statusCode}");
@@ -127,18 +149,34 @@ class _ProfilePageState extends State<Profile_page> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Si profileImage es una URL externa se puede usar NetworkImage, de lo contrario se usa AssetImage.
+              // Avatar: para mostrar la imagen en la UI, si profileImage es solo el nombre, concatenamos la ruta.
               CircleAvatar(
                 radius: 35,
-                backgroundImage: profileImage.startsWith("assets")
-                    ? AssetImage(profileImage) as ImageProvider
-                    : NetworkImage(profileImage),
+                backgroundImage: (profileImage.startsWith("assets"))
+                    ? AssetImage(profileImage)
+                    : AssetImage("assets/fotosPerfil/$profileImage"),
               ),
-              ElevatedButton.icon(
-                onPressed: _showEditNameDialog,
-                icon: Icon(Icons.edit, color: Colors.white),
-                label: Text('Editar', style: TextStyle(color: Colors.white)),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+              // Botones en una fila aparte
+              Row(
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _showEditPhotoDialog, // Función para editar foto
+                    icon: Icon(Icons.image),
+                    label: Text('Foto'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                    ),
+                  ),
+                  SizedBox(width: 8), // Separación horizontal
+                  ElevatedButton.icon(
+                    onPressed: _showEditNameDialog, // Función para editar nombre
+                    icon: Icon(Icons.edit),
+                    label: Text('Nombre'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                    ),
+                  ),
+                ],
               )
             ],
           ),
@@ -146,9 +184,10 @@ class _ProfilePageState extends State<Profile_page> {
           Text(
             playerName,
             style: TextStyle(
-                color: Colors.blueAccent,
-                fontSize: 22,
-                fontWeight: FontWeight.bold),
+              color: Colors.blueAccent,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           Divider(color: Colors.white24),
           Row(
@@ -156,8 +195,8 @@ class _ProfilePageState extends State<Profile_page> {
             children: [
               _buildProfileStat("Amigos", friends.toString()),
               _buildProfileStat("Partidas", gamesPlayed.toString()),
-              _buildProfileStat("% Victoria", "${winRate.toStringAsFixed(2)}%"),
-              _buildProfileStat("Racha Max.", maxStreak.toString()),
+              _buildProfileStat("Victorias", "$winRate%"),
+              _buildProfileStat("Racha", maxStreak.toString()),
             ],
           ),
         ],
@@ -263,21 +302,19 @@ class _ProfilePageState extends State<Profile_page> {
       }).toList(),
     );
   }
+
   Future<bool> updateUserName(String newName) async {
-    // Aseguramos que ya se hayan cargado userId y serverBackend
     if (userId == null || serverBackend == null) {
       print("No se encontró el id del usuario o la URL del backend");
       return false;
     }
 
-    // Construimos la URL para el endpoint de edición
     final url = Uri.parse('${serverBackend}editUser');
 
-    // Preparamos el cuerpo de la solicitud JSON con los datos requeridos por el backend.
     final bodyData = jsonEncode({
       "id": userId,
       "NombreUser": newName,
-      "FotoPerfil": profileImage, // Se envía el valor actual de la foto.
+      "FotoPerfil": profileImage,
     });
 
     try {
@@ -306,30 +343,11 @@ class _ProfilePageState extends State<Profile_page> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: Colors.grey[900],
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
-            side: BorderSide(color: Colors.blueAccent, width: 1.5),
-          ),
-          title: Row(
-            children: [
-              Icon(Icons.edit, color: Colors.blueAccent),
-              SizedBox(width: 8),
-              Text('Editar nombre', style: TextStyle(color: Colors.white)),
-            ],
-          ),
+          title: Text('nombre'),
           content: TextField(
             controller: _nameController,
-            style: TextStyle(color: Colors.white),
             decoration: InputDecoration(
               labelText: 'Nuevo nombre',
-              labelStyle: TextStyle(color: Colors.white70),
-              enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: Colors.blueAccent),
-              ),
-              focusedBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: Colors.blueAccent),
-              ),
             ),
           ),
           actions: [
@@ -337,57 +355,36 @@ class _ProfilePageState extends State<Profile_page> {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: Text('Cancelar', style: TextStyle(color: Colors.redAccent)),
+              child: Text('Cancelar'),
             ),
             TextButton(
               onPressed: () async {
-                String newName = _nameController.text.trim();
-
-                if (newName.isEmpty) return;
-
+                String newName = _nameController.text;
                 bool success = await updateUserName(newName);
-
                 if (success) {
                   setState(() {
                     playerName = newName;
                   });
                   Navigator.of(context).pop();
-                  Future.delayed(Duration.zero, () {
-                    _showSuccessDialog('Nombre actualizado correctamente');
-                  });
                 } else {
                   showDialog(
                     context: context,
                     builder: (ctx) => AlertDialog(
-                      backgroundColor: Colors.grey[900],
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                        side: BorderSide(color: Colors.blueAccent, width: 1.5),
-                      ),
-                      title: Row(
-                        children: [
-                          Icon(Icons.error_outline, color: Colors.redAccent),
-                          SizedBox(width: 8),
-                          Text('Error', style: TextStyle(color: Colors.white)),
-                        ],
-                      ),
-                      content: Text(
-                        'El nombre de usuario "$newName" ya está en uso',
-                        style: TextStyle(color: Colors.white70),
-                      ),
+                      title: Text('Error'),
+                      content: Text('El nombre de usuario "$newName" ya está en uso'),
                       actions: [
                         TextButton(
                           onPressed: () {
                             Navigator.of(ctx).pop();
                           },
-                          child: Text('OK', style: TextStyle(color: Colors.blueAccent)),
+                          child: Text('OK'),
                         ),
                       ],
                     ),
                   );
                 }
               },
-              child: Text('Guardar', style: TextStyle(color: Colors.blueAccent)),
+              child: Text('Guardar'),
             ),
           ],
         );
@@ -395,35 +392,95 @@ class _ProfilePageState extends State<Profile_page> {
     );
   }
 
-  void _showSuccessDialog(String message) {
+  void _showEditPhotoDialog() {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.grey[900],
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15),
-          side: BorderSide(color: Colors.blueAccent, width: 1.5),
-        ),
-        title: Row(
-          children: [
-            Icon(Icons.check_circle_outline, color: Colors.greenAccent),
-            SizedBox(width: 8),
-            Text('Éxito', style: TextStyle(color: Colors.white)),
-          ],
-        ),
-        content: Text(
-          message,
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-            },
-            child: Text('OK', style: TextStyle(color: Colors.blueAccent)),
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Selecciona una foto de perfil"),
+          content: Container(
+            width: double.maxFinite,
+            height: 300,
+            child: GridView.builder(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+              ),
+              itemCount: multiavatarImages.length,
+              itemBuilder: (context, index) {
+                String imageFileName = multiavatarImages[index];
+                // Usamos la nueva ruta: assets/fotosPerfil/
+                String imagePath = "assets/fotosPerfil/$imageFileName";
+                return GestureDetector(
+                  onTap: () async {
+                    setState(() {
+                      profileImage = imageFileName;
+                    });
+                    bool success = await updateProfilePhoto(imageFileName);
+                    if (!success) {
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: Text("Error"),
+                          content: Text("La foto de perfil no se pudo actualizar."),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(),
+                              child: Text("OK"),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    Navigator.of(context).pop();
+                  },
+                  child: Image.asset(imagePath),
+                );
+              },
+            ),
           ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text("Cancelar"),
+            ),
+          ],
+        );
+      },
     );
+  }
+
+  Future<bool> updateProfilePhoto(String newPhotoName) async {
+    if (userId == null || serverBackend == null) {
+      print("No se encontró el id del usuario o la URL del backend");
+      return false;
+    }
+
+    final url = Uri.parse('${serverBackend}editUser');
+
+    final bodyData = jsonEncode({
+      "id": userId,
+      "NombreUser": playerName,  // Mantenemos el nombre actual
+      "FotoPerfil": newPhotoName  // Solo el nombre de la imagen
+    });
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: bodyData,
+      );
+      if (response.statusCode == 200) {
+        print("Foto actualizada exitosamente.");
+        return true;
+      } else {
+        print("Error al actualizar la foto: ${response.statusCode}");
+        return false;
+      }
+    } catch (error) {
+      print("Error en la solicitud de actualización de foto: $error");
+      return false;
+    }
   }
 }
