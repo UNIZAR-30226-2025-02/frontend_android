@@ -14,17 +14,17 @@ class Profile_page extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<Profile_page> {
-  // Valor inicial que se muestra hasta que se reciba el dato del backend.
+  // Datos del usuario (valores por defecto)
   String playerName = "Cargando...";
-  int friends = 10;
-  int gamesPlayed = 100;
-  double winRate = 55.0;
-  int maxStreak = 5;
+  String profileImage = "assets/fotoPerfil.png";
+  int friends = 0;
+  int gamesPlayed = 0;
+  double winRate = 0.0;
+  int maxStreak = 0;
 
-  // URL base de tu servidor backend
+  // URL base del servidor backend (se obtiene de la variable de entorno)
   late final String? serverBackend;
-
-  // ID del usuario (reemplaza este valor por el real o extraídolo del login/local storage)
+  // ID del usuario (por ejemplo, obtenido de SharedPreferences)
   late final String? userId;
 
   @override
@@ -34,22 +34,41 @@ class _ProfilePageState extends State<Profile_page> {
   }
 
   Future<void> fetchUserInfo() async {
+    // Recuperar el ID del usuario desde SharedPreferences
     SharedPreferences prefs = await SharedPreferences.getInstance();
     userId = prefs.getString('idJugador');
+
+    // Obtener la URL del backend desde el archivo .env
     serverBackend = dotenv.env['SERVER_BACKEND'];
-    // Construye la URL para obtener la información, pasando el id del usuario
+
+    if (userId == null || serverBackend == null) {
+      print("Falta el id del usuario o la URL del backend");
+      return;
+    }
+
+    // Construir la URL para obtener la información, pasando el id del usuario
     final url = Uri.parse('${serverBackend}getUserInfo?id=$userId');
     try {
       final response = await http.get(url, headers: {
         "Content-Type": "application/json",
-        // Puedes agregar autorización si es necesario, por ejemplo:
-        // "Authorization": "Bearer $token"
+        // Agrega autorización si fuera necesario, por ejemplo: "Authorization": "Bearer $token"
       });
       if (response.statusCode == 200) {
-        // Se espera que el backend retorne un JSON que incluya "NombreUser"
+        // Se espera que el backend retorne un JSON que incluya las siguientes propiedades:
+        // "NombreUser", "FotoPerfil", "friends", "gamesPlayed", "winRate" y "maxStreak"
         final data = jsonDecode(response.body);
         setState(() {
-          playerName = data['NombreUser'];
+          playerName = data['NombreUser'] ?? playerName;
+          // Si la foto de perfil es "none", mantenemos la imagen predeterminada
+          profileImage = (data['FotoPerfil'] != null && data['FotoPerfil'] != "none")
+              ? data['FotoPerfil']
+              : "assets/fotoPerfil.png";
+
+          // Actualizamos las estadísticas si existen; de lo contrario se mantiene el valor por defecto.
+          friends = data['friends'] ?? friends;
+          gamesPlayed = data['gamesPlayed'] ?? gamesPlayed;
+          winRate = (data['winRate'] != null) ? (data['winRate'] as num).toDouble() : winRate;
+          maxStreak = data['maxStreak'] ?? maxStreak;
         });
       } else {
         print("Error al obtener el perfil: ${response.statusCode}");
@@ -92,9 +111,12 @@ class _ProfilePageState extends State<Profile_page> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              // Si profileImage es una URL externa se puede usar NetworkImage, de lo contrario se usa AssetImage.
               CircleAvatar(
                 radius: 35,
-                backgroundImage: AssetImage("assets/fotoPerfil.png"),
+                backgroundImage: profileImage.startsWith("assets")
+                    ? AssetImage(profileImage) as ImageProvider
+                    : NetworkImage(profileImage),
               ),
               ElevatedButton.icon(
                 onPressed: _showEditNameDialog,
@@ -130,9 +152,11 @@ class _ProfilePageState extends State<Profile_page> {
   Widget _buildProfileStat(String title, String value) {
     return Column(
       children: [
-        Text(value,
-            style: TextStyle(
-                color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+        Text(
+          value,
+          style: TextStyle(
+              color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+        ),
         Text(title, style: TextStyle(color: Colors.white70, fontSize: 14))
       ],
     );
@@ -186,9 +210,11 @@ class _ProfilePageState extends State<Profile_page> {
             children: [
               Icon(modeIcons[mode], color: modeColors[mode], size: 32),
               SizedBox(height: 6),
-              Text(mode,
-                  style:
-                  TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              Text(
+                mode,
+                style: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold),
+              ),
               SizedBox(height: 10),
               Expanded(
                 child: LineChart(
@@ -223,6 +249,6 @@ class _ProfilePageState extends State<Profile_page> {
   }
 
   void _showEditNameDialog() {
-    // Lógica para editar nombre
+    // Lógica para editar el nombre del usuario
   }
 }
