@@ -15,8 +15,11 @@ class BoardScreen extends StatefulWidget {
   final String pgn;
   final int timeLeftW;
   final int timeLeftB;
+  final int myElo;
+  final int rivalElo;
+  final String rivalName;
 
-  BoardScreen(this.gameMode, this.color, this.gameId, this.pgn, this.timeLeftW, this.timeLeftB);
+  BoardScreen(this.gameMode, this.color, this.gameId, this.pgn, this.timeLeftW, this.timeLeftB, this.myElo, this.rivalElo, this.rivalName);
 
   @override
   _BoardScreenState createState() => _BoardScreenState();
@@ -61,6 +64,7 @@ class _BoardScreenState extends State<BoardScreen> {
     socket = await SocketService().getSocket(context);
     SharedPreferences prefs = await SharedPreferences.getInstance();
     idJugador = prefs.getString('idJugador');
+    final name = prefs.getString('usuario') ?? "Tú";
     chessGame = chess.Chess();
 
     if(widget.pgn != "null"){
@@ -69,21 +73,31 @@ class _BoardScreenState extends State<BoardScreen> {
     }
     if (widget.timeLeftW != 0){
       whiteTime = widget.timeLeftW;
+      print ("Esto es $whiteTime");
     }
     if (widget.timeLeftB != 0){
       blackTime = widget.timeLeftB;
+      print ("Esto es $blackTime");
     }
 
     gameMode = widget.gameMode;
+
 
     playerColor = widget.color.trim().toLowerCase() == "white"
         ? PlayerColor.white
         : PlayerColor.black;
 
-    nombreBlancas = prefs.getString('nombreBlancas') ?? "Blancas";
-    nombreNegras = prefs.getString('nombreNegras') ?? "Negras";
-    eloBlancas = prefs.getInt('eloBlancas') ?? 0;
-    eloNegras = prefs.getInt('eloNegras') ?? 0;
+    if (playerColor == PlayerColor.white) {
+      nombreBlancas = name;
+      eloBlancas = widget.myElo;
+      nombreNegras = widget.rivalName;
+      eloNegras = widget.rivalElo;
+    } else {
+      nombreNegras = name;
+      eloNegras = widget.myElo;
+      nombreBlancas = widget.rivalName;
+      eloBlancas = widget.rivalElo;
+    }
 
     _startTimer();
     _joinGame();
@@ -120,7 +134,7 @@ class _BoardScreenState extends State<BoardScreen> {
   }
 
   void _configurarTiempoPorModo(String modo) {
-    if (widget.timeLeftW != 0 || widget.timeLeftB != 0) {
+    if (whiteTime != 0 || blackTime != 0) {
       return;
     }
 

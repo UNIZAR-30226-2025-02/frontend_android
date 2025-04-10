@@ -84,11 +84,12 @@ class _InitPageState extends State<Init_page> {
       final color = gameData['color'];
       final timeLeftW = gameData['timeLeftW'];
       final timeLeftB = gameData['timeLeftB'];
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String modoGuardado = prefs.getString('modoDeJuegoActivo') ?? "Clásica";
-      print("$gameId y $pgn y $color y $timeLeftW y $timeLeftB" );
+      final myElo = gameData['miElo'];
+      final rivalElo = gameData['eloRival'];
+      final gameMode = gameData['gameMode'];
+      final rivalName = gameData['nombreRival'];
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => BoardScreen(modoGuardado, color, gameId, pgn, timeLeftW, timeLeftB)),
+        MaterialPageRoute(builder: (_) => BoardScreen(gameMode, color, gameId, pgn, timeLeftW, timeLeftB, myElo, rivalElo, rivalName)),
       );
     });
 
@@ -122,13 +123,41 @@ class _InitPageState extends State<Init_page> {
     });
   }
 
-  void _intentarEntrarAPartida() {
+  void _intentarEntrarAPartida() async {
     if (_yaEntramosAPartida || _gameId == null || _gameColor == null) return;
+
     _yaEntramosAPartida = true;
+
+    final prefs = await SharedPreferences.getInstance();
+
+    final miElo = _gameColor == 'white'
+        ? prefs.getInt('eloBlancas') ?? 0
+        : prefs.getInt('eloNegras') ?? 0;
+
+    final rivalElo = _gameColor == 'white'
+        ? prefs.getInt('eloNegras') ?? 0
+        : prefs.getInt('eloBlancas') ?? 0;
+
+    final rivalName = _gameColor == 'white'
+        ? prefs.getString('nombreNegras') ?? "Rival"
+        : prefs.getString('nombreBlancas') ?? "Rival";
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => BoardScreen(selectedGameMode, _gameColor!, _gameId!, "null", 0, 0)),
+        MaterialPageRoute(
+          builder: (_) => BoardScreen(
+            selectedGameMode,
+            _gameColor!,
+            _gameId!,
+            "null",
+            0,
+            0,
+            miElo,
+            rivalElo,
+            rivalName,
+          ),
+        ),
       );
     });
   }
