@@ -51,6 +51,14 @@ class _BoardScreenState extends State<BoardScreen> {
   int eloBlancas = 0;
   int eloNegras = 0;
 
+  final Map<String, String> modoVisibleMap = {
+    "Punt_10": "Clásica",
+    "Punt_30": "Principiante",
+    "Punt_5": "Avanzado",
+    "Punt_3": "Relámpago",
+    "Punt_5_10": "Incremento",
+    "Punt_3_2": "Incremento exprés",
+  };
 
   @override
   void initState() {
@@ -73,15 +81,12 @@ class _BoardScreenState extends State<BoardScreen> {
     }
     if (widget.timeLeftW != 0){
       whiteTime = widget.timeLeftW;
-      print ("Esto es $whiteTime");
     }
     if (widget.timeLeftB != 0){
       blackTime = widget.timeLeftB;
-      print ("Esto es $blackTime");
     }
 
-    gameMode = widget.gameMode;
-
+    gameMode = modoVisibleMap[widget.gameMode] ?? widget.gameMode;
 
     playerColor = widget.color.trim().toLowerCase() == "white"
         ? PlayerColor.white
