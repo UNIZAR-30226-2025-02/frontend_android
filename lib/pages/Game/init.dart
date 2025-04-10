@@ -1,13 +1,7 @@
-import 'dart:convert';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:frontend_android/pages/Game/settings.dart';
-import 'package:frontend_android/pages/Login/login.dart';
 import 'package:frontend_android/pages/inGame/board.dart';
 import 'package:frontend_android/pages/Game/botton_nav_bar.dart';
-import 'package:frontend_android/pages/buildHead.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/socketService.dart';
 import '../../widgets/app_layout.dart';

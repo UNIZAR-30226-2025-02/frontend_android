@@ -21,11 +21,12 @@ class _ProfilePageState extends State<Profile_page> {
   int gamesPlayed = 0;
   double winRate = 0.0;
   int maxStreak = 0;
+  int actualStreak = 0;
 
   // URL base del servidor backend (se obtiene de la variable de entorno)
-  late final String? serverBackend;
+  String? serverBackend;
   // ID del usuario (por ejemplo, obtenido de SharedPreferences)
-  late final String? userId;
+  String? userId;
 
   @override
   void initState() {
@@ -48,27 +49,42 @@ class _ProfilePageState extends State<Profile_page> {
 
     // Construir la URL para obtener la información, pasando el id del usuario
     final url = Uri.parse('${serverBackend}getUserInfo?id=$userId');
+
+    print("userId: $userId");
+    print("serverBackend: $serverBackend");
+    print("URL que estoy llamando: ${serverBackend}getUserInfo?id=$userId");
+
     try {
       final response = await http.get(url, headers: {
         "Content-Type": "application/json",
         // Agrega autorización si fuera necesario, por ejemplo: "Authorization": "Bearer $token"
       });
+      print("STATUS CODE: ${response.statusCode}");
+      print("RESPONSE BODY: ${response.body}");
+
       if (response.statusCode == 200) {
         // Se espera que el backend retorne un JSON que incluya las siguientes propiedades:
         // "NombreUser", "FotoPerfil", "friends", "gamesPlayed", "winRate" y "maxStreak"
         final data = jsonDecode(response.body);
         setState(() {
           playerName = data['NombreUser'] ?? playerName;
-          // Si la foto de perfil es "none", mantenemos la imagen predeterminada
+
           profileImage = (data['FotoPerfil'] != null && data['FotoPerfil'] != "none")
               ? data['FotoPerfil']
               : "assets/fotoPerfil.png";
 
-          // Actualizamos las estadísticas si existen; de lo contrario se mantiene el valor por defecto.
-          friends = data['friends'] ?? friends;
-          gamesPlayed = data['gamesPlayed'] ?? gamesPlayed;
-          winRate = (data['winRate'] != null) ? (data['winRate'] as num).toDouble() : winRate;
-          maxStreak = data['maxStreak'] ?? maxStreak;
+          friends = 0;  // Si no lo tenés en el backend aún, ponelo en 0 o quitalo
+
+          gamesPlayed = data['totalGames'] ?? 0;
+
+          // winRate = (victorias / partidas totales) * 100
+          winRate = (data['totalGames'] > 0)
+              ? ((data['totalWins'] / data['totalGames']) * 100).toDouble()
+              : 0.0;
+
+          maxStreak = data['maxStreak'] ?? 0;
+
+          actualStreak = data['actualStreak'] ?? 0;
         });
       } else {
         print("Error al obtener el perfil: ${response.statusCode}");
@@ -120,9 +136,9 @@ class _ProfilePageState extends State<Profile_page> {
               ),
               ElevatedButton.icon(
                 onPressed: _showEditNameDialog,
-                icon: Icon(Icons.edit),
-                label: Text('Editar'),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                icon: Icon(Icons.edit, color: Colors.white),
+                label: Text('Editar', style: TextStyle(color: Colors.white)),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
               )
             ],
           ),
@@ -138,10 +154,10 @@ class _ProfilePageState extends State<Profile_page> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildProfileStat("Amigos", friends.toString()),
               _buildProfileStat("Partidas", gamesPlayed.toString()),
-              _buildProfileStat("Victorias", "$winRate%"),
-              _buildProfileStat("Racha", maxStreak.toString()),
+              _buildProfileStat("% Victoria", "$winRate%"),
+              _buildProfileStat("Racha", actualStreak.toString()),
+              _buildProfileStat("Racha Max.", maxStreak.toString()),
             ],
           ),
         ],
