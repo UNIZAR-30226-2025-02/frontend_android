@@ -89,7 +89,19 @@ class _InitPageState extends State<Init_page> {
       final gameMode = gameData['gameMode'];
       final rivalName = gameData['nombreRival'];
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => BoardScreen(gameMode, color, gameId, pgn, timeLeftW, timeLeftB, myElo, rivalElo, rivalName)),
+          MaterialPageRoute(
+            builder: (_) => BoardScreen(
+              gameMode ?? "",
+              color ?? "",
+              gameId ?? "",
+              pgn ?? "",
+              timeLeftW ?? 0,
+              timeLeftB ?? 0,
+              myElo ?? 0,
+              rivalElo ?? 0,
+              rivalName ?? "Jugador Rival",
+            ),
+          )
       );
     });
 
