@@ -290,54 +290,88 @@ class _ProfilePageState extends State<Profile_page> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Editar nombre'),
+          backgroundColor: Colors.grey[900],
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+            side: BorderSide(color: Colors.blueAccent, width: 1.5),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.edit, color: Colors.blueAccent),
+              SizedBox(width: 8),
+              Text('Editar nombre', style: TextStyle(color: Colors.white)),
+            ],
+          ),
           content: TextField(
             controller: _nameController,
+            style: TextStyle(color: Colors.white),
             decoration: InputDecoration(
               labelText: 'Nuevo nombre',
+              labelStyle: TextStyle(color: Colors.white70),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.blueAccent),
+              ),
+              focusedBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.blueAccent),
+              ),
             ),
           ),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Cierra el diálogo sin guardar cambios
+                Navigator.of(context).pop();
               },
-              child: Text('Cancelar'),
+              child: Text('Cancelar', style: TextStyle(color: Colors.redAccent)),
             ),
             TextButton(
               onPressed: () async {
-                // Capturamos el nuevo nombre introducido.
-                String newName = _nameController.text;
+                String newName = _nameController.text.trim();
 
-                // Llamamos a la función para actualizar el nombre en el backend.
+                if (newName.isEmpty) return;
+
                 bool success = await updateUserName(newName);
 
                 if (success) {
-                  // Si se actualizó correctamente, actualizamos la UI y cerramos el diálogo.
                   setState(() {
                     playerName = newName;
                   });
                   Navigator.of(context).pop();
+                  Future.delayed(Duration.zero, () {
+                    _showSuccessDialog('Nombre actualizado correctamente');
+                  });
                 } else {
-                  // Si hay error, mostramos un pop up indicando que ese nombre ya está en uso.
                   showDialog(
                     context: context,
                     builder: (ctx) => AlertDialog(
-                      title: Text('Error'),
-                      content: Text('El nombre de usuario "$newName" ya está en uso'),
+                      backgroundColor: Colors.grey[900],
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                        side: BorderSide(color: Colors.blueAccent, width: 1.5),
+                      ),
+                      title: Row(
+                        children: [
+                          Icon(Icons.error_outline, color: Colors.redAccent),
+                          SizedBox(width: 8),
+                          Text('Error', style: TextStyle(color: Colors.white)),
+                        ],
+                      ),
+                      content: Text(
+                        'El nombre de usuario "$newName" ya está en uso',
+                        style: TextStyle(color: Colors.white70),
+                      ),
                       actions: [
                         TextButton(
                           onPressed: () {
                             Navigator.of(ctx).pop();
                           },
-                          child: Text('OK'),
+                          child: Text('OK', style: TextStyle(color: Colors.blueAccent)),
                         ),
                       ],
                     ),
                   );
                 }
               },
-              child: Text('Guardar'),
+              child: Text('Guardar', style: TextStyle(color: Colors.blueAccent)),
             ),
           ],
         );
@@ -345,5 +379,35 @@ class _ProfilePageState extends State<Profile_page> {
     );
   }
 
-
+  void _showSuccessDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.grey[900],
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+          side: BorderSide(color: Colors.blueAccent, width: 1.5),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.check_circle_outline, color: Colors.greenAccent),
+            SizedBox(width: 8),
+            Text('Éxito', style: TextStyle(color: Colors.white)),
+          ],
+        ),
+        content: Text(
+          message,
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+            },
+            child: Text('OK', style: TextStyle(color: Colors.blueAccent)),
+          ),
+        ],
+      ),
+    );
+  }
 }
