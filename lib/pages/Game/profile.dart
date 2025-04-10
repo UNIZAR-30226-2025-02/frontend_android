@@ -73,7 +73,7 @@ class _ProfilePageState extends State<Profile_page> {
               ? data['FotoPerfil']
               : "assets/fotoPerfil.png";
 
-          friends = 0;  // Si no lo tenés en el backend aún, ponelo en 0 o quitalo
+          friends = data['Amistades'] ?? 0;  // Si no lo tenés en el backend aún, ponelo en 0 o quitalo
 
           gamesPlayed = data['totalGames'] ?? 0;
 
@@ -154,9 +154,9 @@ class _ProfilePageState extends State<Profile_page> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              _buildProfileStat("Amigos", friends.toString()),
               _buildProfileStat("Partidas", gamesPlayed.toString()),
-              _buildProfileStat("% Victoria", "$winRate%"),
-              _buildProfileStat("Racha", actualStreak.toString()),
+              _buildProfileStat("% Victoria", "${winRate.toStringAsFixed(2)}%"),
               _buildProfileStat("Racha Max.", maxStreak.toString()),
             ],
           ),
