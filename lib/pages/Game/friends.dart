@@ -26,7 +26,7 @@ class _FriendsPageState extends State<Friends_Page> {
   String? idJugador;
   String searchInput = "";
   String? foundUser;
-  Set<String> localFriends = {}; // Almacenar nombres de amigos locales
+  Set<String> localFriends = {};
 
   final List<GameMode> gameModes = [
     GameMode("Clásica", Icons.extension, "10 min", "Modo tradicional", Colors.brown),
@@ -48,30 +48,76 @@ class _FriendsPageState extends State<Friends_Page> {
     idJugador = prefs.getString('idJugador');
     if (idJugador == null) return;
 
+    print("🔄 Intentando conectar al socket...");
+
     socket = IO.io('https://checkmatex-gkfda9h5bfb0gsed.spaincentral-01.azurewebsites.net/', <String, dynamic>{
       'transports': ['websocket'],
-      'autoConnect': true,
+      'autoConnect': false,
     });
 
-    socket.onConnect((_) => print("✅ SOCKET CONECTADO"));
+    socket.connect();
+
+    socket.onConnect((_) {
+      print("✅ SOCKET CONECTADO");
+    });
+
+    socket.on('friendRequest', (data) async {
+      final nombre = data['idJugador'];
+      print("📩 Solicitud de amistad recibida de $nombre");
+
+      final bool? aceptado = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text("Solicitud de amistad"),
+            content: Text("$nombre quiere ser tu amigo. ¿Aceptar?"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text("Rechazar"),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text("Aceptar"),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (aceptado == true) {
+        socket.emit('acceptFriendRequest', {
+          'idJugador': idJugador,
+          'idAmigo': nombre,
+        });
+        print("👍 Has aceptado la solicitud de $nombre");
+        setState(() {
+          localFriends.add(nombre);
+        });
+      } else {
+        socket.emit('rejectFriendRequest', {
+          'idJugador': idJugador,
+          'idAmigo': nombre,
+        });
+        print("❌ Has rechazado la solicitud de $nombre");
+      }
+    });
 
     socket.on('friendRequestAccepted', (data) {
       final nuevoAmigo = data['idAmigo'];
+      print("✅ Solicitud aceptada por $nuevoAmigo");
       setState(() {
         localFriends.add(nuevoAmigo);
       });
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text("Solicitud de amistad aceptada por $nuevoAmigo"),
+        content: Text("$nuevoAmigo ha aceptado tu solicitud de amistad"),
         backgroundColor: Colors.green,
       ));
     });
 
-    socket.on('friendRequest', (data) {
-      final nombre = data['idJugador'];
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text("Has recibido una solicitud de $nombre"),
-        backgroundColor: Colors.blue,
-      ));
+    socket.onDisconnect((_) {
+      print("🔌 Desconectado del socket (onDisconnect)");
     });
   }
 
@@ -90,6 +136,8 @@ class _FriendsPageState extends State<Friends_Page> {
       'idAmigo': nombreBuscado,
     });
 
+    print("📤 Solicitud enviada a $nombreBuscado");
+
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text("Solicitud enviada a $nombreBuscado"),
       backgroundColor: Colors.orange,
@@ -106,7 +154,7 @@ class _FriendsPageState extends State<Friends_Page> {
     });
 
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text("Reto enviado a $nombre en modo ${mode.name}"),
+      content: Text("Reto enviado a $nombre en modo \${mode.name}"),
       backgroundColor: Colors.green,
     ));
   }
