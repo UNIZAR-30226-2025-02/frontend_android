@@ -184,7 +184,7 @@ class _FriendsPageState extends State<Friends_Page> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.black12,
       body: AppLayout(
         child: Column(
           children: [
