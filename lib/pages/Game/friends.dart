@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:frontend_android/pages/Game/botton_nav_bar.dart';
-import 'package:frontend_android/widgets/app_layout.dart'; // 👈 usa tu AppLayout
+import 'package:frontend_android/widgets/app_layout.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class GameMode {
   final String name;
@@ -20,155 +22,178 @@ class Friends_Page extends StatefulWidget {
 }
 
 class _FriendsPageState extends State<Friends_Page> {
-  List<String> friends = ["Amigo 1", "Amigo 2", "Amigo 3", "Amigo 4", "Amigo 5"];
-  String? challengedFriend;
-  GameMode? selectedGameMode;
+  late IO.Socket socket;
+  String? idJugador;
+  String searchInput = "";
+  String? foundUser;
+  Set<String> localFriends = {}; // Almacenar nombres de amigos locales
 
   final List<GameMode> gameModes = [
-    GameMode("Clásica", Icons.extension, "10 min", "Modo tradicional de ajedrez. Cada jugador consta de 10 min para realizar sus movimientos", Colors.brown),
-    GameMode("Principiante", Icons.verified, "30 min", "Ideal para quienes están aprendiendo. Cada jugador consta de 30 min para realizar sus movimientos", Colors.green),
-    GameMode("Avanzado", Icons.timer_off, "5 min", "Para jugadores experimentados. Cada jugador consta de 5 min para realizar sus movimientos", Colors.red),
-    GameMode("Relámpago", Icons.bolt, "3 min", "Modo para expertos. El tiempo es muy limitado, cada jugador cuenta con 3 minutos.", Colors.yellow),
-    GameMode("Incremento", Icons.trending_up, "15 min + 10 seg", "Cada jugada suma 10 segundos al tiempo del jugador.", Colors.green),
-    GameMode("Incremento exprés", Icons.star, "3 min + 2 seg", "Partidas rápidas con incremento de 2 segundos por jugada.", Colors.yellow),
+    GameMode("Clásica", Icons.extension, "10 min", "Modo tradicional", Colors.brown),
+    GameMode("Principiante", Icons.verified, "30 min", "Ideal para nuevos", Colors.green),
+    GameMode("Avanzado", Icons.timer_off, "5 min", "Más desafiante", Colors.red),
+    GameMode("Relámpago", Icons.bolt, "3 min", "Rápido", Colors.yellow),
+    GameMode("Incremento", Icons.trending_up, "15+10s", "Incremental", Colors.green),
+    GameMode("Incremento exprés", Icons.star, "3+2s", "Incremento rápido", Colors.yellow),
   ];
 
-  void _removeFriend(String friend) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
-        title: Text("Eliminar amigo", style: TextStyle(color: Colors.white)),
-        content: Text("¿Seguro que quieres eliminar a $friend de tu lista de amigos?", style: TextStyle(color: Colors.white70)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text("Cancelar", style: TextStyle(color: Colors.white)),
-          ),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                friends.remove(friend);
-              });
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text("$friend ha sido eliminado"),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            },
-            child: Text("Eliminar", style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
+  @override
+  void initState() {
+    super.initState();
+    _initSocket();
   }
 
-  void _showGameModes(BuildContext context, String friend) {
+  Future<void> _initSocket() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    idJugador = prefs.getString('idJugador');
+    if (idJugador == null) return;
+
+    socket = IO.io('https://checkmatex-gkfda9h5bfb0gsed.spaincentral-01.azurewebsites.net/', <String, dynamic>{
+      'transports': ['websocket'],
+      'autoConnect': true,
+    });
+
+    socket.onConnect((_) => print("✅ SOCKET CONECTADO"));
+
+    socket.on('friendRequestAccepted', (data) {
+      final nuevoAmigo = data['idAmigo'];
+      setState(() {
+        localFriends.add(nuevoAmigo);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("Solicitud de amistad aceptada por $nuevoAmigo"),
+        backgroundColor: Colors.green,
+      ));
+    });
+
+    socket.on('friendRequest', (data) {
+      final nombre = data['idJugador'];
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("Has recibido una solicitud de $nombre"),
+        backgroundColor: Colors.blue,
+      ));
+    });
+  }
+
+  void _searchUser() {
+    if (searchInput.trim().isEmpty) return;
+    setState(() {
+      foundUser = searchInput.trim();
+    });
+  }
+
+  void _sendFriendRequest(String nombreBuscado) {
+    if (idJugador == null || nombreBuscado == idJugador) return;
+
+    socket.emit('addFriend', {
+      'idJugador': idJugador,
+      'idAmigo': nombreBuscado,
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text("Solicitud enviada a $nombreBuscado"),
+      backgroundColor: Colors.orange,
+    ));
+  }
+
+  void _challengeFriend(String nombre, GameMode mode) {
+    if (idJugador == null) return;
+
+    socket.emit('challengeFriend', {
+      'idRetador': idJugador,
+      'idRetado': nombre,
+      'modo': mode.name,
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text("Reto enviado a $nombre en modo ${mode.name}"),
+      backgroundColor: Colors.green,
+    ));
+  }
+
+  void _showGameModes(String friendName) {
     showModalBottomSheet(
       context: context,
-      builder: (context) {
-        return Container(
-          color: Colors.black,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: gameModes.map((mode) {
-              return ListTile(
-                leading: Icon(mode.icon, color: mode.color),
-                title: Text(mode.name, style: TextStyle(color: Colors.white)),
-                subtitle: Text(mode.time, style: TextStyle(color: Colors.white70)),
-                onTap: () {
-                  setState(() {
-                    selectedGameMode = mode;
-                    challengedFriend = friend;
-                  });
-                  Navigator.pop(context);
-                },
-              );
-            }).toList(),
-          ),
-        );
-      },
+      builder: (_) => Container(
+        color: Colors.black,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: gameModes.map((mode) {
+            return ListTile(
+              leading: Icon(mode.icon, color: mode.color),
+              title: Text(mode.name, style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                _challengeFriend(friendName, mode);
+              },
+            );
+          }).toList(),
+        ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return AppLayout(
-      child: Column(
-        children: [
-          SizedBox(height: 16),
-          Container(
-            padding: EdgeInsets.all(8),
-            child: TextField(
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: Colors.white,
-                hintText: 'Buscar por nombre de usuario',
-                hintStyle: TextStyle(color: Colors.black),
-                prefixIcon: Icon(Icons.search, color: Colors.black),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: friends.length,
-              itemBuilder: (context, index) {
-                return Container(
-                  margin: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[850],
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.blue, width: 2),
-                  ),
-                  child: ListTile(
-                    title: Text(friends[index], style: TextStyle(color: Colors.white)),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: Icon(Icons.cancel, color: Colors.red),
-                          onPressed: () => _removeFriend(friends[index]),
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.public, color: Colors.blue),
-                          onPressed: () => _showGameModes(context, friends[index]),
-                        ),
-                      ],
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: AppLayout(
+        child: Column(
+          children: [
+            SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      onChanged: (value) => searchInput = value,
+                      style: TextStyle(color: Colors.black),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Colors.white,
+                        hintText: 'Buscar usuario',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
                     ),
                   ),
-                );
-              },
-            ),
-          ),
-          if (challengedFriend != null && selectedGameMode != null)
-            Container(
-              padding: EdgeInsets.all(8),
-              color: Colors.black,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  Text("Has retado a $challengedFriend en modo ${selectedGameMode!.name}", style: TextStyle(color: Colors.white)),
-                  Icon(selectedGameMode!.icon, color: selectedGameMode!.color),
                   IconButton(
-                    icon: Icon(Icons.close, color: Colors.red),
-                    onPressed: () {
-                      setState(() {
-                        challengedFriend = null;
-                        selectedGameMode = null;
-                      });
-                    },
-                  ),
+                    icon: Icon(Icons.search, color: Colors.white),
+                    onPressed: _searchUser,
+                  )
                 ],
               ),
             ),
-          BottomNavBar(currentIndex: 3),
-        ],
+            if (foundUser != null)
+              Expanded(
+                child: ListView(
+                  children: [
+                    Card(
+                      color: Colors.grey[850],
+                      child: ListTile(
+                        title: Text(foundUser!, style: TextStyle(color: Colors.white)),
+                        subtitle: Text(
+                          localFriends.contains(foundUser!) ? "Es tu amigo" : "No es tu amigo",
+                          style: TextStyle(color: Colors.white60),
+                        ),
+                        trailing: localFriends.contains(foundUser!)
+                            ? IconButton(
+                          icon: Icon(Icons.sports_esports, color: Colors.green),
+                          onPressed: () => _showGameModes(foundUser!),
+                        )
+                            : IconButton(
+                          icon: Icon(Icons.person_add, color: Colors.blue),
+                          onPressed: () => _sendFriendRequest(foundUser!),
+                        ),
+                      ),
+                    )
+                  ],
+                ),
+              ),
+          ],
+        ),
       ),
+      bottomNavigationBar: BottomNavBar(currentIndex: 3),
     );
   }
 }
