@@ -3,6 +3,8 @@ import 'package:frontend_android/pages/Game/botton_nav_bar.dart';
 import 'package:frontend_android/widgets/app_layout.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class GameMode {
   final String name;
@@ -24,9 +26,19 @@ class Friends_Page extends StatefulWidget {
 class _FriendsPageState extends State<Friends_Page> {
   late IO.Socket socket;
   String? idJugador;
+  String? nombreJugador;
   String searchInput = "";
-  String? foundUser;
-  Set<String> localFriends = {};
+  List<Map<String, dynamic>> suggestions = [];
+  List<Map<String, dynamic>> friends = [];
+
+  final Map<String, String> modoMapeado = {
+    "Clásica": "Punt_10",
+    "Principiante": "Punt_30",
+    "Avanzado": "Punt_5",
+    "Relámpago": "Punt_3",
+    "Incremento": "Punt_5_10",
+    "Incremento exprés": "Punt_3_2"
+  };
 
   final List<GameMode> gameModes = [
     GameMode("Clásica", Icons.extension, "10 min", "Modo tradicional", Colors.brown),
@@ -40,126 +52,178 @@ class _FriendsPageState extends State<Friends_Page> {
   @override
   void initState() {
     super.initState();
-    _initSocket();
+    _initializeSocketAndUser();
   }
 
-  Future<void> _initSocket() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    idJugador = prefs.getString('idJugador');
-    if (idJugador == null) return;
+  Future<void> _initializeSocketAndUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? myId = prefs.getString('idJugador');
+    final String? myNombre = prefs.getString('usuario');
 
-    print("🔄 Intentando conectar al socket...");
+    if (myId == null || myNombre == null) {
+      print("⚠️ No se encontró idJugador o nombre en SharedPreferences.");
+      return;
+    }
 
-    socket = IO.io('https://checkmatex-gkfda9h5bfb0gsed.spaincentral-01.azurewebsites.net/', <String, dynamic>{
-      'transports': ['websocket'],
-      'autoConnect': false,
-    });
+    idJugador = myId;
+    nombreJugador = myNombre;
+
+    socket = IO.io(
+      'https://checkmatex-gkfda9h5bfb0gsed.spaincentral-01.azurewebsites.net',
+      <String, dynamic>{
+        'transports': ['websocket'],
+        'autoConnect': false,
+      },
+    );
 
     socket.connect();
 
     socket.onConnect((_) {
-      print("✅ SOCKET CONECTADO");
+      print("✅ Socket conectado desde ID: $idJugador");
+      socket.emit("getFriendsAndUsers", {"idJugador": idJugador});
     });
 
-    socket.on('friendRequest', (data) async {
-      final nombre = data['idJugador'];
-      print("📩 Solicitud de amistad recibida de $nombre");
+    _configureSocketListeners();
+  }
 
-      final bool? aceptado = await showDialog<bool>(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text("Solicitud de amistad"),
-            content: Text("$nombre quiere ser tu amigo. ¿Aceptar?"),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: Text("Rechazar"),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: Text("Aceptar"),
-              ),
-            ],
-          );
-        },
-      );
+  void _configureSocketListeners() {
+    socket.on("friendsAndUsers", (data) {
+      setState(() {
+        friends = List<Map<String, dynamic>>.from(data['friends']);
+      });
+    });
 
-      if (aceptado == true) {
-        socket.emit('acceptFriendRequest', {
-          'idJugador': idJugador,
-          'idAmigo': nombre,
-        });
-        print("👍 Has aceptado la solicitud de $nombre");
-        setState(() {
-          localFriends.add(nombre);
-        });
-      } else {
-        socket.emit('rejectFriendRequest', {
-          'idJugador': idJugador,
-          'idAmigo': nombre,
-        });
-        print("❌ Has rechazado la solicitud de $nombre");
+    socket.on("friendRequest", (data) {
+      final String idRemitente = data["idJugador"];
+
+      if (idJugador != null && idRemitente != idJugador) {
+        _showFriendRequestDialog(idRemitente);
       }
     });
 
-    socket.on('friendRequestAccepted', (data) {
-      final nuevoAmigo = data['idAmigo'];
-      print("✅ Solicitud aceptada por $nuevoAmigo");
-      setState(() {
-        localFriends.add(nuevoAmigo);
+    socket.on("request-accepted", (data) {
+      final String nombre = data["nombre"];
+      _showInfoDialog("✅ $nombre ha aceptado tu solicitud de amistad.");
+    });
+
+    socket.on("request-rejected", (data) {
+      final String nombre = data["nombre"];
+      _showInfoDialog("❌ $nombre ha rechazado tu solicitud de amistad.");
+    });
+  }
+
+  void _sendFriendRequest(String idAmigo) {
+    if (idJugador != null && idAmigo != idJugador) {
+      print("📤 Emitiendo 'addFriend': idJugador: $idJugador, idAmigo: $idAmigo");
+      socket.emit('add-friend', {
+        'idJugador': idJugador,
+        'idAmigo': idAmigo,
       });
+
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text("$nuevoAmigo ha aceptado tu solicitud de amistad"),
-        backgroundColor: Colors.green,
+        content: Text("Solicitud enviada."),
+        backgroundColor: Colors.orange,
       ));
-    });
-
-    socket.onDisconnect((_) {
-      print("🔌 Desconectado del socket (onDisconnect)");
-    });
+    }
   }
 
-  void _searchUser() {
-    if (searchInput.trim().isEmpty) return;
-    setState(() {
-      foundUser = searchInput.trim();
-    });
+  void _showFriendRequestDialog(String idRemitente) {
+    if (!context.mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Solicitud de amistad"),
+          content: Text("Tienes una nueva solicitud de amistad."),
+          actions: [
+            TextButton(
+              onPressed: () {
+                socket.emit('reject-request', {
+                  "idJugador": idJugador,
+                  "idAmigo": idRemitente,
+                });
+                Navigator.of(context).pop();
+              },
+              child: Text("Rechazar"),
+            ),
+            TextButton(
+              onPressed: () {
+                socket.emit('accept-request', {
+                  "idJugador": idJugador,
+                  "idAmigo": idRemitente,
+                });
+                Navigator.of(context).pop();
+              },
+              child: Text("Aceptar"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
-  void _sendFriendRequest(String nombreBuscado) {
-    if (idJugador == null || nombreBuscado == idJugador) return;
+  void _showInfoDialog(String message) {
+    if (!context.mounted) return;
 
-    socket.emit('addFriend', {
-      'idJugador': idJugador,
-      'idAmigo': nombreBuscado,
-    });
-
-    print("📤 Solicitud enviada a $nombreBuscado");
-
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text("Solicitud enviada a $nombreBuscado"),
-      backgroundColor: Colors.orange,
-    ));
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Información"),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text("Aceptar"),
+          )
+        ],
+      ),
+    );
   }
 
-  void _challengeFriend(String nombre, GameMode mode) {
-    if (idJugador == null) return;
+  Future<void> _buscarUsuariosBackend() async {
+    if (searchInput.trim().isEmpty || idJugador == null) return;
 
+    final uri = Uri.parse(
+      'https://checkmatex-gkfda9h5bfb0gsed.spaincentral-01.azurewebsites.net/buscarUsuarioPorUser?NombreUser=${Uri.encodeComponent(searchInput.trim())}',
+    );
+
+    try {
+      final response = await http.get(uri);
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        setState(() {
+          suggestions = data
+              .where((u) =>
+          u['NombreUser'] != nombreJugador &&
+              !friends.any((f) => f['NombreUser'] == u['NombreUser']))
+              .cast<Map<String, dynamic>>()
+              .toList();
+        });
+      } else {
+        setState(() => suggestions = []);
+      }
+    } catch (e) {
+      print("❌ Error buscando usuarios: $e");
+      setState(() => suggestions = []);
+    }
+  }
+
+  void _challengeFriend(String idRetado, String modoNombre) {
+    final modoBackend = modoMapeado[modoNombre] ?? "Punt_10";
     socket.emit('challengeFriend', {
       'idRetador': idJugador,
-      'idRetado': nombre,
-      'modo': mode.name,
+      'idRetado': idRetado,
+      'modo': modoBackend,
     });
-
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text("Reto enviado a $nombre en modo \${mode.name}"),
+      content: Text("Reto enviado en modo $modoNombre"),
       backgroundColor: Colors.green,
     ));
   }
 
-  void _showGameModes(String friendName) {
+  void _showGameModes(String idAmigo) {
     showModalBottomSheet(
       context: context,
       builder: (_) => Container(
@@ -172,7 +236,7 @@ class _FriendsPageState extends State<Friends_Page> {
               title: Text(mode.name, style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(context);
-                _challengeFriend(friendName, mode);
+                _challengeFriend(idAmigo, mode.name);
               },
             );
           }).toList(),
@@ -195,46 +259,75 @@ class _FriendsPageState extends State<Friends_Page> {
                 children: [
                   Expanded(
                     child: TextField(
-                      onChanged: (value) => searchInput = value,
+                      onChanged: (value) {
+                        setState(() => searchInput = value);
+                        _buscarUsuariosBackend();
+                      },
                       style: TextStyle(color: Colors.black),
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: Colors.white,
                         hintText: 'Buscar usuario',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
                     ),
                   ),
                   IconButton(
                     icon: Icon(Icons.search, color: Colors.white),
-                    onPressed: _searchUser,
+                    onPressed: _buscarUsuariosBackend,
                   )
                 ],
               ),
             ),
-            if (foundUser != null)
+            if (suggestions.isNotEmpty)
               Expanded(
                 child: ListView(
                   children: [
-                    Card(
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8.0, vertical: 4),
+                      child: Text("Sugerencias",
+                          style: TextStyle(color: Colors.white, fontSize: 18)),
+                    ),
+                    ...suggestions.map((sug) => Card(
                       color: Colors.grey[850],
                       child: ListTile(
-                        title: Text(foundUser!, style: TextStyle(color: Colors.white)),
-                        subtitle: Text(
-                          localFriends.contains(foundUser!) ? "Es tu amigo" : "No es tu amigo",
-                          style: TextStyle(color: Colors.white60),
-                        ),
-                        trailing: localFriends.contains(foundUser!)
-                            ? IconButton(
-                          icon: Icon(Icons.sports_esports, color: Colors.green),
-                          onPressed: () => _showGameModes(foundUser!),
-                        )
-                            : IconButton(
+                        title: Text(sug['NombreUser'],
+                            style: TextStyle(color: Colors.white)),
+                        trailing: IconButton(
                           icon: Icon(Icons.person_add, color: Colors.blue),
-                          onPressed: () => _sendFriendRequest(foundUser!),
+                          onPressed: () => _sendFriendRequest(
+                            sug['id'],
+                          ),
                         ),
                       ),
-                    )
+                    )),
+                  ],
+                ),
+              )
+            else
+              Expanded(
+                child: ListView(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8.0, vertical: 4),
+                      child: Text("Amigos",
+                          style: TextStyle(color: Colors.white, fontSize: 18)),
+                    ),
+                    ...friends.map((f) => Card(
+                      color: Colors.grey[900],
+                      child: ListTile(
+                        title: Text(f['NombreUser'],
+                            style: TextStyle(color: Colors.white)),
+                        trailing: IconButton(
+                          icon: Icon(Icons.sports_esports,
+                              color: Colors.green),
+                          onPressed: () => _showGameModes(f['id']),
+                        ),
+                      ),
+                    )),
                   ],
                 ),
               ),
