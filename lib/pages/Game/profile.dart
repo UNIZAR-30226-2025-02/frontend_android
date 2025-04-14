@@ -152,9 +152,8 @@ class _ProfilePageState extends State<Profile_page> {
               // Avatar: para mostrar la imagen en la UI, si profileImage es solo el nombre, concatenamos la ruta.
               CircleAvatar(
                 radius: 35,
-                backgroundImage: (profileImage.startsWith("assets"))
-                    ? AssetImage(profileImage)
-                    : AssetImage("assets/fotosPerfil/$profileImage"),
+                backgroundImage: AssetImage("assets/fotosPerfil/$profileImage"),
+
               ),
               // Botones en una fila aparte
               Row(
