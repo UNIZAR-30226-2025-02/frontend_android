@@ -57,16 +57,13 @@ class _FriendsPageState extends State<Friends_Page> {
 
   Future<void> _initializeSocketAndUser() async {
     final prefs = await SharedPreferences.getInstance();
-    final String? myId = prefs.getString('idJugador');
-    final String? myNombre = prefs.getString('usuario');
+    idJugador = prefs.getString('idJugador');
+    nombreJugador = prefs.getString('usuario');
 
-    if (myId == null || myNombre == null) {
+    if (idJugador == null || nombreJugador == null) {
       print("⚠️ No se encontró idJugador o nombre en SharedPreferences.");
       return;
     }
-
-    idJugador = myId;
-    nombreJugador = myNombre;
 
     socket = IO.io(
       'https://checkmatex-gkfda9h5bfb0gsed.spaincentral-01.azurewebsites.net',
@@ -87,85 +84,105 @@ class _FriendsPageState extends State<Friends_Page> {
   }
 
   void _configureSocketListeners() {
-    socket.on("friendsAndUsers", (data) {
-      setState(() {
-        friends = List<Map<String, dynamic>>.from(data['friends']);
-      });
-    });
+    print("🛠️ Configurando listeners...");
 
-    socket.on("friendRequest", (data) {
-      final String idRemitente = data["idJugador"];
+    socket.on("friendRequest", (dataRaw) {
+      print("📩 Evento recibido: friendRequest");
+      final data = dataRaw is String ? jsonDecode(dataRaw) : dataRaw;
+      final String idRemitente = data["idJugador"].toString().trim();
+      final String nombre = data["nombre"] ?? "Usuario desconocido";
 
+      print("👤 idRemitente: $idRemitente, nombre: $nombre");
       if (idJugador != null && idRemitente != idJugador) {
-        _showFriendRequestDialog(idRemitente);
+        _showFriendRequestDialog(idRemitente, nombre);
       }
     });
 
     socket.on("request-accepted", (data) {
       final String nombre = data["nombre"];
+      print("✅ $nombre aceptó tu solicitud");
       _showInfoDialog("✅ $nombre ha aceptado tu solicitud de amistad.");
     });
 
     socket.on("request-rejected", (data) {
       final String nombre = data["nombre"];
+      print("❌ $nombre rechazó tu solicitud");
       _showInfoDialog("❌ $nombre ha rechazado tu solicitud de amistad.");
     });
+
+    socket.on("friend-removed", (data) {
+      final nombre = data["nombre"];
+      print("🗑️ $nombre ya no es tu amigo.");
+      _showInfoDialog("🗑️ $nombre ya no es tu amigo.");
+    });
+
+    print("✅ Listeners configurados");
   }
 
-  void _sendFriendRequest(String idAmigo) {
-    if (idJugador != null && idAmigo != idJugador) {
-      print("📤 Emitiendo 'addFriend': idJugador: $idJugador, idAmigo: $idAmigo");
+  void _sendFriendRequest(String idAmigo, String nombreAmigo) {
+    final idClean = idAmigo.trim();
+    print("📤 Enviando solicitud a $idClean ($nombreAmigo)");
+
+    if (idJugador != null && idClean != idJugador) {
       socket.emit('add-friend', {
         'idJugador': idJugador,
-        'idAmigo': idAmigo,
+        'idAmigo': idClean,
+        'nombre': nombreJugador,
       });
 
+      print("📬 Evento emitido: add-friend {idJugador: $idJugador, idAmigo: $idClean}");
+
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text("Solicitud enviada."),
+        content: Text("Solicitud enviada a $nombreAmigo"),
         backgroundColor: Colors.orange,
       ));
     }
   }
 
-  void _showFriendRequestDialog(String idRemitente) {
-    if (!context.mounted) return;
+  void _showFriendRequestDialog(String idRemitente, String nombre) {
+    print("🪧 Mostrando popup de solicitud de $nombre ($idRemitente)");
+
+    if (!mounted) return;
 
     showDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("Solicitud de amistad"),
-          content: Text("Tienes una nueva solicitud de amistad."),
-          actions: [
-            TextButton(
-              onPressed: () {
-                socket.emit('reject-request', {
-                  "idJugador": idJugador,
-                  "idAmigo": idRemitente,
-                });
-                Navigator.of(context).pop();
-              },
-              child: Text("Rechazar"),
-            ),
-            TextButton(
-              onPressed: () {
-                socket.emit('accept-request', {
-                  "idJugador": idJugador,
-                  "idAmigo": idRemitente,
-                });
-                Navigator.of(context).pop();
-              },
-              child: Text("Aceptar"),
-            ),
-          ],
-        );
-      },
+      builder: (context) => AlertDialog(
+        title: Text("Solicitud de amistad"),
+        content: Text("$nombre quiere ser tu amigo."),
+        actions: [
+          TextButton(
+            onPressed: () {
+              print("❌ Rechazada");
+              socket.emit('reject-request', {
+                "idJugador": idRemitente,
+                "idAmigo": idJugador,
+                "nombre": nombreJugador,
+              });
+              Navigator.of(context).pop();
+            },
+            child: Text("Rechazar"),
+          ),
+          TextButton(
+            onPressed: () {
+              print("✅ Aceptada");
+              socket.emit('accept-request', {
+                "idJugador": idRemitente,
+                "idAmigo": idJugador,
+                "nombre": nombreJugador,
+              });
+              Navigator.of(context).pop();
+            },
+            child: Text("Aceptar"),
+          ),
+        ],
+      ),
     );
   }
 
+  String clean(String? id) => (id ?? "").trim();
+
   void _showInfoDialog(String message) {
-    if (!context.mounted) return;
+    if (!mounted) return;
 
     showDialog(
       context: context,
@@ -298,8 +315,7 @@ class _FriendsPageState extends State<Friends_Page> {
                         trailing: IconButton(
                           icon: Icon(Icons.person_add, color: Colors.blue),
                           onPressed: () => _sendFriendRequest(
-                            sug['id'],
-                          ),
+                              sug['id'].toString(), sug['NombreUser']),
                         ),
                       ),
                     )),
@@ -321,10 +337,15 @@ class _FriendsPageState extends State<Friends_Page> {
                       child: ListTile(
                         title: Text(f['NombreUser'],
                             style: TextStyle(color: Colors.white)),
-                        trailing: IconButton(
-                          icon: Icon(Icons.sports_esports,
-                              color: Colors.green),
-                          onPressed: () => _showGameModes(f['id']),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: Icon(Icons.sports_esports,
+                                  color: Colors.green),
+                              onPressed: () => _showGameModes(f['id'].toString()),
+                            ),
+                          ],
                         ),
                       ),
                     )),
