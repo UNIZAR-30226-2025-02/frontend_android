@@ -71,6 +71,12 @@ class BuildHeadArrow extends StatelessWidget implements PreferredSizeWidget {
       ),
       centerTitle: true,
       iconTheme: IconThemeData(color: Colors.white),
+      leading: IconButton(
+        icon: Icon(Icons.arrow_back),
+        onPressed: () {
+          Navigator.pop(context, true); // ✅ devolvemos un "resultado"
+        },
+      ),
       title: Image.asset("assets/logoNombre.png", height: 50),
       actions: actions,
     );

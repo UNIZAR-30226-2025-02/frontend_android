@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../services/socketService.dart';
+import '../../utils/photoUtils.dart';
 import '../Presentation/wellcome.dart';
 import '../../widgets/app_layout.dart'; // 👈 importa AppLayout
 
@@ -19,6 +20,28 @@ class Settings_page extends StatefulWidget {
 }
 
 class _Settings_pageState extends State<Settings_page> {
+  String fotoPerfil = 'assets/fotosPerfil/fotoPerfil.png';
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarUsuario();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _cargarUsuario();
+  }
+
+  Future<void> _cargarUsuario() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final foto = prefs.getString('fotoPerfil');
+    setState(() {
+      fotoPerfil = getRutaSeguraFoto(foto);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return AppLayout(
@@ -46,12 +69,17 @@ class _Settings_pageState extends State<Settings_page> {
           Expanded(
             child: ListView(
               children: [
-                _buildMenuItem(Icons.person, 'PERFIL', () {
-                  Navigator.pushAndRemoveUntil(
+                _buildMenuItem(Icons.person, 'PERFIL', () async {
+                  final result = await Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => Profile_page()),
-                        (route) => true,
                   );
+
+                  if (result == true) {
+                    print("✅ Recargando usuario desde Settings porque hubo cambios");
+                    await _cargarUsuario();
+                    setState(() {});
+                  }
                 }),
                 _buildMenuItem(Icons.group, 'AMIGOS', () {
                   Navigator.pushAndRemoveUntil(

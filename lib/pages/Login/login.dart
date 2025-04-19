@@ -245,6 +245,50 @@ class _LoginPageState extends State<Login_page> {
     Navigator.pushReplacementNamed(context, Password_page.id);
   }
 
+  Future<void> _entrarComoInvitado() async {
+    final String? baseUrl = dotenv.env['SERVER_BACKEND'];
+    final String apiUrl = "${baseUrl}crearInvitado";
+
+    try {
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {"Content-Type": "application/json"},
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        final accessToken = responseData['accessToken'];
+        final publicUser = responseData['publicUser'];
+
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('accessToken', accessToken);
+        await prefs.setString('idJugador', publicUser['id']);
+        await prefs.setString('usuario', publicUser['NombreUser']);
+        await prefs.setString('Correo', publicUser['Correo'] ?? '');
+        await prefs.setString('estadoPartida', publicUser['EstadoPartida'] ?? "NULL");
+        await prefs.setString('estadoUser', publicUser['estadoUser']);
+        await prefs.setString('fotoPerfil', publicUser['FotoPerfil'] ?? '');
+
+        playerInfo(
+          prefs.getString('idJugador'),
+          prefs.getString('usuario'),
+          prefs.getString('Correo'),
+          prefs.getString('estadoUser'),
+          prefs.getString('fotoPerfil'),
+        );
+
+        await _initializeSocket();
+
+        Navigator.pushReplacementNamed(context, Init_page.id);
+      } else {
+        _mostrarSnackBar("No se pudo crear un invitado. Intenta más tarde.");
+      }
+    } catch (e) {
+      _mostrarSnackBar("Error al conectarse con el servidor.");
+      print("❌ Error crearInvitado: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -303,9 +347,7 @@ class _LoginPageState extends State<Login_page> {
                   : _buttonLogin(),
               SizedBox(height: 20),
               GestureDetector(
-                onTap: () {
-                  Navigator.pushReplacementNamed(context, Init_page.id);
-                },
+                onTap: _entrarComoInvitado,
                 child: Text(
                   "Entrar como invitado",
                   style: TextStyle(

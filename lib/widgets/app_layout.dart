@@ -9,12 +9,16 @@ import '../pages/Game/settings.dart';
 import '../pages/Login/login.dart';
 import '../pages/buildHead.dart';
 import '../services/socketService.dart';
+import '../utils/photoUtils.dart';
 
 class AppLayout extends StatefulWidget {
   final Widget child;
 
   const AppLayout({required this.child, super.key});
 
+  static _AppLayoutState? of(BuildContext context) {
+    return context.findAncestorStateOfType<_AppLayoutState>();
+  }
   @override
   State<AppLayout> createState() => _AppLayoutState();
 }
@@ -35,6 +39,11 @@ class _AppLayoutState extends State<AppLayout> {
       usuarioActual = prefs.getString('usuario');
       fotoPerfil = prefs.getString('fotoPerfil');
     });
+  }
+
+  void recargarFoto() async {
+    print("🔁 recargarFoto() llamado desde otra página");
+    await _cargarDatosSesion();
   }
 
   Future<void> _cerrarSesion(BuildContext context) async {
@@ -132,11 +141,7 @@ class _AppLayoutState extends State<AppLayout> {
               child: CircleAvatar(
                 radius: 18,
                 backgroundColor: Colors.white,
-                backgroundImage: AssetImage(
-                  fotoPerfil == null || fotoPerfil == 'none'
-                      ? 'assets/fotoPerfil.png'
-                      : fotoPerfil!,
-                ),
+                backgroundImage: AssetImage(getRutaSeguraFoto(fotoPerfil)),
               ),
             ),
           ),
