@@ -6,10 +6,9 @@ import 'package:frontend_android/pages/Game/friends.dart';
 import 'package:frontend_android/pages/Game/profile.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../services/socketService.dart';
+import '../../utils/guestUtils.dart';
 import '../../utils/photoUtils.dart';
-import '../Presentation/wellcome.dart';
 import '../../widgets/app_layout.dart'; // 👈 importa AppLayout
 
 class Settings_page extends StatefulWidget {
@@ -25,6 +24,7 @@ class _Settings_pageState extends State<Settings_page> {
   @override
   void initState() {
     super.initState();
+    verificarAccesoInvitado(context);
     _cargarUsuario();
   }
 

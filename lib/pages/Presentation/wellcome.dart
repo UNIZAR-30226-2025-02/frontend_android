@@ -65,7 +65,14 @@ class _Wellcome_pageState extends State<Wellcome_page> {
         await prefs.setString('Correo', publicUser['Correo'] ?? '');
         await prefs.setString('estadoPartida', publicUser['EstadoPartida'] ?? "NULL");
         await prefs.setString('estadoUser', publicUser['estadoUser']);
-        await prefs.setString('fotoPerfil', publicUser['FotoPerfil'] ?? '');
+
+        // ✅ Manejo del campo 'none' en fotoPerfil
+        await prefs.setString(
+          'fotoPerfil',
+          (publicUser['FotoPerfil'] == 'none' || publicUser['FotoPerfil'] == '')
+              ? 'fotoPerfil.png'
+              : publicUser['FotoPerfil'],
+        );
 
         playerInfo(
           prefs.getString('idJugador'),
@@ -75,7 +82,7 @@ class _Wellcome_pageState extends State<Wellcome_page> {
           prefs.getString('fotoPerfil'),
         );
 
-        // Conexión opcional al socket
+        // ✅ Conexión al socket
         SocketService socketService = SocketService();
         await socketService.connect(context);
 

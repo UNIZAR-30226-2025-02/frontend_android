@@ -86,7 +86,46 @@ class _AppLayoutState extends State<AppLayout> {
 
   }
 
-  void _mostrarOpcionesUsuario(BuildContext context) {
+  Future<void> _salirComoInvitado(BuildContext context) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final accessToken = prefs.getString('accessToken');
+    final idJugador = prefs.getString('idJugador'); // ✅ Asegúrate de tener el ID
+    final backendUrl = dotenv.env['SERVER_BACKEND'];
+
+    print("➡️ Enviando ID del invitado: $idJugador");
+
+    try {
+      final response = await http.post(
+        Uri.parse("${backendUrl}borrarInvitado"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $accessToken",
+        },
+        body: jsonEncode({
+          "id": idJugador, // ✅ Ahora sí se lo mandamos al backend
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        print("✅ Invitado eliminado correctamente.");
+      } else {
+        print("❌ Error al borrar invitado: ${response.body}");
+      }
+    } catch (e) {
+      print("❌ Error de conexión al borrar invitado: $e");
+    }
+
+    // Limpia sesión y muestra mensaje
+    await prefs.clear();
+    if (!mounted) return;
+
+    SocketService().showForceLogoutPopup("Tu sesión como invitado ha sido cerrada.");
+  }
+
+  void _mostrarOpcionesUsuario(BuildContext context) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final estadoUser = prefs.getString('estadoUser');
+
     showModalBottomSheet(
       context: context,
       shape: RoundedRectangleBorder(
@@ -106,7 +145,16 @@ class _AppLayoutState extends State<AppLayout> {
                   Navigator.pushNamed(context, Settings_page.id);
                 },
               ),
-              ListTile(
+              estadoUser == 'guest'
+                  ? ListTile(
+                leading: Icon(Icons.exit_to_app, color: Colors.red),
+                title: Text("Salir de la app", style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _salirComoInvitado(context);
+                },
+              )
+                  : ListTile(
                 leading: Icon(Icons.logout, color: Colors.red),
                 title: Text("Cerrar Sesión", style: TextStyle(color: Colors.red)),
                 onTap: () {

@@ -6,6 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+import '../../utils/guestUtils.dart';
+
 class GameMode {
   final String name;
   final IconData icon;
@@ -52,6 +54,7 @@ class _FriendsPageState extends State<Friends_Page> {
   @override
   void initState() {
     super.initState();
+    verificarAccesoInvitado(context);
     _initializeSocketAndUser();
   }
 

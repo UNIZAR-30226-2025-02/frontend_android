@@ -267,7 +267,10 @@ class _LoginPageState extends State<Login_page> {
         await prefs.setString('Correo', publicUser['Correo'] ?? '');
         await prefs.setString('estadoPartida', publicUser['EstadoPartida'] ?? "NULL");
         await prefs.setString('estadoUser', publicUser['estadoUser']);
-        await prefs.setString('fotoPerfil', publicUser['FotoPerfil'] ?? '');
+        await prefs.setString(
+            'fotoPerfil',
+            (publicUser['FotoPerfil'] == 'none' || publicUser['FotoPerfil'] == '') ? 'fotoPerfil.png' : publicUser['FotoPerfil']
+        );
 
         playerInfo(
           prefs.getString('idJugador'),
