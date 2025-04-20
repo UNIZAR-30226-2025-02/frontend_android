@@ -69,6 +69,8 @@ class _FriendsPageState extends State<Friends_Page> {
       return;
     }
 
+    await _cargarAmigos(); // 👈 Cargamos amigos confirmados
+
     socket = IO.io(
       'https://checkmatex-gkfda9h5bfb0gsed.spaincentral-01.azurewebsites.net',
       <String, dynamic>{
@@ -85,6 +87,28 @@ class _FriendsPageState extends State<Friends_Page> {
     });
 
     _configureSocketListeners();
+  }
+
+  Future<void> _cargarAmigos() async {
+    if (idJugador == null) return;
+
+    final uri = Uri.parse(
+      'https://checkmatex-gkfda9h5bfb0gsed.spaincentral-01.azurewebsites.net/buscarAmigos?id=$idJugador',
+    );
+
+    try {
+      final response = await http.get(uri);
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        setState(() {
+          friends = data.cast<Map<String, dynamic>>();
+        });
+      } else {
+        print("❌ Error cargando amigos: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("❌ Excepción al cargar amigos: $e");
+    }
   }
 
   void _configureSocketListeners() {
@@ -391,23 +415,27 @@ class _FriendsPageState extends State<Friends_Page> {
                       child: Text("Amigos",
                           style: TextStyle(color: Colors.white, fontSize: 18)),
                     ),
-                    ...friends.map((f) => Card(
-                      color: Colors.grey[900],
-                      child: ListTile(
-                        title: Text(f['NombreUser'],
-                            style: TextStyle(color: Colors.white)),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: Icon(Icons.sports_esports,
-                                  color: Colors.green),
-                              onPressed: () => _showGameModes(f['id'].toString()),
-                            ),
-                          ],
+                    ...friends.map((f) {
+                      final nombre = f['NombreUser'] ?? f['nombreAmigo'] ?? "Amigo sin nombre";
+                      final id = f['id']?.toString() ?? f['idAmigo']?.toString() ?? "";
+
+                      return Card(
+                        color: Colors.grey[900],
+                        child: ListTile(
+                          title: Text(nombre, style: TextStyle(color: Colors.white)),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.sports_esports, color: Colors.green),
+                                onPressed: id.isNotEmpty ? () => _showGameModes(id) : null,
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    )),
+                      );
+                    }),
+
                   ],
                 ),
               ),
