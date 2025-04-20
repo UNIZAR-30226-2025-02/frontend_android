@@ -4,6 +4,7 @@ import 'package:frontend_android/pages/inGame/board.dart';
 import 'package:frontend_android/pages/Game/botton_nav_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/socketService.dart';
+import '../../utils/photoUtils.dart';
 import '../../widgets/app_layout.dart';
 
 
@@ -171,12 +172,11 @@ class _InitPageState extends State<Init_page> {
   Future<void> _cargarUsuario() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     final foto = prefs.getString('fotoPerfil');
+
     setState(() {
       usuarioActual = prefs.getString('usuario');
       idJugador = prefs.getString('idJugador');
-      fotoPerfil = (foto == null || foto == "none")
-          ? "assets/fotoPerfil.png"
-          : foto;
+      fotoPerfil = getRutaSeguraFoto(foto);
     });
   }
 

@@ -6,6 +6,8 @@ import 'package:http/http.dart' as http;
 import 'package:frontend_android/pages/buildHead.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../utils/photoUtils.dart';
+
 class Profile_page extends StatefulWidget {
   static const String id = "profile_page";
 
@@ -100,7 +102,7 @@ class _ProfilePageState extends State<Profile_page> {
           // Si la foto de perfil es "none", usamos la imagen predeterminada con la nueva ruta.
           profileImage = (data['FotoPerfil'] != null && data['FotoPerfil'] != "none")
               ? data['FotoPerfil'] // Se espera solo el nombre del archivo
-              : "assets/fotosPerfil/fotoPerfil.png";
+              : "fotoPerfil.png";;
 
           // Actualizamos las estadísticas si existen; de lo contrario, se mantiene el valor por defecto.
           friends = data['friends'] ?? friends;
@@ -120,7 +122,28 @@ class _ProfilePageState extends State<Profile_page> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[900],
-      appBar: BuildHeadArrow(),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            // ✅ Al volver atrás, forzamos que se recargue la cabecera con la foto nueva
+            Navigator.pop(context);
+          },
+        ),
+        centerTitle: true,
+        title: Image.asset("assets/logoNombre.png", height: 50),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.black, Colors.grey[900]!],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+        ),
+      ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
         child: Column(
@@ -152,7 +175,7 @@ class _ProfilePageState extends State<Profile_page> {
               // Avatar: para mostrar la imagen en la UI, si profileImage es solo el nombre, concatenamos la ruta.
               CircleAvatar(
                 radius: 35,
-                backgroundImage: AssetImage("assets/fotosPerfil/$profileImage"),
+                backgroundImage: AssetImage(getRutaSeguraFoto(profileImage)),
 
               ),
               // Botones en una fila aparte
@@ -472,6 +495,9 @@ class _ProfilePageState extends State<Profile_page> {
       );
       if (response.statusCode == 200) {
         print("Foto actualizada exitosamente.");
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        print("$newPhotoName");
+        await prefs.setString('fotoPerfil', "$newPhotoName");
         return true;
       } else {
         print("Error al actualizar la foto: ${response.statusCode}");

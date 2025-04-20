@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'dart:async'; // Para el temporizador
-
 import 'package:frontend_android/pages/Game/init.dart';
 import 'package:frontend_android/pages/Login/login.dart';
 import 'package:frontend_android/pages/Login/signin.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:frontend_android/pages/playerInfo.dart';
+import 'package:frontend_android/services/socketService.dart';
+
 
 class Wellcome_page extends StatefulWidget {
   static const String id = "wellcome_page";
@@ -35,6 +41,69 @@ class _Wellcome_pageState extends State<Wellcome_page> {
   void dispose() {
     _timer.cancel(); // <- Esto evita el memory leak
     super.dispose();
+  }
+
+  Future<void> _entrarComoInvitado() async {
+    final String? baseUrl = dotenv.env['SERVER_BACKEND'];
+    final String apiUrl = "${baseUrl}crearInvitado";
+
+    try {
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {"Content-Type": "application/json"},
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        final accessToken = responseData['accessToken'];
+        final publicUser = responseData['publicUser'];
+
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('accessToken', accessToken);
+        await prefs.setString('idJugador', publicUser['id']);
+        await prefs.setString('usuario', publicUser['NombreUser']);
+        await prefs.setString('Correo', publicUser['Correo'] ?? '');
+        await prefs.setString('estadoPartida', publicUser['EstadoPartida'] ?? "NULL");
+        await prefs.setString('estadoUser', publicUser['estadoUser']);
+
+        // ✅ Manejo del campo 'none' en fotoPerfil
+        await prefs.setString(
+          'fotoPerfil',
+          (publicUser['FotoPerfil'] == 'none' || publicUser['FotoPerfil'] == '')
+              ? 'fotoPerfil.png'
+              : publicUser['FotoPerfil'],
+        );
+
+        playerInfo(
+          prefs.getString('idJugador'),
+          prefs.getString('usuario'),
+          prefs.getString('Correo'),
+          prefs.getString('estadoUser'),
+          prefs.getString('fotoPerfil'),
+        );
+
+        // ✅ Conexión al socket
+        SocketService socketService = SocketService();
+        await socketService.connect(context);
+
+        Navigator.pushReplacementNamed(context, Init_page.id);
+      } else {
+        _mostrarSnackBar("No se pudo crear un invitado. Intenta más tarde.");
+      }
+    } catch (e) {
+      _mostrarSnackBar("Error al conectarse con el servidor.");
+      print("❌ Error crearInvitado: $e");
+    }
+  }
+
+  void _mostrarSnackBar(String mensaje) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(mensaje),
+        backgroundColor: Colors.red,
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
@@ -125,12 +194,7 @@ class _Wellcome_pageState extends State<Wellcome_page> {
               ),
               SizedBox(height: 20),
               GestureDetector(
-                onTap: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => Init_page()),
-                  );
-                },
+                onTap: _entrarComoInvitado,
                 child: Text(
                   "Entrar como invitado",
                   style: TextStyle(

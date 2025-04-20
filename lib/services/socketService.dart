@@ -54,19 +54,7 @@ class SocketService {
       'query': {'token': token}
     });
 
-    //socket.clearListeners(); // ✅ evita duplicaciones
     _setupListeners(context, idJugador);
-
-    /*socket.onConnect((_) {
-      print("✅ SOCKET CONECTADO con éxito. ID del socket: ${socket.id}");
-      _isConnected = true;
-
-      // 🔁 Re-registrar los listeners cada vez que se conecte
-      _setupListeners(context, idJugador);  // <--- AÑADE ESTO
-
-      print("📤 Registrando sesión en el servidor con ID: $idJugador...");
-      socket.emit("register-session", idJugador);
-    });*/
 
   }
 
