@@ -28,6 +28,7 @@ class _FriendsPageState extends State<Friends_Page> {
   String? idJugador;
   String? nombreJugador;
   String searchInput = "";
+  Map<String, String>? solicitudPendiente;
   List<Map<String, dynamic>> suggestions = [];
   List<Map<String, dynamic>> friends = [];
 
@@ -88,15 +89,30 @@ class _FriendsPageState extends State<Friends_Page> {
 
     socket.on("friendRequest", (dataRaw) {
       print("📩 Evento recibido: friendRequest");
-      final data = dataRaw is String ? jsonDecode(dataRaw) : dataRaw;
-      final String idRemitente = data["idJugador"].toString().trim();
-      final String nombre = data["nombre"] ?? "Usuario desconocido";
 
-      print("👤 idRemitente: $idRemitente, nombre: $nombre");
-      if (idJugador != null && idRemitente != idJugador) {
-        _showFriendRequestDialog(idRemitente, nombre);
+      final data = dataRaw is String ? jsonDecode(dataRaw) : dataRaw;
+
+      print("📨 Data recibida: $data (${data.runtimeType})");
+
+      try {
+        final Map<String, dynamic> userData = data[0]; // <-- idJugador, idAmigo
+        final String nombre = data[1];                 // <-- nombre del remitente
+        final String idRemitente = userData["idJugador"].toString().trim();
+
+        if (idJugador != null && idRemitente != idJugador) {
+          setState(() {
+            solicitudPendiente = {
+              "idRemitente": idRemitente,
+              "nombre": nombre,
+            };
+          });
+        }
+      } catch (e) {
+        print("❌ Error procesando friendRequest: $e");
       }
     });
+
+
 
     socket.on("request-accepted", (data) {
       final String nombre = data["nombre"];
@@ -297,6 +313,46 @@ class _FriendsPageState extends State<Friends_Page> {
                 ],
               ),
             ),
+
+            // ✅ Solicitud de amistad entrante (si hay)
+            if (solicitudPendiente != null)
+              Card(
+                color: Colors.blueGrey,
+                margin: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                child: ListTile(
+                  title: Text(
+                    "${solicitudPendiente!["nombre"]} quiere ser tu amigo.",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  subtitle: Row(
+                    children: [
+                      TextButton(
+                        onPressed: () {
+                          socket.emit('accept-request', {
+                            "idJugador": solicitudPendiente!["idRemitente"],
+                            "idAmigo": idJugador,
+                            "nombre": nombreJugador,
+                          });
+                          setState(() => solicitudPendiente = null);
+                        },
+                        child: Text("Aceptar", style: TextStyle(color: Colors.green)),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          socket.emit('reject-request', {
+                            "idJugador": solicitudPendiente!["idRemitente"],
+                            "idAmigo": idJugador,
+                            "nombre": nombreJugador,
+                          });
+                          setState(() => solicitudPendiente = null);
+                        },
+                        child: Text("Rechazar", style: TextStyle(color: Colors.redAccent)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
             if (suggestions.isNotEmpty)
               Expanded(
                 child: ListView(
