@@ -4,6 +4,7 @@ import 'package:frontend_android/widgets/app_layout.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:frontend_android/pages/inGame/board.dart';
 import 'package:http/http.dart' as http;
 
 import '../../utils/guestUtils.dart';
@@ -30,6 +31,9 @@ class _FriendsPageState extends State<Friends_Page> {
   String? idJugador;
   String? nombreJugador;
   String searchInput = "";
+  String? _gameId;
+  String? _gameColor;
+  bool _yaEntramosAPartida = false;
   Map<String, String>? solicitudPendiente;
   List<Map<String, dynamic>> suggestions = [];
   List<Map<String, dynamic>> friends = [];
@@ -114,6 +118,74 @@ class _FriendsPageState extends State<Friends_Page> {
   void _configureSocketListeners() {
     print("🛠️ Configurando listeners...");
 
+    socket.on("challengeSent", (data) {
+      print("🎯 Evento challengeSent recibido: $data (${data.runtimeType})");
+
+
+        final challengeData = (data as List)[0] as Map<String, dynamic>;
+
+        final String idRetador = challengeData["idRetador"].toString();
+        final String idRetado = challengeData["idRetado"].toString();
+        final String modo = challengeData["modo"].toString();
+
+        print("✅ Reto recibido de $idRetador a $idRetado en modo $modo");
+
+        _mostrarPopupReto(idRetador, idRetado, modo);
+
+    });
+    socket.on('game-ready', (data) {
+      print("🎯 game-ready recibido: $data");
+      final idPartida = data[0]['idPartida'];
+      _gameId = idPartida;
+    });
+
+    socket.on('color', (data) async {
+      print("🎨 color recibido: $data");
+      if (idJugador == null) return;
+      final jugadores = List<Map<String, dynamic>>.from(data[0]['jugadores']);
+      final yo = jugadores.firstWhere((jugador) => jugador['id'] == idJugador, orElse: () => {});
+      final rival = jugadores.firstWhere((jugador) => jugador['id'] != idJugador, orElse: () => {});
+
+      if (yo.isNotEmpty && yo.containsKey('color')) {
+        final String color = yo['color'];
+        final prefs = await SharedPreferences.getInstance();
+
+        if (color == 'white') {
+          await prefs.setString('nombreBlancas', yo['nombreW']);
+          await prefs.setInt('eloBlancas', yo['eloW']);
+          await prefs.setString('nombreNegras', rival['nombreB']);
+          await prefs.setInt('eloNegras', rival['eloB']);
+        } else {
+          await prefs.setString('nombreNegras', yo['nombreB']);
+          await prefs.setInt('eloNegras', yo['eloB']);
+          await prefs.setString('nombreBlancas', rival['nombreW']);
+          await prefs.setInt('eloBlancas', rival['eloW']);
+        }
+
+        final miElo = color == 'white' ? prefs.getInt('eloBlancas') ?? 0 : prefs.getInt('eloNegras') ?? 0;
+        final rivalElo = color == 'white' ? prefs.getInt('eloNegras') ?? 0 : prefs.getInt('eloBlancas') ?? 0;
+        final rivalName = color == 'white' ? prefs.getString('nombreNegras') ?? "Rival" : prefs.getString('nombreBlancas') ?? "Rival";
+
+        if (_gameId != null && mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => BoardScreen(
+                "Modo personalizado", // puedes pasar el modo si lo guardas
+                color,
+                _gameId!,
+                "null",
+                0,
+                0,
+                miElo,
+                rivalElo,
+                rivalName,
+              ),
+            ),
+          );
+        }
+      }
+    });
+
     socket.on("friendRequest", (dataRaw) {
       print("📩 Evento recibido: friendRequest");
 
@@ -139,6 +211,29 @@ class _FriendsPageState extends State<Friends_Page> {
       }
     });
 
+
+    socket.on("game-ready", (data) {
+      print("🎯 Partida lista → $data");
+
+      try {
+        final partidaId = data['id'];
+        final color = data['color'];
+
+        if (!mounted) return;
+
+        Navigator.pushNamed(
+          context,
+          '/board',
+          arguments: {
+            'partidaId': partidaId,
+            'color': color,
+            'modo': data['modo'] ?? '', // opcional
+          },
+        );
+      } catch (e) {
+        print("❌ Error al procesar game-ready: $e");
+      }
+    });
 
 
     socket.on("request-accepted", (data) {
@@ -224,6 +319,47 @@ class _FriendsPageState extends State<Friends_Page> {
 
   String clean(String? id) => (id ?? "").trim();
 
+  void _mostrarPopupReto(String idRetador, String idRetado, String modo) {
+    if (!mounted) {
+      print("⚠️ Widget desmontado. No se puede mostrar popup.");
+      return;
+    }
+
+    print("📥 Popup de reto recibido → idRetador: $idRetador | idRetado: $idRetado | modo: $modo");
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("¡Has recibido un reto!"),
+        content: Text("Te han retado a una partida en modo $modo."),
+        actions: [
+          TextButton(
+            onPressed: () {
+              print("✅ Aceptando reto...");
+              print("✅ Enviando accept-challenge → { idRetador: $idRetador, idRetado: $idRetado, modo: $modo }");
+              socket.emit('accept-challenge', {
+                "idRetado": idRetado,
+                "idRetador": idRetador,
+                "modo": modo,
+              });
+              Navigator.of(context).pop();
+            },
+            child: Text("Aceptar"),
+          ),
+          TextButton(
+            onPressed: () {
+              print("❌ Reto rechazado.");
+              Navigator.of(context).pop();
+            },
+            child: Text("Rechazar"),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+
   void _showInfoDialog(String message) {
     if (!mounted) return;
 
@@ -272,16 +408,21 @@ class _FriendsPageState extends State<Friends_Page> {
 
   void _challengeFriend(String idRetado, String modoNombre) {
     final modoBackend = modoMapeado[modoNombre] ?? "Punt_10";
-    socket.emit('challengeFriend', {
+
+    print("📡 Enviando reto → idRetador: $idJugador | idRetado: $idRetado | modo: $modoBackend");
+
+    socket.emit('challenge-friend', {
       'idRetador': idJugador,
       'idRetado': idRetado,
       'modo': modoBackend,
     });
+
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text("Reto enviado en modo $modoNombre"),
       backgroundColor: Colors.green,
     ));
   }
+
 
   void _showGameModes(String idAmigo) {
     showModalBottomSheet(
@@ -416,25 +557,24 @@ class _FriendsPageState extends State<Friends_Page> {
                           style: TextStyle(color: Colors.white, fontSize: 18)),
                     ),
                     ...friends.map((f) {
-                      final nombre = f['NombreUser'] ?? f['nombreAmigo'] ?? "Amigo sin nombre";
-                      final id = f['id']?.toString() ?? f['idAmigo']?.toString() ?? "";
+                      final nombre = f['NombreUser'] ?? f['nombreAmigo'] ?? "Amigo";
+                      final id = f['amigoId']?.toString().trim() ?? "";
+
+                      print("👤 Amigo: $nombre | ID extraído: $id");
 
                       return Card(
                         color: Colors.grey[900],
                         child: ListTile(
                           title: Text(nombre, style: TextStyle(color: Colors.white)),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: Icon(Icons.sports_esports, color: Colors.green),
-                                onPressed: id.isNotEmpty ? () => _showGameModes(id) : null,
-                              ),
-                            ],
+                          trailing: IconButton(
+                            icon: Icon(Icons.sports_esports, color: Colors.green),
+                            onPressed: () => _showGameModes(id),
                           ),
                         ),
                       );
-                    }),
+                    })
+
+
 
                   ],
                 ),
