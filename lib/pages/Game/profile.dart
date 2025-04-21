@@ -14,6 +14,35 @@ class Profile_page extends StatefulWidget {
   @override
   _ProfilePageState createState() => _ProfilePageState();
 }
+class UltimaPartida {
+  final String modo;        // Código del modo: "Punt_10", etc.
+  final String nombreW;     // Nombre del jugador con blancas
+  final String nombreB;     // Nombre del jugador con negras
+  final String ganadorId;   // ID del jugador que ganó
+  final int movimientos;    // Nº de jugadas
+  final DateTime fecha;     // Fecha de la partida
+
+  UltimaPartida({
+    required this.modo,
+    required this.nombreW,
+    required this.nombreB,
+    required this.ganadorId,
+    required this.movimientos,
+    required this.fecha,
+  });
+
+  factory UltimaPartida.fromJson(Map<String, dynamic> json) {
+    return UltimaPartida(
+      modo: json['Modo'] ?? '',
+      nombreW: json['NombreW'] ?? '',
+      nombreB: json['NombreB'] ?? '',
+      ganadorId: json['Ganador'].toString(),
+      movimientos: json['movimientos'] ?? 0,
+      fecha: DateTime.parse(json['created_at']),
+    );
+  }
+}
+
 
 class _ProfilePageState extends State<Profile_page> {
   // Datos del usuario (valores por defecto)
@@ -24,6 +53,7 @@ class _ProfilePageState extends State<Profile_page> {
   int gamesPlayed = 0;
   double winRate = 0.0;
   int maxStreak = 0;
+  List<UltimaPartida> ultimasPartidas = [];
 
   // URL base del servidor backend (se obtiene de la variable de entorno)
   late final String? serverBackend;
@@ -71,14 +101,11 @@ class _ProfilePageState extends State<Profile_page> {
   void initState() {
     super.initState();
     fetchUserInfo();
+    fetchStreak();
   }
-
   Future<void> fetchUserInfo() async {
-    // Recuperar el ID del usuario desde SharedPreferences
     SharedPreferences prefs = await SharedPreferences.getInstance();
     userId = prefs.getString('idJugador');
-
-    // Obtener la URL del backend desde el archivo .env
     serverBackend = dotenv.env['SERVER_BACKEND'];
 
     if (userId == null || serverBackend == null) {
@@ -86,43 +113,59 @@ class _ProfilePageState extends State<Profile_page> {
       return;
     }
 
-    // Construir la URL para obtener la información, pasando el id del usuario
     final url = Uri.parse('${serverBackend}getUserInfo?id=$userId');
     try {
       final response = await http.get(url, headers: {
         "Content-Type": "application/json",
-        // Agrega autorización si fuera necesario, por ejemplo: "Authorization": "Bearer $token"
       });
+
       if (response.statusCode == 200) {
-        // Se espera que el backend retorne un JSON que incluya las siguientes propiedades:
-        // "NombreUser", "FotoPerfil", "friends", "gamesPlayed", "winRate" y "maxStreak"
         final data = jsonDecode(response.body);
         print('📦 Datos recibidos del backend (getUserInfo): $data');
+
         setState(() {
           playerName = data['NombreUser'] ?? playerName;
-          // Si la foto de perfil es "none", usamos la imagen predeterminada con la nueva ruta.
           profileImage = (data['FotoPerfil'] != null && data['FotoPerfil'] != "none")
-              ? data['FotoPerfil'] // Se espera solo el nombre del archivo
-              : "fotoPerfil.png";;
+              ? data['FotoPerfil']
+              : "fotoPerfil.png";
 
-          // Actualizamos las estadísticas si existen; de lo contrario, se mantiene el valor por defecto.
           friends = data['Amistades'] ?? friends;
           gamesPlayed = data['totalGames'] ?? gamesPlayed;
           maxStreak = data['maxStreak'] ?? maxStreak;
+
           int wins = data['totalWins'] ?? 0;
           int losses = data['totalLosses'] ?? 0;
           int draws = data['totalDraws'] ?? 0;
-
           int total = wins + losses + draws;
 
           winRate = (total > 0) ? (wins / total) * 100 : 0.0;
         });
+
+        // LLAMADA ADICIONAL: obtener historial de últimas 5 partidas
+        final histUrl = Uri.parse('${serverBackend}buscarUlt5PartidasDeUsuario?id=$userId');
+        final histResp = await http.get(histUrl);
+        if (histResp.statusCode == 200) {
+          final List jsonList = jsonDecode(histResp.body);
+          setState(() {
+            ultimasPartidas = jsonList
+                .map((j) => UltimaPartida.fromJson(j as Map<String, dynamic>))
+                .toList();
+          });
+        } else {
+          print("❌ Error al obtener historial: ${histResp.statusCode}");
+        }
+
       } else {
-        print("Error al obtener el perfil: ${response.statusCode}");
+        print("❌ Error al obtener el perfil: ${response.statusCode}");
       }
     } catch (error) {
-      print("Error en fetchUserInfo: $error");
+      print("❌ Error en fetchUserInfo: $error");
     }
+  }
+
+
+  void fetchStreak(){
+
   }
 
   @override
@@ -157,10 +200,79 @@ class _ProfilePageState extends State<Profile_page> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _buildProfileCard(),
+            buildWinLossIconsBar(),
             SizedBox(height: 20),
             _buildGameModeCharts(),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget buildWinLossIconsBar() {
+    return Container(
+      margin: EdgeInsets.only(top: 20),
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[850],
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: Colors.black54, blurRadius: 8)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Últimos resultados',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(5, (index) {
+              if (index >= ultimasPartidas.length || userId == null) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Icon(
+                    Icons.radio_button_unchecked,
+                    color: Colors.grey,
+                    size: 28,
+                  ),
+                );
+              } else {
+                final partida = ultimasPartidas[index];
+
+                // 👇 AQUI ESTA LA CLAVE
+                if (partida.ganadorId == null || partida.ganadorId == "null") {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Text(
+                      "-",
+                      style: TextStyle(
+                        color: Colors.white60,
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  );
+                }
+
+                final won = partida.ganadorId == userId;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Icon(
+                    won ? Icons.check_circle : Icons.cancel,
+                    color: won ? Colors.green : Colors.red,
+                    size: 28,
+                  ),
+                );
+              }
+            }),
+          ),
+        ],
       ),
     );
   }
