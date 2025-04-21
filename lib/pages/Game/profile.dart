@@ -481,7 +481,7 @@ class _ProfilePageState extends State<Profile_page> {
       crossAxisSpacing: 10,
       mainAxisSpacing: 10,
       children: modeIcons.keys.map((mode) {
-        List<double> scores = userData[mode]!;
+        List<double> scores = userData[mode] ?? [];
         return Container(
           padding: EdgeInsets.all(10),
           decoration: BoxDecoration(

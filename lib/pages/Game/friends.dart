@@ -155,16 +155,19 @@ class _FriendsPageState extends State<Friends_Page> {
           await prefs.setInt('eloBlancas', yo['eloW']);
           await prefs.setString('nombreNegras', rival['nombreB']);
           await prefs.setInt('eloNegras', rival['eloB']);
+          await prefs.setString('fotoNegras', rival['fotoNegras']);
         } else {
           await prefs.setString('nombreNegras', yo['nombreB']);
           await prefs.setInt('eloNegras', yo['eloB']);
           await prefs.setString('nombreBlancas', rival['nombreW']);
           await prefs.setInt('eloBlancas', rival['eloW']);
+          await prefs.setString('fotoBlancas', rival['fotoBlancas']);
         }
 
         final miElo = color == 'white' ? prefs.getInt('eloBlancas') ?? 0 : prefs.getInt('eloNegras') ?? 0;
         final rivalElo = color == 'white' ? prefs.getInt('eloNegras') ?? 0 : prefs.getInt('eloBlancas') ?? 0;
         final rivalName = color == 'white' ? prefs.getString('nombreNegras') ?? "Rival" : prefs.getString('nombreBlancas') ?? "Rival";
+        final fotoRival = color == 'white' ? prefs.getString('fotoNegras') ?? "none" : prefs.getString('fotoBlancas') ?? "none";
 
         if (_gameId != null && mounted) {
           Navigator.of(context).pushReplacement(
@@ -179,6 +182,7 @@ class _FriendsPageState extends State<Friends_Page> {
                 miElo,
                 rivalElo,
                 rivalName,
+                fotoRival,
               ),
             ),
           );

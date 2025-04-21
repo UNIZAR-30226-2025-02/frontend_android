@@ -67,7 +67,6 @@ class _InitPageState extends State<Init_page> {
 
   Future<void> encontrarPartida() async {
     socket?.on('existing-game', (data) async{
-      print("🧪 EXISTING-GAME DATA: $data (${data.runtimeType})");
       if (_yaEntramosAPartida) return;
       _yaEntramosAPartida = true;
       final gameData = data[0];
@@ -83,6 +82,7 @@ class _InitPageState extends State<Init_page> {
       final rivalElo = gameData['eloRival'];
       final gameMode = gameData['gameMode'];
       final rivalName = gameData['nombreRival'];
+      final rivalFoto = gameData['foto_rival'];
       Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (_) => BoardScreen(
@@ -95,6 +95,7 @@ class _InitPageState extends State<Init_page> {
               myElo ?? 0,
               rivalElo ?? 0,
               rivalName ?? "Jugador Rival",
+              rivalFoto ?? "none",
             ),
           )
       );
@@ -117,13 +118,17 @@ class _InitPageState extends State<Init_page> {
         if (_gameColor == 'white') {
           await prefs.setString('nombreBlancas', yo['nombreW']);
           await prefs.setInt('eloBlancas', yo['eloW']);
+          await prefs.setString('fotoBlancas', yo['fotoBlancas'] ?? 'none');
           await prefs.setString('nombreNegras', rival['nombreB']);
           await prefs.setInt('eloNegras', rival['eloB']);
+          await prefs.setString('fotoNegras', rival['fotoNegras'] ?? 'none');
         } else {
           await prefs.setString('nombreNegras', yo['nombreB']);
           await prefs.setInt('eloNegras', yo['eloB']);
+          await prefs.setString('fotoNegras', yo['fotoNegras'] ?? 'none');
           await prefs.setString('nombreBlancas', rival['nombreW']);
           await prefs.setInt('eloBlancas', rival['eloW']);
+          await prefs.setString('fotoBlancas', rival['fotoBlancas'] ?? 'none');
         }
         _intentarEntrarAPartida();
       }
@@ -149,6 +154,10 @@ class _InitPageState extends State<Init_page> {
         ? prefs.getString('nombreNegras') ?? "Rival"
         : prefs.getString('nombreBlancas') ?? "Rival";
 
+    final rivalFoto = _gameColor == 'white'
+        ? prefs.getString('fotoNegras') ?? 'fotoPerfil.png'
+        : prefs.getString('fotoBlancas') ?? 'fotoPerfil.png';
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
@@ -163,6 +172,7 @@ class _InitPageState extends State<Init_page> {
             miElo,
             rivalElo,
             rivalName,
+            rivalFoto,
           ),
         ),
       );
@@ -316,8 +326,6 @@ class _InitPageState extends State<Init_page> {
     socket?.emit('cancel-pairing', {
       'idJugador': idJugador,
     });
-
-    print("[MATCHMAKING] ❌ Emparejamiento cancelado manualmente.");
   }
 
   Widget _buildInfoButton(BuildContext context, String title, String description) {
@@ -350,7 +358,6 @@ class _InitPageState extends State<Init_page> {
       'idJugador': idJugador,
       'mode': selectedGameModeKey
     });
-    print("[MATCHMAKING] 🔍 Enviando solicitud de findGame con $idJugador, mode: $selectedGameModeKey");
   }
 }
 

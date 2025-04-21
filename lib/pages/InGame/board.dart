@@ -7,6 +7,8 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../../services/socketService.dart';
 import 'package:frontend_android/pages/Game/init.dart';
 
+import '../../utils/photoUtils.dart';
+
 class BoardScreen extends StatefulWidget {
   static const id = "board_page";
   final String gameMode;
@@ -18,8 +20,9 @@ class BoardScreen extends StatefulWidget {
   final int myElo;
   final int rivalElo;
   final String rivalName;
+  final String rivalFoto;
 
-  BoardScreen(this.gameMode, this.color, this.gameId, this.pgn, this.timeLeftW, this.timeLeftB, this.myElo, this.rivalElo, this.rivalName);
+  BoardScreen(this.gameMode, this.color, this.gameId, this.pgn, this.timeLeftW, this.timeLeftB, this.myElo, this.rivalElo, this.rivalName, this.rivalFoto);
 
   @override
   _BoardScreenState createState() => _BoardScreenState();
@@ -50,6 +53,8 @@ class _BoardScreenState extends State<BoardScreen> {
   String nombreNegras = "Negras";
   int eloBlancas = 0;
   int eloNegras = 0;
+  String fotoBlancas = "none";
+  String fotoNegras = "none";
 
   final Map<String, String> modoVisibleMap = {
     "Punt_10": "Clásica",
@@ -73,6 +78,7 @@ class _BoardScreenState extends State<BoardScreen> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     idJugador = prefs.getString('idJugador');
     final name = prefs.getString('usuario') ?? "Tú";
+    final miFoto = prefs.getString('fotoPerfil') ?? "none";
     chessGame = chess.Chess();
 
     if(widget.pgn != "null"){
@@ -94,14 +100,18 @@ class _BoardScreenState extends State<BoardScreen> {
 
     if (playerColor == PlayerColor.white) {
       nombreBlancas = name;
+      fotoBlancas = miFoto;
       eloBlancas = widget.myElo;
       nombreNegras = widget.rivalName;
       eloNegras = widget.rivalElo;
+      fotoNegras = widget.rivalFoto;
     } else {
       nombreNegras = name;
+      fotoNegras = miFoto;
       eloNegras = widget.myElo;
       nombreBlancas = widget.rivalName;
       eloBlancas = widget.rivalElo;
+      fotoBlancas = widget.rivalFoto;
     }
 
     _startTimer();
@@ -820,22 +830,33 @@ class _BoardScreenState extends State<BoardScreen> {
               children: [
                 SizedBox(height: 36), // margen superior
 
-                // 🧍‍♂️ Rival
+                // 🧍‍♂️ Rival con avatar
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      Row(
                         children: [
-                          Text(
-                            playerColor == PlayerColor.white ? nombreNegras : nombreBlancas,
-                            style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                          CircleAvatar(
+                            radius: 20,
+                            backgroundImage: AssetImage(
+                              getRutaSeguraFoto(playerColor == PlayerColor.white ? fotoNegras : fotoBlancas),
+                            ),
                           ),
-                          Text(
-                            "ELO: ${playerColor == PlayerColor.white ? eloNegras : eloBlancas}",
-                            style: TextStyle(color: Colors.white70, fontSize: 16),
+                          SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                playerColor == PlayerColor.white ? nombreNegras : nombreBlancas,
+                                style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                              ),
+                              Text(
+                                "ELO: ${playerColor == PlayerColor.white ? eloNegras : eloBlancas}",
+                                style: TextStyle(color: Colors.white70, fontSize: 16),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -865,22 +886,33 @@ class _BoardScreenState extends State<BoardScreen> {
 
                 SizedBox(height: 12),
 
-                // 🧍‍♂️ Tú
+                // 🧍‍♂️ Tú con avatar
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      Row(
                         children: [
-                          Text(
-                            playerColor == PlayerColor.white ? nombreBlancas : nombreNegras,
-                            style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                          CircleAvatar(
+                            radius: 20,
+                            backgroundImage: AssetImage(
+                              getRutaSeguraFoto(playerColor == PlayerColor.white ? fotoBlancas : fotoNegras),
+                            ),
                           ),
-                          Text(
-                            "ELO: ${playerColor == PlayerColor.white ? eloBlancas : eloNegras}",
-                            style: TextStyle(color: Colors.white70, fontSize: 16),
+                          SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                playerColor == PlayerColor.white ? nombreBlancas : nombreNegras,
+                                style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                              ),
+                              Text(
+                                "ELO: ${playerColor == PlayerColor.white ? eloBlancas : eloNegras}",
+                                style: TextStyle(color: Colors.white70, fontSize: 16),
+                              ),
+                            ],
                           ),
                         ],
                       ),
