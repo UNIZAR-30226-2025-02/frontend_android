@@ -22,6 +22,7 @@ class UltimaPartida {
   final int movimientos;    // Nº de jugadas
   final DateTime fecha;     // Fecha de la partida
 
+
   UltimaPartida({
     required this.modo,
     required this.nombreW,
@@ -54,7 +55,12 @@ class _ProfilePageState extends State<Profile_page> {
   double winRate = 0.0;
   int maxStreak = 0;
   List<UltimaPartida> ultimasPartidas = [];
-
+  late final responseClasica;
+  late final responsePrincipiante;
+  late final responseAvanzado;
+  late final responseRelampago;
+  late final responseIncremento;
+  late final responseIncrementoExpres;
   // URL base del servidor backend (se obtiene de la variable de entorno)
   late final String? serverBackend;
   // ID del usuario (por ejemplo, obtenido de SharedPreferences)
@@ -96,12 +102,13 @@ class _ProfilePageState extends State<Profile_page> {
     "avatar_32.webp",
 
   ];
+  Map<String, List<double>> userData = {};
 
   @override
   void initState() {
     super.initState();
     fetchUserInfo();
-    fetchStreak();
+
   }
   Future<void> fetchUserInfo() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -161,12 +168,79 @@ class _ProfilePageState extends State<Profile_page> {
     } catch (error) {
       print("❌ Error en fetchUserInfo: $error");
     }
+
+    // Clásica
+    final urlClasica = Uri.parse('${serverBackend}buscarPartidasPorModo?id=$userId&modo=Punt_10');
+    responseClasica = await http.get(urlClasica);
+
+// Principiante
+    final urlPrincipiante = Uri.parse('${serverBackend}buscarPartidasPorModo?id=$userId&modo=Punt_30');
+    responsePrincipiante = await http.get(urlPrincipiante);
+
+// Avanzado
+    final urlAvanzado = Uri.parse('${serverBackend}buscarPartidasPorModo?id=$userId&modo=Punt_5');
+    responseAvanzado = await http.get(urlAvanzado);
+
+// Relámpago
+    final urlRelampago = Uri.parse('${serverBackend}buscarPartidasPorModo?id=$userId&modo=Punt_3');
+    responseRelampago = await http.get(urlRelampago);
+
+// Incremento
+    final urlIncremento = Uri.parse('${serverBackend}buscarPartidasPorModo?id=$userId&modo=Punt_5_10');
+    responseIncremento = await http.get(urlIncremento);
+
+// Incremento exprés
+    final urlIncrementoExpres = Uri.parse('${serverBackend}buscarPartidasPorModo?id=$userId&modo=Punt_3_2');
+    responseIncrementoExpres = await http.get(urlIncrementoExpres);
+    userData = await construirUserDataPorModo(userId: userId, serverBackend: serverBackend);
+  }
+
+  Future<Map<String, List<double>>> construirUserDataPorModo({
+    required String? userId,
+    required String? serverBackend,
+  }) async {
+    // Mapeo frontend <-> backend
+    final modoMapeado = {
+      "Clásica": "Punt_10",
+      "Principiante": "Punt_30",
+      "Avanzado": "Punt_5",
+      "Relámpago": "Punt_3",
+      "Incremento": "Punt_5_10",
+      "Incremento exprés": "Punt_3_2",
+    };
+
+    Map<String, List<double>> userData = {};
+
+    for (final entry in modoMapeado.entries) {
+      final modoFront = entry.key;
+      final modoBack = entry.value;
+
+      final url = Uri.parse('$serverBackend/buscarPartidasPorModo?id=$userId&modo=$modoBack');
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final List partidas = jsonDecode(response.body);
+        final List<double> elos = [];
+
+        for (final partida in partidas) {
+          final pgn = partida['PGN'] ?? '';
+          if (pgn.isNotEmpty) {
+            final eloInfo = extraerEloDesdePGN(pgn, userId);
+            elos.add(eloInfo["miElo"]!.toDouble());
+          }
+        }
+        print("Profile: $elos");
+        userData[modoFront] = elos;
+      } else {
+        print("❌ Error cargando partidas de modo $modoFront (${response.statusCode})");
+        userData[modoFront] = []; // lista vacía por si falla
+      }
+    }
+
+    return userData;
   }
 
 
-  void fetchStreak(){
-
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -276,6 +350,26 @@ class _ProfilePageState extends State<Profile_page> {
       ),
     );
   }
+  Map<String, int> extraerEloDesdePGN(String pgn, String? userId) {
+    final regexWhiteId = RegExp(r'\[White "(.*?)"\]');
+    final regexWhiteElo = RegExp(r'\[White Elo "(.*?)"\]');
+    final regexBlackId = RegExp(r'\[Black "(.*?)"\]');
+    final regexBlackElo = RegExp(r'\[Black Elo "(.*?)"\]');
+
+    final whiteId = regexWhiteId.firstMatch(pgn)?.group(1) ?? '';
+    final whiteElo = int.tryParse(regexWhiteElo.firstMatch(pgn)?.group(1) ?? '') ?? 1000;
+
+    final blackId = regexBlackId.firstMatch(pgn)?.group(1) ?? '';
+    final blackElo = int.tryParse(regexBlackElo.firstMatch(pgn)?.group(1) ?? '') ?? 1000;
+
+    final esBlancas = userId == whiteId;
+
+    return {
+      "miElo": esBlancas ? whiteElo : blackElo,
+      "rivalElo": esBlancas ? blackElo : whiteElo,
+    };
+  }
+
 
   Widget _buildProfileCard() {
     return Container(
@@ -379,14 +473,6 @@ class _ProfilePageState extends State<Profile_page> {
       "Incremento exprés": Colors.yellow,
     };
 
-    Map<String, List<double>> userData = {
-      "Clásica": [4, 5, 6, 4, 3, 5, 4],
-      "Principiante": [2, 3, 4],
-      "Avanzado": [5, 7, 6, 8, 7, 6, 7, 8, 9, 8],
-      "Relámpago": [3, 2],
-      "Incremento": [3, 4, 3, 1, 2],
-      "Incremento exprés": [],
-    };
 
     return GridView.count(
       shrinkWrap: true,
