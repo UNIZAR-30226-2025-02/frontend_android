@@ -97,6 +97,7 @@ class _ProfilePageState extends State<Profile_page> {
         // Se espera que el backend retorne un JSON que incluya las siguientes propiedades:
         // "NombreUser", "FotoPerfil", "friends", "gamesPlayed", "winRate" y "maxStreak"
         final data = jsonDecode(response.body);
+        print('📦 Datos recibidos del backend (getUserInfo): $data');
         setState(() {
           playerName = data['NombreUser'] ?? playerName;
           // Si la foto de perfil es "none", usamos la imagen predeterminada con la nueva ruta.
@@ -105,10 +106,16 @@ class _ProfilePageState extends State<Profile_page> {
               : "fotoPerfil.png";;
 
           // Actualizamos las estadísticas si existen; de lo contrario, se mantiene el valor por defecto.
-          friends = data['friends'] ?? friends;
-          gamesPlayed = data['gamesPlayed'] ?? gamesPlayed;
-          winRate = (data['winRate'] != null) ? (data['winRate'] as num).toDouble() : winRate;
+          friends = data['Amistades'] ?? friends;
+          gamesPlayed = data['totalGames'] ?? gamesPlayed;
           maxStreak = data['maxStreak'] ?? maxStreak;
+          int wins = data['totalWins'] ?? 0;
+          int losses = data['totalLosses'] ?? 0;
+          int draws = data['totalDraws'] ?? 0;
+
+          int total = wins + losses + draws;
+
+          winRate = (total > 0) ? (wins / total) * 100 : 0.0;
         });
       } else {
         print("Error al obtener el perfil: ${response.statusCode}");
@@ -183,19 +190,21 @@ class _ProfilePageState extends State<Profile_page> {
                 children: [
                   ElevatedButton.icon(
                     onPressed: _showEditPhotoDialog, // Función para editar foto
-                    icon: Icon(Icons.image),
+                    icon: Icon(Icons.image, color: Colors.white),
                     label: Text('Foto'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
                     ),
                   ),
                   SizedBox(width: 8), // Separación horizontal
                   ElevatedButton.icon(
                     onPressed: _showEditNameDialog, // Función para editar nombre
-                    icon: Icon(Icons.edit),
+                    icon: Icon(Icons.edit, color: Colors.white),
                     label: Text('Nombre'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
                     ),
                   ),
                 ],
