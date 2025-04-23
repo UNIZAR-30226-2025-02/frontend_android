@@ -432,8 +432,8 @@ class _ProfilePageState extends State<Profile_page> {
             children: [
               _buildProfileStat("Amigos", friends.toString()),
               _buildProfileStat("Partidas", gamesPlayed.toString()),
-              _buildProfileStat("Victorias", "$winRate%"),
-              _buildProfileStat("Racha", maxStreak.toString()),
+              _buildProfileStat("% Victoria", "${winRate.toStringAsFixed(0)}%"),
+              _buildProfileStat("Racha Max.", maxStreak.toString()),
             ],
           ),
         ],
