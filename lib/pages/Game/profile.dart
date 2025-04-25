@@ -13,7 +13,7 @@ class Profile_page extends StatefulWidget {
 
   @override
   _ProfilePageState createState() => _ProfilePageState();
-}
+}/*
 class UltimaPartida {
   final String modo;        // Código del modo: "Punt_10", etc.
   final String nombreW;     // Nombre del jugador con blancas
@@ -21,6 +21,7 @@ class UltimaPartida {
   final String ganadorId;   // ID del jugador que ganó
   final int movimientos;    // Nº de jugadas
   final DateTime fecha;     // Fecha de la partida
+  final String pgn; // NUEVO
 
 
   UltimaPartida({
@@ -30,6 +31,7 @@ class UltimaPartida {
     required this.ganadorId,
     required this.movimientos,
     required this.fecha,
+    required this.pgn, // NUEVO
   });
 
   factory UltimaPartida.fromJson(Map<String, dynamic> json) {
@@ -40,9 +42,37 @@ class UltimaPartida {
       ganadorId: json['Ganador'].toString(),
       movimientos: json['movimientos'] ?? 0,
       fecha: DateTime.parse(json['created_at']),
+      pgn: json['PGN'] ?? '', // NUEVO
+    );
+  }
+}*/
+
+class UltimaPartida {
+  final String modo;
+  final String ganadorId;
+  final int movimientos;
+  final DateTime fecha;
+  final String pgn; // NUEVO
+
+  UltimaPartida({
+    required this.modo,
+    required this.ganadorId,
+    required this.movimientos,
+    required this.fecha,
+    required this.pgn, // NUEVO
+  });
+
+  factory UltimaPartida.fromJson(Map<String, dynamic> json) {
+    return UltimaPartida(
+      modo: json['Modo'] ?? '',
+      ganadorId: json['Ganador'].toString(),
+      movimientos: json['movimientos'] ?? 0,
+      fecha: DateTime.parse(json['created_at']),
+      pgn: json['PGN'] ?? '', // NUEVO
     );
   }
 }
+
 
 
 class _ProfilePageState extends State<Profile_page> {
@@ -239,6 +269,13 @@ class _ProfilePageState extends State<Profile_page> {
 
     return userData;
   }
+  Map<String, String> extraerNombresDesdePGN(String pgn) {
+    final aliasW = RegExp(r'\[White Alias "(.*?)"\]');
+    final aliasB = RegExp(r'\[Black Alias "(.*?)"\]');
+    final w = aliasW.firstMatch(pgn)?.group(1) ?? "Desconocido";
+    final b = aliasB.firstMatch(pgn)?.group(1) ?? "Desconocido";
+    return {"blancas": w, "negras": b};
+  }
 
 
 
@@ -277,6 +314,7 @@ class _ProfilePageState extends State<Profile_page> {
             buildWinLossIconsBar(),
             SizedBox(height: 20),
             _buildGameModeCharts(),
+            buildHistory(),
           ],
         ),
       ),
@@ -458,8 +496,8 @@ class _ProfilePageState extends State<Profile_page> {
     Map<String, IconData> modeIcons = {
       "Clásica": Icons.extension,
       "Principiante": Icons.verified,
-      "Avanzado": Icons.timer_off,
-      "Relámpago": Icons.bolt,
+      "Blitz": Icons.timer_off,
+      "Bullet": Icons.bolt,
       "Incremento": Icons.trending_up,
       "Incremento exprés": Icons.star,
     };
@@ -467,11 +505,12 @@ class _ProfilePageState extends State<Profile_page> {
     Map<String, Color> modeColors = {
       "Clásica": Colors.brown,
       "Principiante": Colors.green,
-      "Avanzado": Colors.red,
-      "Relámpago": Colors.yellow,
+      "Blitz": Colors.red,
+      "Bullet": Colors.yellow,
       "Incremento": Colors.green,
       "Incremento exprés": Colors.yellow,
     };
+
 
 
     return GridView.count(
@@ -529,6 +568,86 @@ class _ProfilePageState extends State<Profile_page> {
           ),
         );
       }).toList(),
+    );
+  }
+  String modoFriendly(String modoBack) {
+    const m = {
+      "Punt_10": "Rápida",
+      "Punt_30": "Clásica",
+      "Punt_5":  "Blitz",
+      "Punt_3":  "Bullet",
+      "Punt_5_10": "Incremento",
+      "Punt_3_2":  "Incremento Exprés",
+    };
+    return m[modoBack] ?? modoBack;
+  }
+
+  Widget buildHistory() {
+    return Container(
+      margin: EdgeInsets.only(top: 20),
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[850],
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: Colors.black54, blurRadius: 8)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Historial de Partidas',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 12),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              headingRowColor: MaterialStateProperty.all(Colors.grey[800]),
+              dataRowColor: MaterialStateProperty.all(Colors.grey[900]),
+              horizontalMargin: 8,
+              columnSpacing: 12, // puedes bajar más si hace falta
+              columns: [
+                DataColumn(label: Text('Modo', style: TextStyle(color: Colors.white))),
+                DataColumn(label: Text('Blancas', style: TextStyle(color: Colors.white))),
+                DataColumn(label: Text('Negras', style: TextStyle(color: Colors.white))),
+                DataColumn(label: Text('Res.', style: TextStyle(color: Colors.white))),
+                DataColumn(label: Text('Movs', style: TextStyle(color: Colors.white))), // más corto
+                DataColumn(label: Text('Fecha', style: TextStyle(color: Colors.white))),
+                DataColumn(label: Text('', style: TextStyle(color: Colors.white))),// reemplaza texto
+              ],
+              rows: ultimasPartidas.map((p) {
+                final fechaFmt = '${p.fecha.day.toString().padLeft(2, '0')}/'
+                    '${p.fecha.month.toString().padLeft(2, '0')}/'
+                    '${p.fecha.year}';
+                final res = p.ganadorId == userId ? "✅" : (p.ganadorId == "null" ? "🤝" : "❌");
+                final nombres = extraerNombresDesdePGN(p.pgn);
+
+                return DataRow(cells: [
+                  DataCell(Text(modoFriendly(p.modo), style: TextStyle(color: Colors.white))),
+                  DataCell(Text(nombres["blancas"] ?? 'Desconocido', style: TextStyle(color: Colors.white))),
+                  DataCell(Text(nombres["negras"] ?? 'Desconocido', style: TextStyle(color: Colors.white))),
+                  DataCell(Text(res, style: TextStyle(fontSize: 18))),
+                  DataCell(Text(p.movimientos.toString(), style: TextStyle(color: Colors.white))),
+                  DataCell(Text(fechaFmt, style: TextStyle(color: Colors.white))),
+                  DataCell(
+                    IconButton(
+                      icon: Icon(Icons.visibility, color: Colors.blueAccent),
+                      onPressed: () {
+                        // TODO: ver partida
+                      },
+                    ),
+                  ),
+                ]);
+              }).toList(),
+            ),
+          ),
+
+        ],
+      ),
     );
   }
 
