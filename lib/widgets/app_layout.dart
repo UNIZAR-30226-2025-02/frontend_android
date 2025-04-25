@@ -145,23 +145,38 @@ class _AppLayoutState extends State<AppLayout> {
                   Navigator.pushNamed(context, Settings_page.id);
                 },
               ),
-              estadoUser == 'guest'
-                  ? ListTile(
-                leading: Icon(Icons.exit_to_app, color: Colors.red),
-                title: Text("Salir de la app", style: TextStyle(color: Colors.red)),
-                onTap: () {
-                  Navigator.pop(context);
-                  _salirComoInvitado(context);
-                },
-              )
-                  : ListTile(
-                leading: Icon(Icons.logout, color: Colors.red),
-                title: Text("Cerrar Sesión", style: TextStyle(color: Colors.red)),
-                onTap: () {
-                  Navigator.pop(context);
-                  _cerrarSesion(context);
-                },
-              ),
+              if (estadoUser == 'guest') ...[
+                ListTile(
+                  leading: Icon(Icons.login),
+                  title: Text("Iniciar Sesión"),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    await _salirComoInvitado(context);
+                    Future.delayed(Duration(milliseconds: 300), () {
+                      if (mounted) {
+                        Navigator.pushReplacementNamed(context, "wellcome_page");
+                      }
+                    });
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.exit_to_app, color: Colors.red),
+                  title: Text("Salir de la app", style: TextStyle(color: Colors.red)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _salirComoInvitado(context);
+                  },
+                ),
+              ] else ...[
+                ListTile(
+                  leading: Icon(Icons.logout, color: Colors.red),
+                  title: Text("Cerrar Sesión", style: TextStyle(color: Colors.red)),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _cerrarSesion(context);
+                  },
+                ),
+              ],
             ],
           ),
         );

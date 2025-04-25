@@ -13,39 +13,7 @@ class Profile_page extends StatefulWidget {
 
   @override
   _ProfilePageState createState() => _ProfilePageState();
-}/*
-class UltimaPartida {
-  final String modo;        // Código del modo: "Punt_10", etc.
-  final String nombreW;     // Nombre del jugador con blancas
-  final String nombreB;     // Nombre del jugador con negras
-  final String ganadorId;   // ID del jugador que ganó
-  final int movimientos;    // Nº de jugadas
-  final DateTime fecha;     // Fecha de la partida
-  final String pgn; // NUEVO
-
-
-  UltimaPartida({
-    required this.modo,
-    required this.nombreW,
-    required this.nombreB,
-    required this.ganadorId,
-    required this.movimientos,
-    required this.fecha,
-    required this.pgn, // NUEVO
-  });
-
-  factory UltimaPartida.fromJson(Map<String, dynamic> json) {
-    return UltimaPartida(
-      modo: json['Modo'] ?? '',
-      nombreW: json['NombreW'] ?? '',
-      nombreB: json['NombreB'] ?? '',
-      ganadorId: json['Ganador'].toString(),
-      movimientos: json['movimientos'] ?? 0,
-      fecha: DateTime.parse(json['created_at']),
-      pgn: json['PGN'] ?? '', // NUEVO
-    );
-  }
-}*/
+}
 
 class UltimaPartida {
   final String modo;
@@ -73,8 +41,6 @@ class UltimaPartida {
   }
 }
 
-
-
 class _ProfilePageState extends State<Profile_page> {
   // Datos del usuario (valores por defecto)
   String playerName = "Cargando...";
@@ -95,6 +61,7 @@ class _ProfilePageState extends State<Profile_page> {
   late final String? serverBackend;
   // ID del usuario (por ejemplo, obtenido de SharedPreferences)
   late final String? userId;
+  bool _isLoading = true;
 
   // Lista de nombres de archivos (sin ruta) de las imágenes disponibles
   List<String> multiavatarImages = [
@@ -223,6 +190,10 @@ class _ProfilePageState extends State<Profile_page> {
     final urlIncrementoExpres = Uri.parse('${serverBackend}buscarPartidasPorModo?id=$userId&modo=Punt_3_2');
     responseIncrementoExpres = await http.get(urlIncrementoExpres);
     userData = await construirUserDataPorModo(userId: userId, serverBackend: serverBackend);
+
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   Future<Map<String, List<double>>> construirUserDataPorModo({
@@ -245,7 +216,7 @@ class _ProfilePageState extends State<Profile_page> {
       final modoFront = entry.key;
       final modoBack = entry.value;
 
-      final url = Uri.parse('$serverBackend/buscarPartidasPorModo?id=$userId&modo=$modoBack');
+      final url = Uri.parse('$serverBackend/buscarUlt5PartidasDeUsuarioPorModo?id=$userId&modo=$modoBack');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
@@ -305,7 +276,11 @@ class _ProfilePageState extends State<Profile_page> {
           ),
         ),
       ),
-      body: SingleChildScrollView(
+      body: _isLoading
+          ? Center(
+        child: CircularProgressIndicator(color: Colors.blueAccent),
+      )
+          : SingleChildScrollView(
         padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -314,6 +289,7 @@ class _ProfilePageState extends State<Profile_page> {
             buildWinLossIconsBar(),
             SizedBox(height: 20),
             _buildGameModeCharts(),
+            SizedBox(height: 20),
             buildHistory(),
           ],
         ),
@@ -496,8 +472,8 @@ class _ProfilePageState extends State<Profile_page> {
     Map<String, IconData> modeIcons = {
       "Clásica": Icons.extension,
       "Principiante": Icons.verified,
-      "Blitz": Icons.timer_off,
-      "Bullet": Icons.bolt,
+      "Avanzado": Icons.timer,
+      "Relámpago": Icons.flash_on,
       "Incremento": Icons.trending_up,
       "Incremento exprés": Icons.star,
     };
@@ -505,13 +481,17 @@ class _ProfilePageState extends State<Profile_page> {
     Map<String, Color> modeColors = {
       "Clásica": Colors.brown,
       "Principiante": Colors.green,
-      "Blitz": Colors.red,
-      "Bullet": Colors.yellow,
+      "Avanzado": Colors.red,
+      "Relámpago": Colors.yellow,
       "Incremento": Colors.green,
       "Incremento exprés": Colors.yellow,
     };
 
-
+    if (_isLoading) {
+      return Center(
+        child: CircularProgressIndicator(color: Colors.blueAccent),
+      );
+    }
 
     return GridView.count(
       shrinkWrap: true,
@@ -520,7 +500,8 @@ class _ProfilePageState extends State<Profile_page> {
       crossAxisSpacing: 10,
       mainAxisSpacing: 10,
       children: modeIcons.keys.map((mode) {
-        List<double> scores = userData[mode] ?? [];
+        List<double> scores = userData![mode] ?? [];
+
         return Container(
           padding: EdgeInsets.all(10),
           decoration: BoxDecoration(
@@ -540,7 +521,14 @@ class _ProfilePageState extends State<Profile_page> {
               ),
               SizedBox(height: 10),
               Expanded(
-                child: LineChart(
+                child: scores.isEmpty
+                    ? Center(
+                  child: Text(
+                    "Sin datos",
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                )
+                    : LineChart(
                   LineChartData(
                     gridData: FlGridData(show: true),
                     titlesData: FlTitlesData(show: false),
@@ -551,8 +539,8 @@ class _ProfilePageState extends State<Profile_page> {
                             .asMap()
                             .entries
                             .map(
-                              (e) =>
-                              FlSpot(e.key.toDouble(), e.value),
+                              (e) => FlSpot(
+                              e.key.toDouble(), e.value),
                         )
                             .toList(),
                         isCurved: true,
@@ -570,12 +558,13 @@ class _ProfilePageState extends State<Profile_page> {
       }).toList(),
     );
   }
+
   String modoFriendly(String modoBack) {
     const m = {
-      "Punt_10": "Rápida",
-      "Punt_30": "Clásica",
-      "Punt_5":  "Blitz",
-      "Punt_3":  "Bullet",
+      "Punt_10": "Clásica",
+      "Punt_30": "Principiante",
+      "Punt_5":  "Avanzada",
+      "Punt_3":  "Relámpago",
       "Punt_5_10": "Incremento",
       "Punt_3_2":  "Incremento Exprés",
     };
@@ -584,7 +573,6 @@ class _ProfilePageState extends State<Profile_page> {
 
   Widget buildHistory() {
     return Container(
-      margin: EdgeInsets.only(top: 20),
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.grey[850],
