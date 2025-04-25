@@ -31,6 +31,8 @@ class _FriendsPageState extends State<Friends_Page> {
   String? idJugador;
   String? nombreJugador;
   String searchInput = "";
+  String? selectedGameMode;
+
   String? _gameId;
   String? _gameColor;
   bool _yaEntramosAPartida = false;
@@ -134,61 +136,48 @@ class _FriendsPageState extends State<Friends_Page> {
 
     });
     socket.on('game-ready', (data) {
-      print("🎯 game-ready recibido: $data");
+      print("🎯 game-ready recibido (Friends): $data");
       final idPartida = data[0]['idPartida'];
       _gameId = idPartida;
     });
-
     socket.on('color', (data) async {
-      print("🎨 color recibido: $data");
+      print("🎨 color recibido (Friends): $data");
+
       if (idJugador == null) return;
+
       final jugadores = List<Map<String, dynamic>>.from(data[0]['jugadores']);
       final yo = jugadores.firstWhere((jugador) => jugador['id'] == idJugador, orElse: () => {});
       final rival = jugadores.firstWhere((jugador) => jugador['id'] != idJugador, orElse: () => {});
 
       if (yo.isNotEmpty && yo.containsKey('color')) {
-        final String color = yo['color'];
+        _gameColor = yo['color'];
         final prefs = await SharedPreferences.getInstance();
 
-        if (color == 'white') {
+        // Siempre guardar elo en 0
+        const int eloPorDefecto = 0;
+
+        if (_gameColor == 'white') {
           await prefs.setString('nombreBlancas', yo['nombreW']);
-          await prefs.setInt('eloBlancas', yo['eloW']);
+          await prefs.setInt('eloBlancas', eloPorDefecto);
+          await prefs.setString('fotoBlancas', yo['fotoBlancas'] ?? 'none');
+
           await prefs.setString('nombreNegras', rival['nombreB']);
-          await prefs.setInt('eloNegras', rival['eloB']);
-          await prefs.setString('fotoNegras', rival['fotoNegras']);
+          await prefs.setInt('eloNegras', eloPorDefecto);
+          await prefs.setString('fotoNegras', rival['fotoNegras'] ?? 'none');
         } else {
           await prefs.setString('nombreNegras', yo['nombreB']);
-          await prefs.setInt('eloNegras', yo['eloB']);
+          await prefs.setInt('eloNegras', eloPorDefecto);
+          await prefs.setString('fotoNegras', yo['fotoNegras'] ?? 'none');
+
           await prefs.setString('nombreBlancas', rival['nombreW']);
-          await prefs.setInt('eloBlancas', rival['eloW']);
-          await prefs.setString('fotoBlancas', rival['fotoBlancas']);
+          await prefs.setInt('eloBlancas', eloPorDefecto);
+          await prefs.setString('fotoBlancas', rival['fotoBlancas'] ?? 'none');
         }
 
-        final miElo = color == 'white' ? prefs.getInt('eloBlancas') ?? 0 : prefs.getInt('eloNegras') ?? 0;
-        final rivalElo = color == 'white' ? prefs.getInt('eloNegras') ?? 0 : prefs.getInt('eloBlancas') ?? 0;
-        final rivalName = color == 'white' ? prefs.getString('nombreNegras') ?? "Rival" : prefs.getString('nombreBlancas') ?? "Rival";
-        final fotoRival = color == 'white' ? prefs.getString('fotoNegras') ?? "none" : prefs.getString('fotoBlancas') ?? "none";
-
-        if (_gameId != null && mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (_) => BoardScreen(
-                "Modo personalizado", // puedes pasar el modo si lo guardas
-                color,
-                _gameId!,
-                "null",
-                0,
-                0,
-                miElo,
-                rivalElo,
-                rivalName,
-                fotoRival,
-              ),
-            ),
-          );
-        }
+        _intentarEntrarAPartida();
       }
     });
+
 
     socket.on("friendRequest", (dataRaw) {
       print("📩 Evento recibido: friendRequest");
@@ -216,28 +205,6 @@ class _FriendsPageState extends State<Friends_Page> {
     });
 
 
-    socket.on("game-ready", (data) {
-      print("🎯 Partida lista → $data");
-
-      try {
-        final partidaId = data['id'];
-        final color = data['color'];
-
-        if (!mounted) return;
-
-        Navigator.pushNamed(
-          context,
-          '/board',
-          arguments: {
-            'partidaId': partidaId,
-            'color': color,
-            'modo': data['modo'] ?? '', // opcional
-          },
-        );
-      } catch (e) {
-        print("❌ Error al procesar game-ready: $e");
-      }
-    });
 
 
     socket.on("request-accepted", (data) {
@@ -280,6 +247,53 @@ class _FriendsPageState extends State<Friends_Page> {
       ));
     }
   }
+  void _intentarEntrarAPartida() async {
+    if (_yaEntramosAPartida || _gameId == null || _gameColor == null) return;
+
+    _yaEntramosAPartida = true;
+
+    final prefs = await SharedPreferences.getInstance();
+
+    final miElo = _gameColor == 'white'
+        ? prefs.getInt('eloBlancas') ?? 0
+        : prefs.getInt('eloNegras') ?? 0;
+
+    final rivalElo = _gameColor == 'white'
+        ? prefs.getInt('eloNegras') ?? 0
+        : prefs.getInt('eloBlancas') ?? 0;
+
+    final rivalName = _gameColor == 'white'
+        ? prefs.getString('nombreNegras') ?? "Rival"
+        : prefs.getString('nombreBlancas') ?? "Rival";
+
+    final rivalFoto = _gameColor == 'white'
+        ? prefs.getString('fotoNegras') ?? 'fotoPerfil.png'
+        : prefs.getString('fotoBlancas') ?? 'fotoPerfil.png';
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => BoardScreen(
+            selectedGameMode ?? "Clásica",
+            _gameColor!,
+            _gameId!,
+            "null",
+            0,
+            0,
+            miElo,
+            rivalElo,
+            rivalName,
+            rivalFoto,
+          ),
+        ),
+      );
+
+
+    });
+
+  }
+
 
   void _showFriendRequestDialog(String idRemitente, String nombre) {
     print("🪧 Mostrando popup de solicitud de $nombre ($idRemitente)");
@@ -323,6 +337,19 @@ class _FriendsPageState extends State<Friends_Page> {
 
   String clean(String? id) => (id ?? "").trim();
 
+  Future<void> setEloSafe(SharedPreferences prefs, String key, dynamic value) async {
+    if (value == null) return;
+    if (value is int) {
+      await prefs.setInt(key, value);
+    } else if (value is double) {
+      await prefs.setDouble(key, value);
+    } else if (value is String && double.tryParse(value) != null) {
+      await prefs.setDouble(key, double.parse(value));
+    } else {
+      print("❌ Valor de elo inválido para $key: $value");
+    }
+  }
+
   void _mostrarPopupReto(String idRetador, String idRetado, String modo) {
     if (!mounted) {
       print("⚠️ Widget desmontado. No se puede mostrar popup.");
@@ -342,8 +369,8 @@ class _FriendsPageState extends State<Friends_Page> {
               print("✅ Aceptando reto...");
               print("✅ Enviando accept-challenge → { idRetador: $idRetador, idRetado: $idRetado, modo: $modo }");
               socket.emit('accept-challenge', {
-                "idRetado": idRetado,
                 "idRetador": idRetador,
+                "idRetado": idRetado,
                 "modo": modo,
               });
               Navigator.of(context).pop();
@@ -427,6 +454,22 @@ class _FriendsPageState extends State<Friends_Page> {
     ));
   }
 
+  void _removeFriend(String idAmigo, String nombreAmigo) {
+    if (socket.connected && idJugador != null) {
+      socket.emit("remove-friend", {
+        "idJugador": idJugador,
+        "idAmigo": idAmigo,
+      });
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("Has eliminado a $nombreAmigo de tus amigos."),
+        backgroundColor: Colors.red,
+      ));
+
+      setState(() {
+        friends.removeWhere((f) => f['amigoId'].toString().trim() == idAmigo);
+      });
+    }
+  }
 
   void _showGameModes(String idAmigo) {
     showModalBottomSheet(
@@ -441,7 +484,10 @@ class _FriendsPageState extends State<Friends_Page> {
               title: Text(mode.name, style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(context);
-                _challengeFriend(idAmigo, mode.name);
+                setState(() {
+                  selectedGameMode = mode.name; // ✅ Guardamos el modo seleccionado
+                });
+                _challengeFriend(idAmigo, mode.name); // enviamos reto
               },
             );
           }).toList(),
@@ -535,18 +581,37 @@ class _FriendsPageState extends State<Friends_Page> {
                       child: Text("Sugerencias",
                           style: TextStyle(color: Colors.white, fontSize: 18)),
                     ),
-                    ...suggestions.map((sug) => Card(
-                      color: Colors.grey[850],
-                      child: ListTile(
-                        title: Text(sug['NombreUser'],
-                            style: TextStyle(color: Colors.white)),
-                        trailing: IconButton(
-                          icon: Icon(Icons.person_add, color: Colors.blue),
-                          onPressed: () => _sendFriendRequest(
-                              sug['id'].toString(), sug['NombreUser']),
+                    ...suggestions.map((sug) {
+                      final idSug = sug['id'].toString().trim();
+                      final esAmigo = friends.any((f) => f['amigoId'].toString().trim() == idSug);
+
+                      return Card(
+                        color: Colors.grey[850],
+                        child: ListTile(
+                          title: Text(sug['NombreUser'], style: TextStyle(color: Colors.white)),
+                          trailing: esAmigo
+                              ? Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.sports_esports, color: Colors.green),
+                                onPressed: () => _showGameModes(idSug),
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.person_remove, color: Colors.red),
+                                onPressed: () => _removeFriend(idSug, sug['NombreUser']),
+                              ),
+                            ],
+                          )
+                              : IconButton(
+                            icon: Icon(Icons.person_add, color: Colors.blue),
+                            onPressed: () => _sendFriendRequest(idSug, sug['NombreUser']),
+                          ),
                         ),
-                      ),
-                    )),
+                      );
+                    }),
+
+
                   ],
                 ),
               )
@@ -570,10 +635,20 @@ class _FriendsPageState extends State<Friends_Page> {
                         color: Colors.grey[900],
                         child: ListTile(
                           title: Text(nombre, style: TextStyle(color: Colors.white)),
-                          trailing: IconButton(
-                            icon: Icon(Icons.sports_esports, color: Colors.green),
-                            onPressed: () => _showGameModes(id),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.sports_esports, color: Colors.green),
+                                onPressed: () => _showGameModes(id),
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.person_remove, color: Colors.red),
+                                onPressed: () => _removeFriend(id, nombre),
+                              ),
+                            ],
                           ),
+
                         ),
                       );
                     })
