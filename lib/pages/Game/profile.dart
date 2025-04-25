@@ -608,14 +608,16 @@ class _ProfilePageState extends State<Profile_page> {
             child: DataTable(
               headingRowColor: MaterialStateProperty.all(Colors.grey[800]),
               dataRowColor: MaterialStateProperty.all(Colors.grey[900]),
+              horizontalMargin: 8,
+              columnSpacing: 12, // puedes bajar más si hace falta
               columns: [
                 DataColumn(label: Text('Modo', style: TextStyle(color: Colors.white))),
                 DataColumn(label: Text('Blancas', style: TextStyle(color: Colors.white))),
                 DataColumn(label: Text('Negras', style: TextStyle(color: Colors.white))),
                 DataColumn(label: Text('Res.', style: TextStyle(color: Colors.white))),
-                DataColumn(label: Text('Jugadas', style: TextStyle(color: Colors.white))),
+                DataColumn(label: Text('Movs', style: TextStyle(color: Colors.white))), // más corto
                 DataColumn(label: Text('Fecha', style: TextStyle(color: Colors.white))),
-                DataColumn(label: Text('', style: TextStyle(color: Colors.white))), // Ver partida
+                DataColumn(label: Text('', style: TextStyle(color: Colors.white))),// reemplaza texto
               ],
               rows: ultimasPartidas.map((p) {
                 final fechaFmt = '${p.fecha.day.toString().padLeft(2, '0')}/'
@@ -623,29 +625,27 @@ class _ProfilePageState extends State<Profile_page> {
                     '${p.fecha.year}';
                 final res = p.ganadorId == userId ? "✅" : (p.ganadorId == "null" ? "🤝" : "❌");
                 final nombres = extraerNombresDesdePGN(p.pgn);
+
                 return DataRow(cells: [
                   DataCell(Text(modoFriendly(p.modo), style: TextStyle(color: Colors.white))),
-
                   DataCell(Text(nombres["blancas"] ?? 'Desconocido', style: TextStyle(color: Colors.white))),
                   DataCell(Text(nombres["negras"] ?? 'Desconocido', style: TextStyle(color: Colors.white))),
-                DataCell(Text(res, style: TextStyle(fontSize: 18))),
+                  DataCell(Text(res, style: TextStyle(fontSize: 18))),
                   DataCell(Text(p.movimientos.toString(), style: TextStyle(color: Colors.white))),
                   DataCell(Text(fechaFmt, style: TextStyle(color: Colors.white))),
                   DataCell(
-                    TextButton(
+                    IconButton(
+                      icon: Icon(Icons.visibility, color: Colors.blueAccent),
                       onPressed: () {
-                        // TODO: implementar navegación a partida individual
+                        // TODO: ver partida
                       },
-                      child: Text(
-                        'Ver Partida',
-                        style: TextStyle(color: Colors.blueAccent),
-                      ),
                     ),
                   ),
                 ]);
               }).toList(),
             ),
           ),
+
         ],
       ),
     );
