@@ -153,7 +153,7 @@ class _AppLayoutState extends State<AppLayout> {
                     Navigator.pop(context);
                     await _salirComoInvitado(context);
                     Future.delayed(Duration(milliseconds: 300), () {
-                      if (mounted) {
+                      if (context.mounted) {
                         Navigator.pushReplacementNamed(context, "wellcome_page");
                       }
                     });
