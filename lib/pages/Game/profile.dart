@@ -568,6 +568,48 @@ class _ProfilePageState extends State<Profile_page> {
     return m[modoBack] ?? modoBack;
   }
 
+  Map<String, int> extraerEloJugadoresDesdePGN(String pgn) {
+    final whiteEloMatch = RegExp(r'\[White Elo "(.*?)"\]').firstMatch(pgn);
+    final blackEloMatch = RegExp(r'\[Black Elo "(.*?)"\]').firstMatch(pgn);
+
+    int whiteElo = (double.tryParse(whiteEloMatch?.group(1) ?? '')?.round()) ?? 1000;
+    int blackElo = (double.tryParse(blackEloMatch?.group(1) ?? '')?.round()) ?? 1000;
+
+    return {
+      "whiteElo": whiteElo,
+      "blackElo": blackElo,
+    };
+  }
+
+  String formatearEloJugador(int elo) {
+    if (elo >= 0) {
+      return '(+${elo})';
+    } else {
+      return '(-${elo})';
+    }
+  }
+
+  int extraerVariacionElo(UltimaPartida partida, String userId) {
+    final regexJugadorBlancas = RegExp(r'\[White "(.*?)"\]');
+    final whitePlayer = regexJugadorBlancas.firstMatch(partida.pgn)?.group(1) ?? '';
+
+    final variacionJB = partida.pgn.contains('[VariationW "') ? _extraerVariacion(partida.pgn, "VariationW") : 0;
+    final variacionJW = partida.pgn.contains('[VariationB "') ? _extraerVariacion(partida.pgn, "VariationB") : 0;
+
+    final esBlancas = whitePlayer == userId;
+
+    return esBlancas ? variacionJB : variacionJW;
+  }
+
+  int _extraerVariacion(String pgn, String tag) {
+    final regex = RegExp('\\[$tag "(.*?)"\\]');
+    final match = regex.firstMatch(pgn);
+    if (match != null) {
+      return double.tryParse(match.group(1) ?? '0')?.round() ?? 0;
+    }
+    return 0;
+  }
+
   Widget buildHistory() {
     Map<String, IconData> modeIcons = {
       "Clásica": Icons.extension,
@@ -630,21 +672,45 @@ class _ProfilePageState extends State<Profile_page> {
                       '${p.fecha.year}';
                   final res = p.ganadorId == userId ? "✅" : (p.ganadorId == "null" ? "🤝" : "❌");
                   final nombres = extraerNombresDesdePGN(p.pgn);
+                  final elos = extraerEloJugadoresDesdePGN(p.pgn);
 
                   final modoNombre = modoFriendly(p.modo);
                   final iconoModo = modeIcons[modoNombre] ?? Icons.help_outline;
                   final colorModo = modeColors[modoNombre] ?? Colors.blueAccent; // 👈 también sacamos color
 
+                  final whiteElo = elos["whiteElo"] ?? 1000;
+                  final blackElo = elos["blackElo"] ?? 1000;
+                  final variacion = extraerVariacionElo(p, userId!);
+
                   return DataRow(
                     cells: [
                       DataCell(
-                        Icon(iconoModo, color: colorModo), // 👈 icono ahora con su color correcto
+                        Icon(iconoModo, color: colorModo),
                       ),
-                      DataCell(Text(nombres["blancas"] ?? 'Desconocido', style: TextStyle(color: Colors.white))),
-                      DataCell(Text(nombres["negras"] ?? 'Desconocido', style: TextStyle(color: Colors.white))),
-                      DataCell(Text(res, style: TextStyle(fontSize: 18))),
-                      DataCell(Text(p.movimientos.toString(), style: TextStyle(color: Colors.white))),
-                      DataCell(Text(fechaFmt, style: TextStyle(color: Colors.white))),
+                      DataCell(
+                        Text('${nombres["blancas"]} ${formatearEloJugador(whiteElo)}', style: TextStyle(color: Colors.white)),
+                      ),
+                      DataCell(
+                        Text('${nombres["negras"]} ${formatearEloJugador(blackElo)}', style: TextStyle(color: Colors.white)),
+                      ),
+                      DataCell(
+                        Row(
+                          children: [
+                            Text(res, style: TextStyle(fontSize: 18)),
+                            const SizedBox(width: 4),
+                            Text(
+                              '(${variacion >= 0 ? '+' : ''}$variacion)',
+                              style: TextStyle(color: Colors.white70),
+                            ),
+                          ],
+                        ),
+                      ),
+                      DataCell(
+                        Text(p.movimientos.toString(), style: TextStyle(color: Colors.white)),
+                      ),
+                      DataCell(
+                        Text(fechaFmt, style: TextStyle(color: Colors.white)),
+                      ),
                       DataCell(
                         IconButton(
                           icon: Icon(Icons.visibility, color: Colors.blueAccent),

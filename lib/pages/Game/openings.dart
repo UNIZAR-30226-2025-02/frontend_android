@@ -208,15 +208,25 @@ class _OpeningDetailPageState extends State<OpeningDetailPage> {
       backgroundColor: Colors.grey[900],
       appBar: BuildHeadArrow(),
       body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start, // <-- Lo cambiamos a start mejor
         children: [
+          const SizedBox(height: 20),
+          Text(
+            widget.openingName, // <-- Aquí mostramos el nombre de la apertura
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 20),
           ChessBoard(
             controller: _chessController,
             boardOrientation: PlayerColor.white,
           ),
           const SizedBox(height: 20),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16), // ⬅️ margen a izquierda y derecha
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -237,11 +247,13 @@ class _OpeningDetailPageState extends State<OpeningDetailPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: _previousMove),
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: _previousMove,
+              ),
               IconButton(
-                  icon: Icon(Icons.arrow_forward, color: isLastMove ? Colors.grey : Colors.white),
-                  onPressed: isLastMove ? null : _nextMove),
+                icon: Icon(Icons.arrow_forward, color: isLastMove ? Colors.grey : Colors.white),
+                onPressed: isLastMove ? null : _nextMove,
+              ),
             ],
           ),
         ],
