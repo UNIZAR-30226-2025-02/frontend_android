@@ -125,7 +125,6 @@ class _ProfilePageState extends State<Profile_page> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print('📦 Datos recibidos del backend (getUserInfo): $data');
 
         setState(() {
           playerName = data['NombreUser'] ?? playerName;
@@ -146,7 +145,7 @@ class _ProfilePageState extends State<Profile_page> {
         });
 
         // LLAMADA ADICIONAL: obtener historial de últimas 5 partidas
-        final histUrl = Uri.parse('${serverBackend}buscarUlt5PartidasDeUsuario?id=$userId');
+        final histUrl = Uri.parse('${serverBackend}buscarUlt10PartidasDeUsuario?id=$userId');
         final histResp = await http.get(histUrl);
         if (histResp.statusCode == 200) {
           final List jsonList = jsonDecode(histResp.body);
@@ -170,23 +169,23 @@ class _ProfilePageState extends State<Profile_page> {
     final urlClasica = Uri.parse('${serverBackend}buscarPartidasPorModo?id=$userId&modo=Punt_10');
     responseClasica = await http.get(urlClasica);
 
-// Principiante
+    // Principiante
     final urlPrincipiante = Uri.parse('${serverBackend}buscarPartidasPorModo?id=$userId&modo=Punt_30');
     responsePrincipiante = await http.get(urlPrincipiante);
 
-// Avanzado
+    // Avanzado
     final urlAvanzado = Uri.parse('${serverBackend}buscarPartidasPorModo?id=$userId&modo=Punt_5');
     responseAvanzado = await http.get(urlAvanzado);
 
-// Relámpago
+    // Relámpago
     final urlRelampago = Uri.parse('${serverBackend}buscarPartidasPorModo?id=$userId&modo=Punt_3');
     responseRelampago = await http.get(urlRelampago);
 
-// Incremento
+    // Incremento
     final urlIncremento = Uri.parse('${serverBackend}buscarPartidasPorModo?id=$userId&modo=Punt_5_10');
     responseIncremento = await http.get(urlIncremento);
 
-// Incremento exprés
+    // Incremento exprés
     final urlIncrementoExpres = Uri.parse('${serverBackend}buscarPartidasPorModo?id=$userId&modo=Punt_3_2');
     responseIncrementoExpres = await http.get(urlIncrementoExpres);
     userData = await construirUserDataPorModo(userId: userId, serverBackend: serverBackend);
@@ -230,7 +229,6 @@ class _ProfilePageState extends State<Profile_page> {
             elos.add(eloInfo["miElo"]!.toDouble());
           }
         }
-        print("Profile: $elos");
         userData[modoFront] = elos;
       } else {
         print("❌ Error cargando partidas de modo $modoFront (${response.statusCode})");
@@ -240,6 +238,7 @@ class _ProfilePageState extends State<Profile_page> {
 
     return userData;
   }
+
   Map<String, String> extraerNombresDesdePGN(String pgn) {
     final aliasW = RegExp(r'\[White Alias "(.*?)"\]');
     final aliasB = RegExp(r'\[Black Alias "(.*?)"\]');
@@ -247,8 +246,6 @@ class _ProfilePageState extends State<Profile_page> {
     final b = aliasB.firstMatch(pgn)?.group(1) ?? "Desconocido";
     return {"blancas": w, "negras": b};
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -572,6 +569,24 @@ class _ProfilePageState extends State<Profile_page> {
   }
 
   Widget buildHistory() {
+    Map<String, IconData> modeIcons = {
+      "Clásica": Icons.extension,
+      "Principiante": Icons.verified,
+      "Avanzado": Icons.timer,
+      "Relámpago": Icons.flash_on,
+      "Incremento": Icons.trending_up,
+      "Incremento exprés": Icons.star,
+    };
+
+    Map<String, Color> modeColors = {
+      "Clásica": Colors.brown,
+      "Principiante": Colors.green,
+      "Avanzado": Colors.red,
+      "Relámpago": Colors.yellow,
+      "Incremento": Colors.green,
+      "Incremento exprés": Colors.yellow,
+    };
+
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -593,47 +608,57 @@ class _ProfilePageState extends State<Profile_page> {
           SizedBox(height: 12),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            child: DataTable(
-              headingRowColor: MaterialStateProperty.all(Colors.grey[800]),
-              dataRowColor: MaterialStateProperty.all(Colors.grey[900]),
-              horizontalMargin: 8,
-              columnSpacing: 12, // puedes bajar más si hace falta
-              columns: [
-                DataColumn(label: Text('Modo', style: TextStyle(color: Colors.white))),
-                DataColumn(label: Text('Blancas', style: TextStyle(color: Colors.white))),
-                DataColumn(label: Text('Negras', style: TextStyle(color: Colors.white))),
-                DataColumn(label: Text('Res.', style: TextStyle(color: Colors.white))),
-                DataColumn(label: Text('Movs', style: TextStyle(color: Colors.white))), // más corto
-                DataColumn(label: Text('Fecha', style: TextStyle(color: Colors.white))),
-                DataColumn(label: Text('', style: TextStyle(color: Colors.white))),// reemplaza texto
-              ],
-              rows: ultimasPartidas.map((p) {
-                final fechaFmt = '${p.fecha.day.toString().padLeft(2, '0')}/'
-                    '${p.fecha.month.toString().padLeft(2, '0')}/'
-                    '${p.fecha.year}';
-                final res = p.ganadorId == userId ? "✅" : (p.ganadorId == "null" ? "🤝" : "❌");
-                final nombres = extraerNombresDesdePGN(p.pgn);
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: DataTable(
+                headingRowColor: MaterialStateProperty.all(Colors.grey[800]),
+                dataRowColor: MaterialStateProperty.all(Colors.transparent),
+                horizontalMargin: 16,
+                columnSpacing: 24,
+                columns: [
+                  DataColumn(label: Text('Modo', style: TextStyle(color: Colors.white))),
+                  DataColumn(label: Text('Blancas', style: TextStyle(color: Colors.white))),
+                  DataColumn(label: Text('Negras', style: TextStyle(color: Colors.white))),
+                  DataColumn(label: Text('Res.', style: TextStyle(color: Colors.white))),
+                  DataColumn(label: Text('Movs', style: TextStyle(color: Colors.white))),
+                  DataColumn(label: Text('Fecha', style: TextStyle(color: Colors.white))),
+                  DataColumn(label: Text('', style: TextStyle(color: Colors.white))),
+                ],
+                rows: ultimasPartidas.map((p) {
+                  final fechaFmt = '${p.fecha.day.toString().padLeft(2, '0')}/'
+                      '${p.fecha.month.toString().padLeft(2, '0')}/'
+                      '${p.fecha.year}';
+                  final res = p.ganadorId == userId ? "✅" : (p.ganadorId == "null" ? "🤝" : "❌");
+                  final nombres = extraerNombresDesdePGN(p.pgn);
 
-                return DataRow(cells: [
-                  DataCell(Text(modoFriendly(p.modo), style: TextStyle(color: Colors.white))),
-                  DataCell(Text(nombres["blancas"] ?? 'Desconocido', style: TextStyle(color: Colors.white))),
-                  DataCell(Text(nombres["negras"] ?? 'Desconocido', style: TextStyle(color: Colors.white))),
-                  DataCell(Text(res, style: TextStyle(fontSize: 18))),
-                  DataCell(Text(p.movimientos.toString(), style: TextStyle(color: Colors.white))),
-                  DataCell(Text(fechaFmt, style: TextStyle(color: Colors.white))),
-                  DataCell(
-                    IconButton(
-                      icon: Icon(Icons.visibility, color: Colors.blueAccent),
-                      onPressed: () {
-                        // TODO: ver partida
-                      },
-                    ),
-                  ),
-                ]);
-              }).toList(),
+                  final modoNombre = modoFriendly(p.modo);
+                  final iconoModo = modeIcons[modoNombre] ?? Icons.help_outline;
+                  final colorModo = modeColors[modoNombre] ?? Colors.blueAccent; // 👈 también sacamos color
+
+                  return DataRow(
+                    cells: [
+                      DataCell(
+                        Icon(iconoModo, color: colorModo), // 👈 icono ahora con su color correcto
+                      ),
+                      DataCell(Text(nombres["blancas"] ?? 'Desconocido', style: TextStyle(color: Colors.white))),
+                      DataCell(Text(nombres["negras"] ?? 'Desconocido', style: TextStyle(color: Colors.white))),
+                      DataCell(Text(res, style: TextStyle(fontSize: 18))),
+                      DataCell(Text(p.movimientos.toString(), style: TextStyle(color: Colors.white))),
+                      DataCell(Text(fechaFmt, style: TextStyle(color: Colors.white))),
+                      DataCell(
+                        IconButton(
+                          icon: Icon(Icons.visibility, color: Colors.blueAccent),
+                          onPressed: () {
+                            // TODO: ver partida
+                          },
+                        ),
+                      ),
+                    ],
+                  );
+                }).toList(),
+              ),
             ),
           ),
-
         ],
       ),
     );

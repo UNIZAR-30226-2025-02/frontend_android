@@ -452,7 +452,7 @@ class _BoardScreenState extends State<BoardScreen> {
                     },
                     child: Text(
                       "Volver al inicio",
-                      style: TextStyle(fontSize: 16, color: Colors.white),
+                      style: TextStyle(fontSize: 14, color: Colors.white),
                     ),
                   ),
                   if (estadoUser != "guest") // Solo si no es invitado
@@ -469,7 +469,7 @@ class _BoardScreenState extends State<BoardScreen> {
                       },
                       child: Text(
                         "Analizar partida",
-                        style: TextStyle(fontSize: 16, color: Colors.white),
+                        style: TextStyle(fontSize: 14, color: Colors.white),
                       ),
                     ),
                 ],
