@@ -109,10 +109,10 @@ class _RankingPageState extends State<Ranking_page> {
   }
 
   String _formatearPuntuacion(dynamic valor) {
-    if (valor == null || valor == 'NULL') return '0.00';
+    if (valor == null || valor == 'NULL') return '0';
 
     final doubleValor = double.tryParse(valor.toString()) ?? 0.0;
-    return doubleValor.toStringAsFixed(2);
+    return doubleValor.round().toString();
   }
 
   Color getPodiumColor(int rank) {
@@ -211,7 +211,7 @@ class _RankingPageState extends State<Ranking_page> {
             ),
             Expanded(
               child: userName == null
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const Center(child: CircularProgressIndicator(color: Colors.blueAccent,))
                   : ListView.builder(
                 padding: const EdgeInsets.all(16),
                 itemCount: modos.length,

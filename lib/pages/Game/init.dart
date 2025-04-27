@@ -226,7 +226,11 @@ class _InitPageState extends State<Init_page> {
                     if (index == 0) {
                       // Tarjeta resumen como primer ítem
                       if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Center(child: CircularProgressIndicator());
+                        return Center(
+                          child: CircularProgressIndicator(
+                            color: Colors.blueAccent, // 👈 aquí aplicamos el color
+                          ),
+                        );
                       }
 
                       if (snapshot.hasError) {
@@ -332,7 +336,9 @@ class _InitPageState extends State<Init_page> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Padding(
             padding: const EdgeInsets.all(16.0),
-            child: CircularProgressIndicator(),
+            child: CircularProgressIndicator(
+              color: Colors.blueAccent, // 👈 aquí añadimos el color azul que quieres
+            ),
           );
         }
 

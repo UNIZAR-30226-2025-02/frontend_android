@@ -204,9 +204,6 @@ class _FriendsPageState extends State<Friends_Page> {
       }
     });
 
-
-
-
     socket.on("request-accepted", (data) {
       final String nombre = data["nombre"];
       print("✅ $nombre aceptó tu solicitud");
@@ -503,7 +500,26 @@ class _FriendsPageState extends State<Friends_Page> {
       body: AppLayout(
         child: Column(
           children: [
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
+            Container(
+              color: Colors.grey[900],
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'SOCIAL',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 22,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Icon(Icons.people, color: Colors.white, size: 36),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Row(

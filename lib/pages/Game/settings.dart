@@ -81,7 +81,7 @@ class _Settings_pageState extends State<Settings_page> {
                     setState(() {});
                   }
                 }),
-                _buildMenuItem(Icons.group, 'AMIGOS', () {
+                _buildMenuItem(Icons.group, 'SOCIAL', () {
                   Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(builder: (context) => Friends_Page()),
