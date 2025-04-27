@@ -385,8 +385,11 @@ class _BoardScreenState extends State<BoardScreen> {
     return isPawn && (isWhitePromotion || isBlackPromotion);
   }
 
-  void _exitGame(String message) {
+  Future<void> _exitGame(String message) async {
     if (!context.mounted) return;
+
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String estadoUser = prefs.getString('estadoUser') ?? "";
 
     showDialog(
       context: context,
@@ -430,6 +433,8 @@ class _BoardScreenState extends State<BoardScreen> {
                 style: TextStyle(color: Colors.white70, fontSize: 18),
               ),
               SizedBox(height: 20),
+
+              // Botones normales como querías
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -450,23 +455,23 @@ class _BoardScreenState extends State<BoardScreen> {
                       style: TextStyle(fontSize: 16, color: Colors.white),
                     ),
                   ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.greenAccent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  if (estadoUser != "guest") // Solo si no es invitado
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blueAccent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      onPressed: () {
+                        print("🔎 Análisis de partida (próximamente)");
+                      },
+                      child: Text(
+                        "Analizar partida",
+                        style: TextStyle(fontSize: 16, color: Colors.white),
+                      ),
                     ),
-                    onPressed: () {
-                      // Aquí más adelante pones la lógica para analizar partida
-                      print("🔎 Análisis de partida (próximamente)");
-                    },
-                    child: Text(
-                      "Analizar partida",
-                      style: TextStyle(fontSize: 16, color: Colors.black),
-                    ),
-                  ),
                 ],
               ),
             ],
