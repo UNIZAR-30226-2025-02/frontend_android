@@ -32,6 +32,7 @@ class _FriendsPageState extends State<Friends_Page> {
   String? nombreJugador;
   String searchInput = "";
   String? selectedGameMode;
+  late SharedPreferences prefs;
 
   String? _gameId;
   String? _gameColor;
@@ -66,7 +67,7 @@ class _FriendsPageState extends State<Friends_Page> {
   }
 
   Future<void> _initializeSocketAndUser() async {
-    final prefs = await SharedPreferences.getInstance();
+    prefs = await SharedPreferences.getInstance();  // <-- GUARDAMOS prefs una vez
     idJugador = prefs.getString('idJugador');
     nombreJugador = prefs.getString('usuario');
 
@@ -137,7 +138,7 @@ class _FriendsPageState extends State<Friends_Page> {
     });
     socket.on('game-ready', (data) {
       print("🎯 game-ready recibido (Friends): $data");
-      final idPartida = data[0]['idPartida'];
+      final idPartida = data[0]['gameId'];
       _gameId = idPartida;
     });
     socket.on('color', (data) async {
@@ -151,7 +152,6 @@ class _FriendsPageState extends State<Friends_Page> {
 
       if (yo.isNotEmpty && yo.containsKey('color')) {
         _gameColor = yo['color'];
-        final prefs = await SharedPreferences.getInstance();
 
         // Siempre guardar elo en 0
         const int eloPorDefecto = 0;
@@ -245,11 +245,25 @@ class _FriendsPageState extends State<Friends_Page> {
     }
   }
   void _intentarEntrarAPartida() async {
-    if (_yaEntramosAPartida || _gameId == null || _gameColor == null) return;
+    print("⚡ _intentarEntrarAPartida llamado");
+    print("_yaEntramosAPartida: $_yaEntramosAPartida");
+    print("_gameId: $_gameId");
+    print("_gameColor: $_gameColor");
 
-    _yaEntramosAPartida = true;
+    if (_yaEntramosAPartida || _gameId == null || _gameColor == null) {
+      print("❌ No podemos entrar a partida (yaEntramos: $_yaEntramosAPartida, gameId: $_gameId, color: $_gameColor)");
+      return;
+    }
 
-    final prefs = await SharedPreferences.getInstance();
+    print("✅ mounted: $mounted");
+    if (!mounted) {
+      print("❗ Widget no montado, reintentando...");
+      await Future.delayed(Duration(milliseconds: 300));
+      _intentarEntrarAPartida();
+      return;
+    }
+
+    print("🧩 prefs ya disponibles");
 
     final miElo = _gameColor == 'white'
         ? prefs.getInt('eloBlancas') ?? 0
@@ -267,29 +281,45 @@ class _FriendsPageState extends State<Friends_Page> {
         ? prefs.getString('fotoNegras') ?? 'fotoPerfil.png'
         : prefs.getString('fotoBlancas') ?? 'fotoPerfil.png';
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => BoardScreen(
-            selectedGameMode ?? "Clásica",
-            _gameColor!,
-            _gameId!,
-            "null",
-            0,
-            0,
-            miElo,
-            rivalElo,
-            rivalName,
-            rivalFoto,
-          ),
+    print("🧩 Después de leer prefs");
+    _yaEntramosAPartida = true;
+    print("🚀 Navegando a BoardScreen...");
+
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => BoardScreen(
+          selectedGameMode ?? "Clásica",
+          _gameColor!,
+          _gameId!,
+          "null",
+          0,
+          0,
+          miElo,
+          rivalElo,
+          rivalName,
+          rivalFoto,
         ),
-      );
-
-
-    });
-
+      ),
+    );
   }
+
+
+
+  void _reintentarConexion() async {
+    print("🔄 Intentando re-subscribirse a eventos para reconectar...");
+
+    // Esperamos un poco para evitar un bucle rápido
+    await Future.delayed(Duration(milliseconds: 500));
+
+    // Intentamos "forzar" que el servidor nos reenvíe la info (o reusamos la existente)
+    if (socket.connected && _gameId != null && _gameColor != null && !_yaEntramosAPartida) {
+      print("🔁 Reintento: parece que tenemos partida preparada, intentando navegación de nuevo...");
+      _intentarEntrarAPartida(); // Vuelve a intentar navegar
+    } else {
+      print("❗ Socket desconectado o datos incompletos, no podemos reintentar ahora.");
+    }
+  }
+
 
 
   void _showFriendRequestDialog(String idRemitente, String nombre) {
@@ -347,7 +377,7 @@ class _FriendsPageState extends State<Friends_Page> {
     }
   }
 
-  void _mostrarPopupReto(String idRetador, String idRetado, String modo) {
+  void _mostrarPopupReto(String idRetador, String idRetado, String modo) async {
     if (!mounted) {
       print("⚠️ Widget desmontado. No se puede mostrar popup.");
       return;
@@ -355,37 +385,44 @@ class _FriendsPageState extends State<Friends_Page> {
 
     print("📥 Popup de reto recibido → idRetador: $idRetador | idRetado: $idRetado | modo: $modo");
 
-    showDialog(
+    final aceptado = await showDialog<bool>(
       context: context,
+      barrierDismissible: false, // Para que no cierre tocando fuera
       builder: (context) => AlertDialog(
         title: Text("¡Has recibido un reto!"),
         content: Text("Te han retado a una partida en modo $modo."),
         actions: [
           TextButton(
             onPressed: () {
-              print("✅ Aceptando reto...");
-              print("✅ Enviando accept-challenge → { idRetador: $idRetador, idRetado: $idRetado, modo: $modo }");
-              socket.emit('accept-challenge', {
-                "idRetador": idRetador,
-                "idRetado": idRetado,
-                "modo": modo,
-              });
-              Navigator.of(context).pop();
+              Navigator.of(context).pop(false); // Rechazado
             },
-            child: Text("Aceptar"),
+            child: Text("Rechazar"),
           ),
           TextButton(
             onPressed: () {
-              print("❌ Reto rechazado.");
-              Navigator.of(context).pop();
+              Navigator.of(context).pop(true); // Aceptado
             },
-            child: Text("Rechazar"),
+            child: Text("Aceptar"),
           ),
         ],
       ),
     );
-  }
 
+    if (aceptado == true) {
+      print("✅ Aceptando reto...");
+
+      socket.emit('accept-challenge', {
+        "idRetador": idRetador,
+        "idRetado": idRetado,
+        "modo": modo,
+      });
+
+      print("✅ accept-challenge enviado.");
+      // Ahora el flujo sigue normal: recibes game-ready y color -> navegarás
+    } else {
+      print("❌ Reto rechazado, no hacemos nada.");
+    }
+  }
 
 
   void _showInfoDialog(String message) {
