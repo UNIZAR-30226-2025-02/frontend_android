@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../Game/init.dart'; // Ajusta la ruta si es necesario
+
+import 'package:chess/chess.dart' as chess;
+
 
 class GameReviewPage extends StatefulWidget {
   final List<String> historial;
@@ -10,25 +14,100 @@ class GameReviewPage extends StatefulWidget {
   @override
   _GameReviewPageState createState() => _GameReviewPageState();
 }
-
 class _GameReviewPageState extends State<GameReviewPage> {
   final ChessBoardController _controller = ChessBoardController();
-  int moveIndex = -1;
+  final chess.Chess _game = chess.Chess();  // el motor para parsear SAN
+  final List<Map<String,String>> _moveStack = [];
 
+  int moveIndex = -1;
+  late final String? serverBackend;
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
   void _nextMove() {
     if (moveIndex < widget.historial.length - 1) {
       moveIndex++;
-      final parts = widget.historial[moveIndex].split("-");
-      if (parts.length >= 2) {
-        _controller.makeMove(from: parts[0].toLowerCase(), to: parts[1].toLowerCase());
+      final rawSan = widget.historial[moveIndex];
+      print('REPE rawSan: $rawSan');
+
+      // 1) Limpia sufijos de jaque/mate
+      String san = rawSan.replaceAll(RegExp(r'[+#]'), '');
+      print('REPE sanitized SAN: $san');
+
+      // 2) Quita notación de promoción si la hay
+      if (san.contains('=')) {
+        san = san.split('=').first;
+        print('REPE after promotion removal SAN: $san');
       }
+
+      // 3) Extrae las dos últimas pos-casilla: siempre es el 'to'
+      final toSquare = san.substring(san.length - 2).toLowerCase();
+      print('REPE toSquare: $toSquare');
+
+      // 4) Genera movimientos legales y busca el que apunte ahí
+      final legals = _game.generate_moves();
+      print('REPE legal moves count: ${legals.length}');
+      final matches = legals.where(
+              (mv) => chess.Chess.algebraic(mv.to) == toSquare
+      );
+      print('REPE matches count: ${matches.length}');
+      final chess.Move? m = matches.isNotEmpty ? matches.first : null;
+
+      if (m != null) {
+        // 5a) actualiza el motor
+        _game.make_move(m);
+        print('REPE engine moved from ${chess.Chess.algebraic(m.from)} to ${chess.Chess.algebraic(m.to)}');
+
+        // 5b) extrae el 'from'
+        final fromSquare = chess.Chess.algebraic(m.from);
+        print('REPE fromSquare: $fromSquare');
+
+        // 5c) mueve UI y apila
+        _controller.makeMove(from: fromSquare, to: toSquare);
+        _moveStack.add({'from': fromSquare, 'to': toSquare});
+        print('REPE moveStack length: ${_moveStack.length}');
+      } else {
+        print('REPE No se encontró ningún movimiento a $toSquare');
+      }
+
       setState(() {});
+    }
+  }
+
+// Y en tu clase, usa este _previousMove() instrumentado:
+  void _previousMove() {
+    print("REPE ▶ _previousMove START: moveIndex=$moveIndex, stackLength=${_moveStack.length}");
+    // Opcional: imprime el contenido del stack
+    for (var mv in _moveStack) {
+      print("REPE ▶ stack item: from ${mv['from']} to ${mv['to']}");
+    }
+
+    if (_moveStack.isNotEmpty) {
+      // 1) sacamos el último
+      final last = _moveStack.removeLast();
+      // 2) deshace en el engine
+      _game.undo_move();
+      print("REPE ▶ Engine undone. New FEN: ${_game.fen}");
+      // 3) deshace en el UI
+      _controller.undoMove();
+      print("REPE ▶ Controller.undoMove() called");
+      // 4) actualiza índice
+      moveIndex--;
+      print("REPE ▶ _previousMove END: moveIndex=$moveIndex, stackLength=${_moveStack.length}");
+      setState(() {});
+    } else {
+      print("REPE ▶ _previousMove: nada que deshacer");
     }
   }
 
   void _goBackToStart() {
     Navigator.pushReplacementNamed(context, Init_page.id);
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -67,16 +146,29 @@ class _GameReviewPageState extends State<GameReviewPage> {
             ),
           ),
           const SizedBox(height: 10),
-          IconButton(
-            icon: Icon(
-              Icons.arrow_forward,
-              color: moveIndex == widget.historial.length - 1
-                  ? Colors.grey
-                  : Colors.white,
-            ),
-            onPressed:
-            moveIndex == widget.historial.length - 1 ? null : _nextMove,
-          ),
+                 Row(
+                       mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                      IconButton(
+                        icon: Icon(
+                          Icons.arrow_back,
+                              color: moveIndex >= 0 ? Colors.white : Colors.grey,
+                            ),
+                        onPressed: moveIndex >= 0 ? _previousMove : null,
+                      ),
+                  const SizedBox(width: 24),
+                  IconButton(
+                    icon: Icon(
+                      Icons.arrow_forward,
+                      color: moveIndex == widget.historial.length - 1
+                          ? Colors.grey
+                          : Colors.white,
+                    ),
+                    onPressed:
+                        moveIndex == widget.historial.length - 1 ? null : _nextMove,
+                  ),
+                ],
+              ),
           const SizedBox(height: 20),
           ElevatedButton.icon(
             onPressed: _goBackToStart,
