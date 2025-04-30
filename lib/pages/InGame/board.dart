@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:chess/chess.dart' as chess;
+import 'package:frontend_android/pages/Game/game_review_page.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -465,7 +466,12 @@ class _BoardScreenState extends State<BoardScreen> {
                         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
                       onPressed: () {
-                        print("🔎 Análisis de partida (próximamente)");
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => GameReviewPage(historial: _historialMovimientos),
+                          ),
+                        );
                       },
                       child: Text(
                         "Analizar partida",
