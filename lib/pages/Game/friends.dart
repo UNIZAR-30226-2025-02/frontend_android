@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:frontend_android/pages/Game/botton_nav_bar.dart';
 import 'package:frontend_android/widgets/app_layout.dart';
+import 'package:frontend_android/services/socketService.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:frontend_android/pages/inGame/board.dart';
 import 'package:http/http.dart' as http;
+import 'package:frontend_android/utils/photoUtils.dart';
+
+
 
 import '../../utils/guestUtils.dart';
 
@@ -15,6 +19,16 @@ class GameMode {
   final String time;
   final String description;
   final Color color;
+  final modoMapeado = {
+    "Clásica": "Punt_10",
+    "Principiante": "Punt_30",
+    "Avanzado": "Punt_5",
+    "Relámpago": "Punt_3",
+    "Incremento": "Punt_5_10",
+    "Incremento exprés": "Punt_3_2",
+  };
+
+
 
   GameMode(this.name, this.icon, this.time, this.description, this.color);
 }
@@ -28,6 +42,8 @@ class Friends_Page extends StatefulWidget {
 
 class _FriendsPageState extends State<Friends_Page> {
   late IO.Socket socket;
+  String? _nombreRival;
+  String? _fotoRival;
   String? idJugador;
   String? nombreJugador;
   String searchInput = "";
@@ -67,6 +83,7 @@ class _FriendsPageState extends State<Friends_Page> {
   }
 
   Future<void> _initializeSocketAndUser() async {
+    socket = await SocketService().getSocket(context);
     prefs = await SharedPreferences.getInstance();  // <-- GUARDAMOS prefs una vez
     idJugador = prefs.getString('idJugador');
     nombreJugador = prefs.getString('usuario');
@@ -78,20 +95,8 @@ class _FriendsPageState extends State<Friends_Page> {
 
     await _cargarAmigos(); // 👈 Cargamos amigos confirmados
 
-    socket = IO.io(
-      'https://checkmatex-gkfda9h5bfb0gsed.spaincentral-01.azurewebsites.net',
-      <String, dynamic>{
-        'transports': ['websocket'],
-        'autoConnect': false,
-      },
-    );
-
-    socket.connect();
-
-    socket.onConnect((_) {
-      print("✅ Socket conectado desde ID: $idJugador");
-      socket.emit("getFriendsAndUsers", {"idJugador": idJugador});
-    });
+    await SocketService().connect(context); // ⬅️ Añádelo antes de getSocket
+    socket = await SocketService().getSocket(context);
 
     _configureSocketListeners();
   }
@@ -121,106 +126,8 @@ class _FriendsPageState extends State<Friends_Page> {
   void _configureSocketListeners() {
     print("🛠️ Configurando listeners...");
 
-    socket.on("challengeSent", (data) {
-      print("🎯 Evento challengeSent recibido: $data (${data.runtimeType})");
 
 
-        final challengeData = (data as List)[0] as Map<String, dynamic>;
-
-        final String idRetador = challengeData["idRetador"].toString();
-        final String idRetado = challengeData["idRetado"].toString();
-        final String modo = challengeData["modo"].toString();
-
-        print("✅ Reto recibido de $idRetador a $idRetado en modo $modo");
-
-        _mostrarPopupReto(idRetador, idRetado, modo);
-
-    });
-    socket.on('game-ready', (data) {
-      print("🎯 game-ready recibido (Friends): $data");
-      final idPartida = data[0]['gameId'];
-      _gameId = idPartida;
-    });
-    socket.on('color', (data) async {
-      print("🎨 color recibido (Friends): $data");
-
-      if (idJugador == null) return;
-
-      final jugadores = List<Map<String, dynamic>>.from(data[0]['jugadores']);
-      final yo = jugadores.firstWhere((jugador) => jugador['id'] == idJugador, orElse: () => {});
-      final rival = jugadores.firstWhere((jugador) => jugador['id'] != idJugador, orElse: () => {});
-
-      if (yo.isNotEmpty && yo.containsKey('color')) {
-        _gameColor = yo['color'];
-
-        // Siempre guardar elo en 0
-        const int eloPorDefecto = 0;
-
-        if (_gameColor == 'white') {
-          await prefs.setString('nombreBlancas', yo['nombreW']);
-          await prefs.setInt('eloBlancas', eloPorDefecto);
-          await prefs.setString('fotoBlancas', yo['fotoBlancas'] ?? 'none');
-
-          await prefs.setString('nombreNegras', rival['nombreB']);
-          await prefs.setInt('eloNegras', eloPorDefecto);
-          await prefs.setString('fotoNegras', rival['fotoNegras'] ?? 'none');
-        } else {
-          await prefs.setString('nombreNegras', yo['nombreB']);
-          await prefs.setInt('eloNegras', eloPorDefecto);
-          await prefs.setString('fotoNegras', yo['fotoNegras'] ?? 'none');
-
-          await prefs.setString('nombreBlancas', rival['nombreW']);
-          await prefs.setInt('eloBlancas', eloPorDefecto);
-          await prefs.setString('fotoBlancas', rival['fotoBlancas'] ?? 'none');
-        }
-
-        _intentarEntrarAPartida();
-      }
-    });
-
-
-    socket.on("friendRequest", (dataRaw) {
-      print("📩 Evento recibido: friendRequest");
-
-      final data = dataRaw is String ? jsonDecode(dataRaw) : dataRaw;
-
-      print("📨 Data recibida: $data (${data.runtimeType})");
-
-      try {
-        final Map<String, dynamic> userData = data[0]; // <-- idJugador, idAmigo
-        final String nombre = data[1];                 // <-- nombre del remitente
-        final String idRemitente = userData["idJugador"].toString().trim();
-
-        if (idJugador != null && idRemitente != idJugador) {
-          setState(() {
-            solicitudPendiente = {
-              "idRemitente": idRemitente,
-              "nombre": nombre,
-            };
-          });
-        }
-      } catch (e) {
-        print("❌ Error procesando friendRequest: $e");
-      }
-    });
-
-    socket.on("request-accepted", (data) {
-      final String nombre = data["nombre"];
-      print("✅ $nombre aceptó tu solicitud");
-      _showInfoDialog("✅ $nombre ha aceptado tu solicitud de amistad.");
-    });
-
-    socket.on("request-rejected", (data) {
-      final String nombre = data["nombre"];
-      print("❌ $nombre rechazó tu solicitud");
-      _showInfoDialog("❌ $nombre ha rechazado tu solicitud de amistad.");
-    });
-
-    socket.on("friend-removed", (data) {
-      final nombre = data["nombre"];
-      print("🗑️ $nombre ya no es tu amigo.");
-      _showInfoDialog("🗑️ $nombre ya no es tu amigo.");
-    });
 
     print("✅ Listeners configurados");
   }
@@ -246,24 +153,16 @@ class _FriendsPageState extends State<Friends_Page> {
   }
   void _intentarEntrarAPartida() async {
     print("⚡ _intentarEntrarAPartida llamado");
-    print("_yaEntramosAPartida: $_yaEntramosAPartida");
-    print("_gameId: $_gameId");
-    print("_gameColor: $_gameColor");
-
     if (_yaEntramosAPartida || _gameId == null || _gameColor == null) {
-      print("❌ No podemos entrar a partida (yaEntramos: $_yaEntramosAPartida, gameId: $_gameId, color: $_gameColor)");
       return;
     }
 
-    print("✅ mounted: $mounted");
     if (!mounted) {
-      print("❗ Widget no montado, reintentando...");
       await Future.delayed(Duration(milliseconds: 300));
       _intentarEntrarAPartida();
       return;
     }
-
-    print("🧩 prefs ya disponibles");
+    final modoGuardado = prefs.getString('modoDeJuegoActivo') ?? "Clásica";
 
     final miElo = _gameColor == 'white'
         ? prefs.getInt('eloBlancas') ?? 0
@@ -277,18 +176,18 @@ class _FriendsPageState extends State<Friends_Page> {
         ? prefs.getString('nombreNegras') ?? "Rival"
         : prefs.getString('nombreBlancas') ?? "Rival";
 
-    final rivalFoto = _gameColor == 'white'
-        ? prefs.getString('fotoNegras') ?? 'fotoPerfil.png'
-        : prefs.getString('fotoBlancas') ?? 'fotoPerfil.png';
+    final rivalFotoCruda = _gameColor == 'white'
+        ? prefs.getString('fotoNegras')
+        : prefs.getString('fotoBlancas');
 
-    print("🧩 Después de leer prefs");
+    final rivalFoto = getRutaSeguraFoto(rivalFotoCruda); // 🔥 Esto es el cambio
+
     _yaEntramosAPartida = true;
-    print("🚀 Navegando a BoardScreen...");
 
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => BoardScreen(
-          selectedGameMode ?? "Clásica",
+          modoGuardado,
           _gameColor!,
           _gameId!,
           "null",
@@ -302,6 +201,7 @@ class _FriendsPageState extends State<Friends_Page> {
       ),
     );
   }
+
 
 
 
@@ -322,45 +222,6 @@ class _FriendsPageState extends State<Friends_Page> {
 
 
 
-  void _showFriendRequestDialog(String idRemitente, String nombre) {
-    print("🪧 Mostrando popup de solicitud de $nombre ($idRemitente)");
-
-    if (!mounted) return;
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text("Solicitud de amistad"),
-        content: Text("$nombre quiere ser tu amigo."),
-        actions: [
-          TextButton(
-            onPressed: () {
-              print("❌ Rechazada");
-              socket.emit('reject-request', {
-                "idJugador": idRemitente,
-                "idAmigo": idJugador,
-                "nombre": nombreJugador,
-              });
-              Navigator.of(context).pop();
-            },
-            child: Text("Rechazar"),
-          ),
-          TextButton(
-            onPressed: () {
-              print("✅ Aceptada");
-              socket.emit('accept-request', {
-                "idJugador": idRemitente,
-                "idAmigo": idJugador,
-                "nombre": nombreJugador,
-              });
-              Navigator.of(context).pop();
-            },
-            child: Text("Aceptar"),
-          ),
-        ],
-      ),
-    );
-  }
 
   String clean(String? id) => (id ?? "").trim();
 
@@ -471,8 +332,9 @@ class _FriendsPageState extends State<Friends_Page> {
     }
   }
 
-  void _challengeFriend(String idRetado, String modoNombre) {
+  void _challengeFriend(String idRetado, String modoNombre) async {
     final modoBackend = modoMapeado[modoNombre] ?? "Punt_10";
+    await prefs.setString('modoDeJuegoActivo', modoNombre); // ✅ Añadir esto
 
     print("📡 Enviando reto → idRetador: $idJugador | idRetado: $idRetado | modo: $modoBackend");
 
@@ -586,43 +448,7 @@ class _FriendsPageState extends State<Friends_Page> {
             ),
 
             // ✅ Solicitud de amistad entrante (si hay)
-            if (solicitudPendiente != null)
-              Card(
-                color: Colors.blueGrey,
-                margin: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                child: ListTile(
-                  title: Text(
-                    "${solicitudPendiente!["nombre"]} quiere ser tu amigo.",
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  subtitle: Row(
-                    children: [
-                      TextButton(
-                        onPressed: () {
-                          socket.emit('accept-request', {
-                            "idJugador": solicitudPendiente!["idRemitente"],
-                            "idAmigo": idJugador,
-                            "nombre": nombreJugador,
-                          });
-                          setState(() => solicitudPendiente = null);
-                        },
-                        child: Text("Aceptar", style: TextStyle(color: Colors.green)),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          socket.emit('reject-request', {
-                            "idJugador": solicitudPendiente!["idRemitente"],
-                            "idAmigo": idJugador,
-                            "nombre": nombreJugador,
-                          });
-                          setState(() => solicitudPendiente = null);
-                        },
-                        child: Text("Rechazar", style: TextStyle(color: Colors.redAccent)),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+
 
             if (suggestions.isNotEmpty)
               Expanded(
@@ -681,12 +507,20 @@ class _FriendsPageState extends State<Friends_Page> {
                     ...friends.map((f) {
                       final nombre = f['NombreUser'] ?? f['nombreAmigo'] ?? "Amigo";
                       final id = f['amigoId']?.toString().trim() ?? "";
+                      final fotoPerfilCruda = f['fotoPerfil'] ?? f['fotoAmigo'] ?? 'none';
 
-                      print("👤 Amigo: $nombre | ID extraído: $id");
+// 🔥 Aplicas bien la función que me pasaste:
+                      final fotoSegura = getRutaSeguraFoto(fotoPerfilCruda);
 
                       return Card(
                         color: Colors.grey[900],
                         child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundImage: fotoSegura.startsWith('assets/')
+                                ? AssetImage(fotoSegura) as ImageProvider
+                                : NetworkImage("https://checkmatex-gkfda9h5bfb0gsed.spaincentral-01.azurewebsites.net/$fotoPerfilCruda"),
+                            backgroundColor: Colors.white24,
+                          ),
                           title: Text(nombre, style: TextStyle(color: Colors.white)),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -701,9 +535,9 @@ class _FriendsPageState extends State<Friends_Page> {
                               ),
                             ],
                           ),
-
                         ),
                       );
+
                     })
 
 
