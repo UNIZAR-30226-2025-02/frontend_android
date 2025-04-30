@@ -7,6 +7,7 @@ import 'package:frontend_android/pages/buildHead.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../utils/photoUtils.dart';
+import '../Game/game_review_page.dart';
 
 class Profile_page extends StatefulWidget {
   static const String id = "profile_page";
@@ -245,6 +246,30 @@ class _ProfilePageState extends State<Profile_page> {
     final w = aliasW.firstMatch(pgn)?.group(1) ?? "Desconocido";
     final b = aliasB.firstMatch(pgn)?.group(1) ?? "Desconocido";
     return {"blancas": w, "negras": b};
+  }
+  List<String> convertirPGNaHistorial(String pgn) {
+    final RegExp moveReg = RegExp(r'\d+\.\s*([^\s]+)(\s+([^\s]+))?');
+    final List<String> movimientos = [];
+
+    for (final match in moveReg.allMatches(pgn)) {
+      final whiteMove = match.group(1);
+      final blackMove = match.group(3);
+      if (whiteMove != null) movimientos.add(_formatearMovimiento(whiteMove));
+      if (blackMove != null) movimientos.add(_formatearMovimiento(blackMove));
+    }
+
+    return movimientos;
+  }
+
+  String _formatearMovimiento(String move) {
+    // Simplificación básica: si hay promoción, ignoramos
+    move = move.replaceAll(RegExp(r'[+#=].*'), '');
+    // Convertimos notación algebraica a coordenadas (solo si usas PGN notación algebraica)
+    // Si ya usas "e2e4" en el PGN, simplemente divídelo:
+    if (move.length == 4) {
+      return "${move.substring(0, 2).toUpperCase()}-${move.substring(2, 4).toUpperCase()}";
+    }
+    return move.toUpperCase(); // fallback
   }
 
   @override
@@ -676,54 +701,42 @@ class _ProfilePageState extends State<Profile_page> {
 
                   final modoNombre = modoFriendly(p.modo);
                   final iconoModo = modeIcons[modoNombre] ?? Icons.help_outline;
-                  final colorModo = modeColors[modoNombre] ?? Colors.blueAccent; // 👈 también sacamos color
+                  final colorModo = modeColors[modoNombre] ?? Colors.blueAccent;
 
                   final whiteElo = elos["whiteElo"] ?? 1000;
                   final blackElo = elos["blackElo"] ?? 1000;
                   final variacion = extraerVariacionElo(p, userId!);
 
-                  return DataRow(
+                  return DataRow.byIndex(
+                    index: ultimasPartidas.indexOf(p),
+                    onSelectChanged: (_) {
+                      final movimientos = convertirPGNaHistorial(p.pgn);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => GameReviewPage(historial: movimientos),
+                        ),
+                      );
+                    },
                     cells: [
-                      DataCell(
-                        Icon(iconoModo, color: colorModo),
-                      ),
-                      DataCell(
-                        Text('${nombres["blancas"]} ${formatearEloJugador(whiteElo)}', style: TextStyle(color: Colors.white)),
-                      ),
-                      DataCell(
-                        Text('${nombres["negras"]} ${formatearEloJugador(blackElo)}', style: TextStyle(color: Colors.white)),
-                      ),
-                      DataCell(
-                        Row(
-                          children: [
-                            Text(res, style: TextStyle(fontSize: 18)),
-                            const SizedBox(width: 4),
-                            Text(
-                              '(${variacion >= 0 ? '+' : ''}$variacion)',
-                              style: TextStyle(color: Colors.white70),
-                            ),
-                          ],
-                        ),
-                      ),
-                      DataCell(
-                        Text(p.movimientos.toString(), style: TextStyle(color: Colors.white)),
-                      ),
-                      DataCell(
-                        Text(fechaFmt, style: TextStyle(color: Colors.white)),
-                      ),
-                      DataCell(
-                        IconButton(
-                          icon: Icon(Icons.visibility, color: Colors.blueAccent),
-                          onPressed: () {
-                            // TODO: ver partida
-                          },
-                        ),
-                      ),
+                      DataCell(Icon(iconoModo, color: colorModo)),
+                      DataCell(Text('${nombres["blancas"]} ${formatearEloJugador(whiteElo)}', style: TextStyle(color: Colors.white))),
+                      DataCell(Text('${nombres["negras"]} ${formatearEloJugador(blackElo)}', style: TextStyle(color: Colors.white))),
+                      DataCell(Row(
+                        children: [
+                          Text(res, style: TextStyle(fontSize: 18)),
+                          SizedBox(width: 4),
+                          Text('(${variacion >= 0 ? '+' : ''}$variacion)', style: TextStyle(color: Colors.white70)),
+                        ],
+                      )),
+                      DataCell(Text(p.movimientos.toString(), style: TextStyle(color: Colors.white))),
+                      DataCell(Text(fechaFmt, style: TextStyle(color: Colors.white))),
+                      const DataCell(Icon(Icons.visibility, color: Colors.blueAccent)),
                     ],
                   );
                 }).toList(),
+              )
               ),
-            ),
           ),
         ],
       ),
