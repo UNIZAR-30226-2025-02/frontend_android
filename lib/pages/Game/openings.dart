@@ -192,11 +192,24 @@ class _OpeningDetailPageState extends State<OpeningDetailPage> {
 
   void _previousMove() {
     if (moveIndex >= 0) {
-      _chessController.undoMove();
-      setState(() {
-        moveIndex--;
-      });
+      moveIndex--;
+
+      // Resetear el tablero y rehacer todos los movimientos hasta moveIndex
+      _chessController.resetBoard();
+
+      for (int i = 0; i <= moveIndex; i++) {
+        final move = moves[i].keys.first;
+        final moveParts = move.split(' ');
+        if (moveParts.length == 2) {
+          _chessController.makeMove(from: moveParts[0], to: moveParts[1]);
+        }
+      }
+
+      setState(() {});
     }
+
+
+
   }
 
   @override

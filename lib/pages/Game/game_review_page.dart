@@ -18,6 +18,7 @@ class _GameReviewPageState extends State<GameReviewPage> {
   final ChessBoardController _controller = ChessBoardController();
   final chess.Chess _game = chess.Chess();  // el motor para parsear SAN
   final List<Map<String,String>> _moveStack = [];
+  final List<String> _moveStackReal = []; // Guarda los movimientos reales tipo 'e5-g6'
 
   int moveIndex = -1;
   late final String? serverBackend;
@@ -58,6 +59,8 @@ class _GameReviewPageState extends State<GameReviewPage> {
       final chess.Move? m = matches.isNotEmpty ? matches.first : null;
 
       if (m != null) {
+        _moveStackReal.add('${chess.Chess.algebraic(m.from)}-${chess.Chess.algebraic(m.to)}');
+
         // 5a) actualiza el motor
         _game.make_move(m);
         print('REPE engine moved from ${chess.Chess.algebraic(m.from)} to ${chess.Chess.algebraic(m.to)}');
@@ -80,29 +83,46 @@ class _GameReviewPageState extends State<GameReviewPage> {
 
 // Y en tu clase, usa este _previousMove() instrumentado:
   void _previousMove() {
-    print("REPE ▶ _previousMove START: moveIndex=$moveIndex, stackLength=${_moveStack.length}");
-    // Opcional: imprime el contenido del stack
-    for (var mv in _moveStack) {
-      print("REPE ▶ stack item: from ${mv['from']} to ${mv['to']}");
-    }
+    print("REPE ▶ _previousMove START: moveIndex=$moveIndex");
 
-    if (_moveStack.isNotEmpty) {
-      // 1) sacamos el último
-      final last = _moveStack.removeLast();
-      // 2) deshace en el engine
-      _game.undo_move();
-      print("REPE ▶ Engine undone. New FEN: ${_game.fen}");
-      // 3) deshace en el UI
-      _controller.undoMove();
-      print("REPE ▶ Controller.undoMove() called");
-      // 4) actualiza índice
+    if (moveIndex >= 0) {
       moveIndex--;
-      print("REPE ▶ _previousMove END: moveIndex=$moveIndex, stackLength=${_moveStack.length}");
+      _game.reset();
+      _controller.resetBoard();
+      _moveStack.clear();
+      _moveStackReal.clear();
+
+      for (int i = 0; i <= moveIndex; i++) {
+        final rawSan = widget.historial[i];
+        String san = rawSan.replaceAll(RegExp(r'[+#]'), '');
+
+        if (san.contains('=')) {
+          san = san.split('=').first;
+        }
+
+        final toSquare = san.substring(san.length - 2).toLowerCase();
+        final legals = _game.generate_moves();
+        final matches = legals.where((mv) => chess.Chess.algebraic(mv.to) == toSquare);
+        final chess.Move? m = matches.isNotEmpty ? matches.first : null;
+
+        if (m != null) {
+          _game.make_move(m);
+          final fromSquare = chess.Chess.algebraic(m.from);
+          _controller.makeMove(from: fromSquare, to: toSquare);
+          _moveStack.add({'from': fromSquare, 'to': toSquare});
+          _moveStackReal.add('$fromSquare-$toSquare');
+        } else {
+          print("REPE ▶ ❌ No se pudo rehacer movimiento $san");
+        }
+      }
+
+      print("REPE ▶ Retrocedido. Nuevo moveIndex=$moveIndex");
       setState(() {});
     } else {
-      print("REPE ▶ _previousMove: nada que deshacer");
+      print("REPE ▶ Ya estás al inicio de la partida.");
     }
   }
+
 
   void _goBackToStart() {
     Navigator.pushReplacementNamed(context, Init_page.id);
