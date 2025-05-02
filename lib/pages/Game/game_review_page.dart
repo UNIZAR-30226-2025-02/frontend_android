@@ -26,6 +26,20 @@ class _GameReviewPageState extends State<GameReviewPage> {
   final List<Map<String,String>> _moveStack = [];
   final List<String> _moveStackReal = []; // Guarda los movimientos reales tipo 'e5-g6'
   late final Stockfish _engine;
+  String? _bestMove;
+  int? _previousCp;
+  String? _bestMoveWhite;
+  String? _bestMoveBlack;
+  String? _moveClassificationWhite;
+  String? _moveClassificationBlack;
+  final List<int> _cpLossesWhite = [];
+  final List<int> _cpLossesBlack = [];
+  int? _previousCpWhite;
+  int? _previousCpBlack;
+
+  final List<int> _cpLosses = [];
+  String? _moveClassification;
+
   int _currentCp = 0;
   StreamSubscription<String>? _stdoutSub;
 
@@ -40,13 +54,41 @@ class _GameReviewPageState extends State<GameReviewPage> {
 
     // 1) Escucha la salida para parsear 'score cp ...'
     _stdoutSub = _engine.stdout.listen((line) {
-      final m = RegExp(r'score cp (-?\d+)').firstMatch(line);
-      if (m != null) {
+      final cpMatch = RegExp(r'score cp (-?\d+)').firstMatch(line);
+      if (cpMatch != null) {
+        final cp = int.parse(cpMatch.group(1)!);
         setState(() {
-          _currentCp = int.parse(m.group(1)!);
+          _currentCp = cp;
+        });
+      }
+
+      final bestMatch = RegExp(r'bestmove (\w{4})').firstMatch(line);
+      if (bestMatch != null) {
+        final best = bestMatch.group(1)!;
+        final isWhiteTurn = moveIndex % 2 == 0;
+
+        setState(() {
+          if (isWhiteTurn) {
+            _bestMoveWhite = best;
+            if (_previousCpWhite != null) {
+              final loss = (_previousCpWhite! - _currentCp).abs();
+              _cpLossesWhite.add(loss);
+              _moveClassificationWhite = _classifyMove(loss);
+            }
+            _previousCpWhite = _currentCp;
+          } else {
+            _bestMoveBlack = best;
+            if (_previousCpBlack != null) {
+              final loss = (_previousCpBlack! - _currentCp).abs();
+              _cpLossesBlack.add(loss);
+              _moveClassificationBlack = _classifyMove(loss);
+            }
+            _previousCpBlack = _currentCp;
+          }
         });
       }
     });
+
 
     // 2) Espera hasta que state cambie a ready, y entonces envía tus primeros comandos
     _engine.state.addListener(() {
@@ -56,6 +98,20 @@ class _GameReviewPageState extends State<GameReviewPage> {
         _evaluatePosition();
       }
     });
+  }
+
+  double get acpl {
+    if (_cpLosses.isEmpty) return 0;
+    return _cpLosses.reduce((a, b) => a + b) / _cpLosses.length;
+  }
+
+  String _classifyMove(int cpLoss) {
+    if (cpLoss == 0) return 'Brillante';
+    if (cpLoss <= 20) return 'Excelente';
+    if (cpLoss <= 50) return 'Buena';
+    if (cpLoss <= 100) return 'Inexacta';
+    if (cpLoss <= 200) return 'Error';
+    return 'Blunder';
   }
 
 
@@ -125,6 +181,8 @@ class _GameReviewPageState extends State<GameReviewPage> {
 
     }
   }
+  double _whiteAdvantage() => ((_currentCp.clamp(-1000, 1000) + 1000) / 20.0);
+  double _blackAdvantage() => 100.0 - _whiteAdvantage();
 
 // Y en tu clase, usa este _previousMove() instrumentado:
   void _previousMove() {
@@ -169,6 +227,15 @@ class _GameReviewPageState extends State<GameReviewPage> {
     }
   }
 
+  double get acplWhite {
+    if (_cpLossesWhite.isEmpty) return 0;
+    return _cpLossesWhite.reduce((a, b) => a + b) / _cpLossesWhite.length;
+  }
+
+  double get acplBlack {
+    if (_cpLossesBlack.isEmpty) return 0;
+    return _cpLossesBlack.reduce((a, b) => a + b) / _cpLossesBlack.length;
+  }
 
   void _goBackToStart() {
     Navigator.pushReplacementNamed(context, Init_page.id);
@@ -196,127 +263,173 @@ class _GameReviewPageState extends State<GameReviewPage> {
         title: const Text("Revisión de partida"),
         centerTitle: true,
       ),
-      body: Stack(
-        children: [
-          // ─── Tu UI unchanged, dentro de un scroll para evitar overflow ───
-          SingleChildScrollView(
-            child: Column(
-              children: [
-                ChessBoard(
-                  controller: _controller,
-                  boardOrientation: PlayerColor.white,
-                  enableUserMoves: false,
-                ),
-                const SizedBox(height: 24),
-                Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-                    decoration: BoxDecoration(
-                      color: Colors.lightBlueAccent,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      moveIndex >= 0
-                          ? widget.historial[moveIndex]
-                          : "Inicio de la partida",
-                      style: const TextStyle(
-                        fontSize: 18,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    IconButton(
-                      icon: Icon(
-                        Icons.arrow_back,
-                        color: moveIndex >= 0 ? Colors.white : Colors.grey,
-                      ),
-                      onPressed: moveIndex >= 0 ? _previousMove : null,
-                    ),
-                    const SizedBox(width: 24),
-                    IconButton(
-                      icon: Icon(
-                        Icons.arrow_forward,
-                        color: moveIndex == widget.historial.length - 1
-                            ? Colors.grey
-                            : Colors.white,
-                      ),
-                      onPressed: moveIndex == widget.historial.length - 1
-                          ? null
-                          : _nextMove,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton.icon(
-                  onPressed: _goBackToStart,
-                  icon: const Icon(Icons.home, color: Colors.white),
-                  label: const Text("Volver al inicio",
-                      style: TextStyle(color: Colors.white)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
-                    padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                ElevatedButton.icon(
-                  onPressed: _restartReview,
-                  icon: const Icon(Icons.replay, color: Colors.white),
-                  label: const Text("Reiniciar repetición",
-                      style: TextStyle(color: Colors.white)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.greenAccent,
-                    padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-                const SizedBox(height: 20),
-              ],
-            ),
-          ),
-
-          // ─── Aquí la barra, ajusta `left` y `width` hasta cuadrar con tu línea roja ───
-          Positioned(
-            left: 24,    // <–– pruébalo con 16, 24, 32… hasta que coincida
-            top: 0,
-            bottom: 0,
-            child: Container(
-              width: 4,   // <–– grosor aproximado de tu línea roja
-              color: Colors.grey[850], // fondo neutro
-              child: LayoutBuilder(
-                builder: (ctx, box) {
-                  final cp = _currentCp.clamp(-1000, 1000).toDouble();
-                  final pct = (cp + 1000) / 2000;
-                  return Align(
-                    alignment: Alignment.bottomCenter,
-                    child: FractionallySizedBox(
-                      heightFactor: pct,
-                      widthFactor: 1,
-                      child: Container(
-                        color: cp >= 0
-                            ? Colors.lightBlueAccent
-                            : Colors.redAccent,
-                      ),
-                    ),
-                  );
-                },
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // 🟦 Evaluación para Blancas
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Text(
+                "Ventaja blanca: ${_whiteAdvantage().round()}/100",
+                style: const TextStyle(color: Colors.white70),
               ),
             ),
-          ),
-        ],
+            Container(
+              height: 10,
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: _whiteAdvantage().round(),
+                    child: Container(color: Colors.blueAccent),
+                  ),
+                  Expanded(
+                    flex: (100 - _whiteAdvantage().round()),
+                    child: Container(color: Colors.grey[800]),
+                  ),
+                ],
+              ),
+            ),
+
+            // Tablero de ajedrez
+            ChessBoard(
+              controller: _controller,
+              boardOrientation: PlayerColor.white,
+              enableUserMoves: false,
+            ),
+
+            // 🔴 Evaluación para Negras
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Text(
+                "Ventaja negra: ${_blackAdvantage().round()}/100",
+                style: const TextStyle(color: Colors.white70),
+              ),
+            ),
+            Container(
+              height: 10,
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: _blackAdvantage().round(),
+                    child: Container(color: Colors.redAccent),
+                  ),
+                  Expanded(
+                    flex: (100 - _blackAdvantage().round()),
+                    child: Container(color: Colors.grey[800]),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Movimiento actual
+            Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                decoration: BoxDecoration(
+                  color: Colors.lightBlueAccent,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  moveIndex >= 0 ? widget.historial[moveIndex] : "Inicio de la partida",
+                  style: const TextStyle(
+                    fontSize: 18,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // 🔍 Análisis según el turno
+            if (moveIndex % 2 == 0 && _bestMoveWhite != null) ...[
+              Text('♙ Blancas',
+                  style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 16)),
+              Text('Mejor jugada: ${_bestMoveWhite!.substring(0, 2)}-${_bestMoveWhite!.substring(2, 4)}',
+                  style: TextStyle(color: Colors.white, fontSize: 16)),
+              Text('Evaluación: ${(_currentCp / 100.0).toStringAsFixed(2)}',
+                  style: TextStyle(color: Colors.white, fontSize: 16)),
+              if (_moveClassificationWhite != null)
+                Text('Clasificación: $_moveClassificationWhite',
+                    style: TextStyle(color: Colors.white, fontSize: 16)),
+              Text('ACPL Blancas: ${acplWhite.toStringAsFixed(2)}',
+                  style: TextStyle(color: Colors.white, fontSize: 16)),
+            ] else if (moveIndex % 2 == 1 && _bestMoveBlack != null) ...[
+              Text('♟ Negras',
+                  style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 16)),
+              Text('Mejor jugada: ${_bestMoveBlack!.substring(0, 2)}-${_bestMoveBlack!.substring(2, 4)}',
+                  style: TextStyle(color: Colors.white, fontSize: 16)),
+              Text('Evaluación: ${(_currentCp / 100.0).toStringAsFixed(2)}',
+                  style: TextStyle(color: Colors.white, fontSize: 16)),
+              if (_moveClassificationBlack != null)
+                Text('Clasificación: $_moveClassificationBlack',
+                    style: TextStyle(color: Colors.white, fontSize: 16)),
+              Text('ACPL Negras: ${acplBlack.toStringAsFixed(2)}',
+                  style: TextStyle(color: Colors.white, fontSize: 16)),
+            ],
+
+            const SizedBox(height: 16),
+
+            // ⏮️ ⏭️ Botones de navegación
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.arrow_back,
+                      color: moveIndex >= 0 ? Colors.white : Colors.grey),
+                  onPressed: moveIndex >= 0 ? _previousMove : null,
+                ),
+                const SizedBox(width: 24),
+                IconButton(
+                  icon: Icon(Icons.arrow_forward,
+                      color: moveIndex == widget.historial.length - 1
+                          ? Colors.grey
+                          : Colors.white),
+                  onPressed: moveIndex == widget.historial.length - 1 ? null : _nextMove,
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            // 🏠 Volver al inicio
+            ElevatedButton.icon(
+              onPressed: _goBackToStart,
+              icon: const Icon(Icons.home, color: Colors.white),
+              label: const Text("Volver al inicio", style: TextStyle(color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueAccent,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // 🔁 Reiniciar revisión
+            ElevatedButton.icon(
+              onPressed: _restartReview,
+              icon: const Icon(Icons.replay, color: Colors.white),
+              label: const Text("Reiniciar repetición", style: TextStyle(color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.greenAccent,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+
+            const SizedBox(height: 32),
+          ],
+        ),
       ),
     );
   }
+
 
   @override
   void dispose() {
