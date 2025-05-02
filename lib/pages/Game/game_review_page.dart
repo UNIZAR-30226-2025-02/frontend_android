@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import '../Game/init.dart'; // Ajusta la ruta si es necesario
 
+import '../Game/init.dart';
+import 'package:stockfish/stockfish.dart';
 import 'package:chess/chess.dart' as chess;
+
+
 
 
 class GameReviewPage extends StatefulWidget {
@@ -14,21 +18,60 @@ class GameReviewPage extends StatefulWidget {
   @override
   _GameReviewPageState createState() => _GameReviewPageState();
 }
+
+
 class _GameReviewPageState extends State<GameReviewPage> {
   final ChessBoardController _controller = ChessBoardController();
   final chess.Chess _game = chess.Chess();  // el motor para parsear SAN
   final List<Map<String,String>> _moveStack = [];
   final List<String> _moveStackReal = []; // Guarda los movimientos reales tipo 'e5-g6'
+  late final Stockfish _engine;
+  int _currentCp = 0;
+  StreamSubscription<String>? _stdoutSub;
 
   int moveIndex = -1;
   late final String? serverBackend;
 
+
   @override
   void initState() {
     super.initState();
+    _engine = Stockfish();
+
+    // 1) Escucha la salida para parsear 'score cp ...'
+    _stdoutSub = _engine.stdout.listen((line) {
+      final m = RegExp(r'score cp (-?\d+)').firstMatch(line);
+      if (m != null) {
+        setState(() {
+          _currentCp = int.parse(m.group(1)!);
+        });
+      }
+    });
+
+    // 2) Espera hasta que state cambie a ready, y entonces envía tus primeros comandos
+    _engine.state.addListener(() {
+      if (_engine.state.value == StockfishState.ready) {
+        // Ahora ya está listo: podemos pedirle que compruebe isready y luego evaluar
+        _engine.stdin = 'isready';
+        _evaluatePosition();
+      }
+    });
   }
 
-  @override
+
+  void _evaluatePosition() {
+    // Si no está listo, ignora la llamada
+    if (_engine.state.value != StockfishState.ready) return;
+
+    // OK, envío la posición y pido el análisis
+    final fen = _controller.value.fen;
+    _engine.stdin = 'position fen $fen';
+    _engine.stdin = 'go depth 10';
+  }
+
+
+
+
   void _nextMove() {
     if (moveIndex < widget.historial.length - 1) {
       moveIndex++;
@@ -78,6 +121,8 @@ class _GameReviewPageState extends State<GameReviewPage> {
       }
 
       setState(() {});
+      _evaluatePosition();
+
     }
   }
 
@@ -118,6 +163,7 @@ class _GameReviewPageState extends State<GameReviewPage> {
 
       print("REPE ▶ Retrocedido. Nuevo moveIndex=$moveIndex");
       setState(() {});
+      _evaluatePosition();
     } else {
       print("REPE ▶ Ya estás al inicio de la partida.");
     }
@@ -141,8 +187,6 @@ class _GameReviewPageState extends State<GameReviewPage> {
 
     setState(() {});
   }
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -152,89 +196,120 @@ class _GameReviewPageState extends State<GameReviewPage> {
         title: const Text("Revisión de partida"),
         centerTitle: true,
       ),
-      body: Column(
+      body: Stack(
         children: [
-          const SizedBox(height: 20),
-          ChessBoard(
-            controller: _controller,
-            boardOrientation: PlayerColor.white,
-            enableUserMoves: false,
+          // ─── Tu UI unchanged, dentro de un scroll para evitar overflow ───
+          SingleChildScrollView(
+            child: Column(
+              children: [
+                ChessBoard(
+                  controller: _controller,
+                  boardOrientation: PlayerColor.white,
+                  enableUserMoves: false,
+                ),
+                const SizedBox(height: 24),
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.lightBlueAccent,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      moveIndex >= 0
+                          ? widget.historial[moveIndex]
+                          : "Inicio de la partida",
+                      style: const TextStyle(
+                        fontSize: 18,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        Icons.arrow_back,
+                        color: moveIndex >= 0 ? Colors.white : Colors.grey,
+                      ),
+                      onPressed: moveIndex >= 0 ? _previousMove : null,
+                    ),
+                    const SizedBox(width: 24),
+                    IconButton(
+                      icon: Icon(
+                        Icons.arrow_forward,
+                        color: moveIndex == widget.historial.length - 1
+                            ? Colors.grey
+                            : Colors.white,
+                      ),
+                      onPressed: moveIndex == widget.historial.length - 1
+                          ? null
+                          : _nextMove,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  onPressed: _goBackToStart,
+                  icon: const Icon(Icons.home, color: Colors.white),
+                  label: const Text("Volver al inicio",
+                      style: TextStyle(color: Colors.white)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  onPressed: _restartReview,
+                  icon: const Icon(Icons.replay, color: Colors.white),
+                  label: const Text("Reiniciar repetición",
+                      style: TextStyle(color: Colors.white)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.greenAccent,
+                    padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
-          const SizedBox(height: 20),
-          Padding(
-            padding: const EdgeInsets.all(12),
+
+          // ─── Aquí la barra, ajusta `left` y `width` hasta cuadrar con tu línea roja ───
+          Positioned(
+            left: 24,    // <–– pruébalo con 16, 24, 32… hasta que coincida
+            top: 0,
+            bottom: 0,
             child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.lightBlueAccent,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                moveIndex >= 0
-                    ? widget.historial[moveIndex]
-                    : "Inicio de la partida",
-                style: const TextStyle(
-                  fontSize: 18,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                icon: Icon(
-                  Icons.arrow_back,
-                  color: moveIndex >= 0 ? Colors.white : Colors.grey,
-                ),
-                onPressed: moveIndex >= 0 ? _previousMove : null,
-              ),
-              const SizedBox(width: 24),
-              IconButton(
-                icon: Icon(
-                  Icons.arrow_forward,
-                  color: moveIndex == widget.historial.length - 1
-                      ? Colors.grey
-                      : Colors.white,
-                ),
-                onPressed: moveIndex == widget.historial.length - 1
-                    ? null
-                    : _nextMove,
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton.icon(
-            onPressed: _goBackToStart,
-            icon: const Icon(Icons.home, color: Colors.white),
-            label: const Text(
-              "Volver al inicio",
-              style: TextStyle(color: Colors.white),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blueAccent,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          ElevatedButton.icon(
-            onPressed: _restartReview,
-            icon: const Icon(Icons.replay, color: Colors.white),
-            label: const Text(
-              "Reiniciar repetición",
-              style: TextStyle(color: Colors.white),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.greenAccent,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+              width: 4,   // <–– grosor aproximado de tu línea roja
+              color: Colors.grey[850], // fondo neutro
+              child: LayoutBuilder(
+                builder: (ctx, box) {
+                  final cp = _currentCp.clamp(-1000, 1000).toDouble();
+                  final pct = (cp + 1000) / 2000;
+                  return Align(
+                    alignment: Alignment.bottomCenter,
+                    child: FractionallySizedBox(
+                      heightFactor: pct,
+                      widthFactor: 1,
+                      child: Container(
+                        color: cp >= 0
+                            ? Colors.lightBlueAccent
+                            : Colors.redAccent,
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ),
@@ -242,5 +317,14 @@ class _GameReviewPageState extends State<GameReviewPage> {
       ),
     );
   }
+
+  @override
+  void dispose() {
+    _stdoutSub?.cancel();
+    _engine.dispose();
+    super.dispose();
+  }
+
+
 
 }

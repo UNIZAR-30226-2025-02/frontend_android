@@ -677,6 +677,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.12.1"
+  stockfish:
+    dependency: "direct main"
+    description:
+      name: stockfish
+      sha256: d2af89fb3869cb02d4d0cac98eac4a2e3c33ea031109f9ea442bec3a0b3e4924
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.7.1"
   stream_channel:
     dependency: transitive
     description:
