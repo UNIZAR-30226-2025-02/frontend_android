@@ -128,6 +128,20 @@ class _GameReviewPageState extends State<GameReviewPage> {
     Navigator.pushReplacementNamed(context, Init_page.id);
   }
 
+  // 1) Método para reiniciar por completo la revisión
+  void _restartReview() {
+    // Reinicia el motor y el tablero UI
+    _game.reset();
+    _controller.resetBoard();
+
+    // Vuelve al índice inicial y limpia tus pilas
+    moveIndex = -1;
+    _moveStack.clear();
+    _moveStackReal.clear();
+
+    setState(() {});
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -156,7 +170,9 @@ class _GameReviewPageState extends State<GameReviewPage> {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
-                moveIndex >= 0 ? widget.historial[moveIndex] : "Inicio de la partida",
+                moveIndex >= 0
+                    ? widget.historial[moveIndex]
+                    : "Inicio de la partida",
                 style: const TextStyle(
                   fontSize: 18,
                   color: Colors.white,
@@ -166,42 +182,65 @@ class _GameReviewPageState extends State<GameReviewPage> {
             ),
           ),
           const SizedBox(height: 10),
-                 Row(
-                       mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                      IconButton(
-                        icon: Icon(
-                          Icons.arrow_back,
-                              color: moveIndex >= 0 ? Colors.white : Colors.grey,
-                            ),
-                        onPressed: moveIndex >= 0 ? _previousMove : null,
-                      ),
-                  const SizedBox(width: 24),
-                  IconButton(
-                    icon: Icon(
-                      Icons.arrow_forward,
-                      color: moveIndex == widget.historial.length - 1
-                          ? Colors.grey
-                          : Colors.white,
-                    ),
-                    onPressed:
-                        moveIndex == widget.historial.length - 1 ? null : _nextMove,
-                  ),
-                ],
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                icon: Icon(
+                  Icons.arrow_back,
+                  color: moveIndex >= 0 ? Colors.white : Colors.grey,
+                ),
+                onPressed: moveIndex >= 0 ? _previousMove : null,
               ),
+              const SizedBox(width: 24),
+              IconButton(
+                icon: Icon(
+                  Icons.arrow_forward,
+                  color: moveIndex == widget.historial.length - 1
+                      ? Colors.grey
+                      : Colors.white,
+                ),
+                onPressed: moveIndex == widget.historial.length - 1
+                    ? null
+                    : _nextMove,
+              ),
+            ],
+          ),
           const SizedBox(height: 20),
           ElevatedButton.icon(
             onPressed: _goBackToStart,
             icon: const Icon(Icons.home, color: Colors.white),
-            label: const Text("Volver al inicio", style: TextStyle(color: Colors.white)),
+            label: const Text(
+              "Volver al inicio",
+              style: TextStyle(color: Colors.white),
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blueAccent,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton.icon(
+            onPressed: _restartReview,
+            icon: const Icon(Icons.replay, color: Colors.white),
+            label: const Text(
+              "Reiniciar repetición",
+              style: TextStyle(color: Colors.white),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.greenAccent,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
         ],
       ),
     );
   }
+
 }
