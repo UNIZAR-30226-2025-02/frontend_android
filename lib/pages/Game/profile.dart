@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_chess_board/flutter_chess_board.dart' as chess;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:frontend_android/pages/buildHead.dart';
@@ -247,29 +248,51 @@ class _ProfilePageState extends State<Profile_page> {
     final b = aliasB.firstMatch(pgn)?.group(1) ?? "Desconocido";
     return {"blancas": w, "negras": b};
   }
-  List<String> convertirPGNaHistorial(String pgn) {
-    final RegExp moveReg = RegExp(r'\d+\.\s*([^\s]+)(\s+([^\s]+))?');
-    final List<String> movimientos = [];
 
-    for (final match in moveReg.allMatches(pgn)) {
-      final whiteMove = match.group(1);
-      final blackMove = match.group(3);
-      if (whiteMove != null) movimientos.add(_formatearMovimiento(whiteMove));
-      if (blackMove != null) movimientos.add(_formatearMovimiento(blackMove));
-    }
+  String normalizarPGN(String pgnCrudo) {
+    // Divide cada tag en su propia línea
+    final tagsSeparados = pgnCrudo.replaceAllMapped(
+      RegExp(r'(\[.*?\])'),
+          (match) => '${match.group(1)}\n',
+    );
 
-    return movimientos;
+    // Asegúrate de que las jugadas estén separadas después de los tags
+    final conSaltos = tagsSeparados.replaceAll(RegExp(r'\]\s+(?=\d+\.)'), ']\n');
+
+    return conSaltos.trim();
   }
 
-  String _formatearMovimiento(String move) {
-    // Simplificación básica: si hay promoción, ignoramos
-    move = move.replaceAll(RegExp(r'[+#=].*'), '');
-    // Convertimos notación algebraica a coordenadas (solo si usas PGN notación algebraica)
-    // Si ya usas "e2e4" en el PGN, simplemente divídelo:
-    if (move.length == 4) {
-      return "${move.substring(0, 2).toUpperCase()}-${move.substring(2, 4).toUpperCase()}";
+  List<String> convertirPGNaHistorial(String pgn) {
+    final List<String> movimientos = [];
+    final game = chess.Chess();
+
+    if (!game.load_pgn(pgn)) {
+      print("❌ No se pudo cargar el PGN");
+      return movimientos;
     }
-    return move.toUpperCase(); // fallback
+
+    final history = game.getHistory({'verbose': true});
+
+    for (var move in history) {
+      final from = move['from'];
+      final to = move['to'];
+      final flags = move['flags'] ?? '';
+      String promotion = '';
+
+      // Si el movimiento fue una promoción, extraemos la letra desde SAN (ej: gxh8=R)
+      if (flags.contains('p') && move['san'].contains('=')) {
+        final san = move['san'];
+        final index = san.indexOf('=');
+        if (index != -1 && index + 1 < san.length) {
+          promotion = san[index + 1].toLowerCase(); // r, q, b, n
+        }
+      }
+
+      movimientos.add("$from$to$promotion");
+    }
+
+    print("✅ Historial convertido: $movimientos");
+    return movimientos;
   }
 
   @override
@@ -593,9 +616,15 @@ class _ProfilePageState extends State<Profile_page> {
     return m[modoBack] ?? modoBack;
   }
 
+  int contarMovimientosDesdePGN(String pgn) {
+    final regex = RegExp(r'\d+\.\s*[a-hNBRQK]'); // busca patrones como "1. e4" o "2. Nf3"
+    return regex.allMatches(pgn).length;
+  }
+
   Map<String, int> extraerEloJugadoresDesdePGN(String pgn) {
     final whiteEloMatch = RegExp(r'\[White Elo "(.*?)"\]').firstMatch(pgn);
     final blackEloMatch = RegExp(r'\[Black Elo "(.*?)"\]').firstMatch(pgn);
+    int movimientos = contarMovimientosDesdePGN(pgn);
 
     int whiteElo = (double.tryParse(whiteEloMatch?.group(1) ?? '')?.round()) ?? 1000;
     int blackElo = (double.tryParse(blackEloMatch?.group(1) ?? '')?.round()) ?? 1000;
@@ -603,6 +632,7 @@ class _ProfilePageState extends State<Profile_page> {
     return {
       "whiteElo": whiteElo,
       "blackElo": blackElo,
+      "movimientos": movimientos,
     };
   }
 
@@ -705,6 +735,7 @@ class _ProfilePageState extends State<Profile_page> {
 
                   final whiteElo = elos["whiteElo"] ?? 1000;
                   final blackElo = elos["blackElo"] ?? 1000;
+                  final movimiento = elos["movimientos"] ?? 0;
                   final variacion = extraerVariacionElo(p, userId!);
 
                   return DataRow.byIndex(
@@ -714,7 +745,7 @@ class _ProfilePageState extends State<Profile_page> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => GameReviewPage(historial: movimientos),
+                          builder: (context) => GameReviewPage(historial: movimientos, pgn: p.pgn,),
                         ),
                       );
                     },
@@ -729,7 +760,7 @@ class _ProfilePageState extends State<Profile_page> {
                           Text('(${variacion >= 0 ? '+' : ''}$variacion)', style: TextStyle(color: Colors.white70)),
                         ],
                       )),
-                      DataCell(Text(p.movimientos.toString(), style: TextStyle(color: Colors.white))),
+                      DataCell(Text(movimiento.toString(), style: TextStyle(color: Colors.white))),
                       DataCell(Text(fechaFmt, style: TextStyle(color: Colors.white))),
                       const DataCell(Icon(Icons.visibility, color: Colors.blueAccent)),
                     ],
@@ -893,7 +924,6 @@ class _ProfilePageState extends State<Profile_page> {
 
   Future<bool> updateProfilePhoto(String newPhotoName) async {
     if (userId == null || serverBackend == null) {
-      print("No se encontró el id del usuario o la URL del backend");
       return false;
     }
 
@@ -912,17 +942,13 @@ class _ProfilePageState extends State<Profile_page> {
         body: bodyData,
       );
       if (response.statusCode == 200) {
-        print("Foto actualizada exitosamente.");
         SharedPreferences prefs = await SharedPreferences.getInstance();
-        print("$newPhotoName");
         await prefs.setString('fotoPerfil', "$newPhotoName");
         return true;
       } else {
-        print("Error al actualizar la foto: ${response.statusCode}");
         return false;
       }
     } catch (error) {
-      print("Error en la solicitud de actualización de foto: $error");
       return false;
     }
   }

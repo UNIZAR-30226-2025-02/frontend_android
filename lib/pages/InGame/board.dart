@@ -201,6 +201,7 @@ class _BoardScreenState extends State<BoardScreen> {
         }
 
         try {
+          bool wasWhiteTurn = isWhiteTurn;
           if (promotion.isNotEmpty) {
             controller.makeMoveWithPromotion(
               from: from,
@@ -212,6 +213,17 @@ class _BoardScreenState extends State<BoardScreen> {
               from: from,
               to: to,
             );
+          }
+
+          // Aplica incremento antes de cambiar turno
+          if (incrementoPorJugada > 0) {
+            setState(() {
+              if (wasWhiteTurn) {
+                whiteTime += incrementoPorJugada;
+              } else {
+                blackTime += incrementoPorJugada;
+              }
+            });
           }
 
           _changeTurn();
@@ -469,7 +481,7 @@ class _BoardScreenState extends State<BoardScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => GameReviewPage(historial: _historialMovimientos),
+                            builder: (context) => GameReviewPage(historial: _historialMovimientos, pgn: widget.pgn,),
                           ),
                         );
                       },
