@@ -75,6 +75,10 @@ class SocketService {
     socket.onError((err) {
       print("❌ Error general: $err");
     });
+    socket.on('errorMessage', (msg) {
+      _showPopupSimple(msg.toString());
+    });
+
 
     // 👇 Eventos importantes
     socket.on('game-ready', (data) => _handleGameReady(data));
@@ -107,8 +111,18 @@ class SocketService {
     print("✅ Listeners configurados correctamente.");
   }
   void _handleGameReady(dynamic data) {
-    _gameId = data[0]['gameId'];
+    print("✅ gameready.");
+    print("🔍 game-ready data: $data (${data.runtimeType})");
+
+    if (data is List && data.isNotEmpty && data[0] is Map<String, dynamic>) {
+      final partidaInfo = data[0];
+      _gameId = partidaInfo['idPartida'];
+      print("🎯 _gameId correctamente asignado: $_gameId");
+    } else {
+      print("❌ Formato inesperado para game-ready: $data");
+    }
   }
+
 
   void _handleColor(dynamic data) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -123,24 +137,23 @@ class SocketService {
     if (yo.isEmpty) return;
 
     _color = yo['color'];
-
     const int eloPorDefecto = 0;
 
     if (_color == 'white') {
       await prefs.setString('nombreBlancas', yo['nombreW']);
-      await prefs.setInt('eloBlancas', eloPorDefecto);
+      await prefs.setInt('eloBlancas', yo['eloW'] ?? eloPorDefecto);
       await prefs.setString('fotoBlancas', yo['fotoBlancas'] ?? 'none');
 
       await prefs.setString('nombreNegras', rival['nombreB']);
-      await prefs.setInt('eloNegras', eloPorDefecto);
+      await prefs.setInt('eloNegras', rival['eloB'] ?? eloPorDefecto);
       await prefs.setString('fotoNegras', rival['fotoNegras'] ?? 'none');
     } else {
       await prefs.setString('nombreNegras', yo['nombreB']);
-      await prefs.setInt('eloNegras', eloPorDefecto);
+      await prefs.setInt('eloNegras', yo['eloB'] ?? eloPorDefecto);
       await prefs.setString('fotoNegras', yo['fotoNegras'] ?? 'none');
 
       await prefs.setString('nombreBlancas', rival['nombreW']);
-      await prefs.setInt('eloBlancas', eloPorDefecto);
+      await prefs.setInt('eloBlancas', rival['eloW'] ?? eloPorDefecto);
       await prefs.setString('fotoBlancas', rival['fotoBlancas'] ?? 'none');
     }
 
@@ -149,6 +162,7 @@ class SocketService {
 
     _goToBoardScreen();
   }
+
 
   void _handleForceLogout(dynamic data, String idJugador) {
     String? idConectado;
