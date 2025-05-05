@@ -19,8 +19,11 @@ class GameReviewPage extends StatefulWidget {
   final String pgn;
   final String rival;
   final String yo;
+  final String rivalFoto;
+  final String miFoto;
   const GameReviewPage({Key? key, required this.historial, required this.pgn, required this.rival,
-    required this.rivalElo, required this.miElo, required this.yo}) : super(key: key);
+    required this.rivalElo, required this.miElo, required this.yo,
+    required this.rivalFoto, required this.miFoto}) : super(key: key);
 
   @override
   _GameReviewPageState createState() => _GameReviewPageState();
@@ -371,6 +374,7 @@ class _GameReviewPageState extends State<GameReviewPage> {
     boardOrientation: esJugadorBlancas ? PlayerColor.white : PlayerColor.black,
     enableUserMoves: false,
   );
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -387,44 +391,104 @@ class _GameReviewPageState extends State<GameReviewPage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            ...(esJugadorBlancas
-                ? [
-              Padding(
-                padding: const EdgeInsets.only(top: 16.0, bottom: 4.0),
-                child: Text(
-                  '${widget.rival} (${widget.rivalElo})',
-
-                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ),
-              _buildBarraVentajaNegra(),
-              _buildTablero(),
-              _buildBarraVentajaBlanca(),
-              Text(
-
-                '${widget.yo} (${widget.miElo})',
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ]
-                : [
-              Padding(
-                padding: const EdgeInsets.only(top: 16.0, bottom: 4.0),
-                child: Text(
-                  '${widget.rival} (${widget.rivalElo})',
-                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ),
-              _buildBarraVentajaBlanca(),
-              _buildTablero(),
-              _buildBarraVentajaNegra(),
-              Text(
-                '${widget.yo} (${widget.miElo})',
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ]),
-
+            ...(
+                esJugadorBlancas
+                    ? [
+                  // Rival arriba
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16.0, bottom: 4.0),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 20,
+                          backgroundImage: AssetImage(widget.rivalFoto),
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          '${widget.rival} (${widget.rivalElo})',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  _buildBarraVentajaNegra(),
+                  _buildTablero(),
+                  _buildBarraVentajaBlanca(),
+                  // Tú abajo
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4.0, bottom: 16.0),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 20,
+                          backgroundImage: AssetImage(widget.miFoto),
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          '${widget.yo} (${widget.miElo})',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ]
+                    : [
+                  // Rival arriba (jugando negras)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16.0, bottom: 4.0),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 20,
+                          backgroundImage: AssetImage(widget.rivalFoto),
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          '${widget.rival} (${widget.rivalElo})',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  _buildBarraVentajaBlanca(),
+                  _buildTablero(),
+                  _buildBarraVentajaNegra(),
+                  // Tú abajo
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4.0, bottom: 16.0),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 20,
+                          backgroundImage: AssetImage(widget.miFoto),
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          '${widget.yo} (${widget.miElo})',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ]
+            ),
             const SizedBox(height: 12),
-
             // Movimiento actual
             Center(
               child: Container(
@@ -434,7 +498,9 @@ class _GameReviewPageState extends State<GameReviewPage> {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  moveIndex >= 0 ? widget.historial[moveIndex] : "Inicio de la partida",
+                  moveIndex >= 0
+                      ? widget.historial[moveIndex]
+                      : "Inicio de la partida",
                   style: const TextStyle(
                     fontSize: 18,
                     color: Colors.white,
@@ -443,46 +509,51 @@ class _GameReviewPageState extends State<GameReviewPage> {
                 ),
               ),
             ),
-
             const SizedBox(height: 16),
-
-            // 🔍 Análisis según el turno
+            // Análisis según el turno
             if (moveIndex % 2 == 0 && _bestMoveWhite != null) ...[
-              Text('♙ Blancas',
-                  style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 16)),
-              Text('Mejor jugada: ${_bestMoveWhite!.substring(0, 2)}-${_bestMoveWhite!.substring(2, 4)}',
-                  style: TextStyle(color: Colors.white, fontSize: 16)),
+              Text(
+                '♙ Blancas',
+                style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              Text(
+                'Mejor jugada: ${_bestMoveWhite!.substring(0, 2)}-${_bestMoveWhite!.substring(2, 4)}',
+                style: TextStyle(color: Colors.white, fontSize: 16),
+              ),
             ] else if (moveIndex % 2 == 1 && _bestMoveBlack != null) ...[
-              Text('♟ Negras',
-                  style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 16)),
-              Text('Mejor jugada: ${_bestMoveBlack!.substring(0, 2)}-${_bestMoveBlack!.substring(2, 4)}',
-                  style: TextStyle(color: Colors.white, fontSize: 16)),
+              Text(
+                '♟ Negras',
+                style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              Text(
+                'Mejor jugada: ${_bestMoveBlack!.substring(0, 2)}-${_bestMoveBlack!.substring(2, 4)}',
+                style: TextStyle(color: Colors.white, fontSize: 16),
+              ),
             ],
-
             const SizedBox(height: 16),
-
-            // ⏮️ ⏭️ Botones de navegación
+            // Navegación de movimientos
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 IconButton(
-                  icon: Icon(Icons.arrow_back,
-                      color: moveIndex >= 0 ? Colors.white : Colors.grey),
+                  icon: Icon(
+                    Icons.arrow_back,
+                    color: moveIndex >= 0 ? Colors.white : Colors.grey,
+                  ),
                   onPressed: moveIndex >= 0 ? _previousMove : null,
                 ),
                 const SizedBox(width: 24),
                 IconButton(
-                  icon: Icon(Icons.arrow_forward,
-                      color: moveIndex == widget.historial.length - 1
-                          ? Colors.grey
-                          : Colors.white),
+                  icon: Icon(
+                    Icons.arrow_forward,
+                    color: moveIndex == widget.historial.length - 1 ? Colors.grey : Colors.white,
+                  ),
                   onPressed: moveIndex == widget.historial.length - 1 ? null : _nextMove,
                 ),
               ],
             ),
-
             const SizedBox(height: 20),
-
+            // Botones Inicio / Reiniciar
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -509,13 +580,13 @@ class _GameReviewPageState extends State<GameReviewPage> {
                 ),
               ],
             ),
-
             const SizedBox(height: 32),
           ],
         ),
       ),
     );
   }
+
 
   @override
   void dispose() {

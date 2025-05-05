@@ -493,6 +493,8 @@ class _BoardScreenState extends State<BoardScreen> {
                               miElo:     widget.myElo.toString(),      // ← tu elo
                               rivalElo:  widget.rivalElo.toString(),   // ← elo del rival
                               yo :   miNombre ?? "Tú",
+                              rivalFoto: getRutaSeguraFoto(playerColor == PlayerColor.white ? fotoNegras : fotoBlancas),
+                              miFoto: getRutaSeguraFoto(playerColor == PlayerColor.white ? fotoBlancas : fotoNegras),
                             ),
                           ),
                         );

@@ -757,6 +757,18 @@ class _ProfilePageState extends State<Profile_page> {
 
                       final eresBlancas = whiteId == userId;
                       final rivalId     = eresBlancas ? blackId : whiteId;
+                      final url = Uri.parse('${serverBackend}getUserInfo?id=$rivalId');
+                      final response = await http.get(url, headers: { "Content-Type": "application/json" });
+
+                        final rivalData = jsonDecode(response.body);
+                        String rivalFoto = rivalData['FotoPerfil'] ??
+                            'fotoPerfil.png';
+
+                        print("PruebaFoto : $rivalFoto");
+                        // aquí puedes usar rivalFoto como quieras
+
+                      final rivalFotoSegura = getRutaSeguraFoto(rivalFoto);
+
 
                       final aliasWhite = RegExp(r'\[White Alias "(.*?)"\]').firstMatch(p.pgn)?.group(1) ?? 'Desconocido';
                       final aliasBlack = RegExp(r'\[Black Alias "(.*?)"\]').firstMatch(p.pgn)?.group(1) ?? 'Desconocido';
@@ -771,6 +783,7 @@ class _ProfilePageState extends State<Profile_page> {
                       print("PruebaElo: elo mio: $myElo");
                       print("PruebaElo: elo rival: $rivalElo");
                       // 5) Empujar a GameReviewPage con nombre y elos
+                      final miFoto = prefs.getString('fotoPerfil') ?? "none";
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -781,6 +794,8 @@ class _ProfilePageState extends State<Profile_page> {
                             miElo:     myElo.toString(),
                             rivalElo:  rivalElo.toString(),
                             yo : miNombre,
+                            rivalFoto: rivalFotoSegura,
+                            miFoto: getRutaSeguraFoto(miFoto),
                           ),
                         ),
                       );
