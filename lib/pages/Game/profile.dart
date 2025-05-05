@@ -23,6 +23,7 @@ class UltimaPartida {
   final int movimientos;
   final DateTime fecha;
   final String pgn; // NUEVO
+  final String rival;
 
   UltimaPartida({
     required this.modo,
@@ -30,6 +31,7 @@ class UltimaPartida {
     required this.movimientos,
     required this.fecha,
     required this.pgn, // NUEVO
+    required this.rival,
   });
 
   factory UltimaPartida.fromJson(Map<String, dynamic> json) {
@@ -39,6 +41,7 @@ class UltimaPartida {
       movimientos: json['movimientos'] ?? 0,
       fecha: DateTime.parse(json['created_at']),
       pgn: json['PGN'] ?? '', // NUEVO
+      rival : "pruebaRival",
     );
   }
 }
@@ -740,19 +743,52 @@ class _ProfilePageState extends State<Profile_page> {
 
                   return DataRow.byIndex(
                     index: ultimasPartidas.indexOf(p),
-                    onSelectChanged: (_) {
+                    onSelectChanged: (_) async {
+                      // 1) Convertir PGN a lista de movimientos
                       final movimientos = convertirPGNaHistorial(p.pgn);
+
+                      // 2) Leer tu userId
+                      final prefs  = await SharedPreferences.getInstance();
+                      final userId = prefs.getString('idJugador') ?? '';
+
+                      // 3) Extraer alias blancas/negras del PGN
+                      final whiteId = RegExp(r'\[White "(.*?)"\]').firstMatch(p.pgn)?.group(1) ?? '';
+                      final blackId = RegExp(r'\[Black "(.*?)"\]').firstMatch(p.pgn)?.group(1) ?? '';
+
+                      final eresBlancas = whiteId == userId;
+                      final rivalId     = eresBlancas ? blackId : whiteId;
+
+                      final aliasWhite = RegExp(r'\[White Alias "(.*?)"\]').firstMatch(p.pgn)?.group(1) ?? 'Desconocido';
+                      final aliasBlack = RegExp(r'\[Black Alias "(.*?)"\]').firstMatch(p.pgn)?.group(1) ?? 'Desconocido';
+
+                      final rivalNombre = eresBlancas ? aliasBlack : aliasWhite;
+                      final miNombre= eresBlancas ? aliasWhite : aliasBlack;
+
+                      final myElo    = eresBlancas ? whiteElo : blackElo;
+                      final rivalElo = eresBlancas ? blackElo : whiteElo;
+                      print("PruebaElo: elo blancas: $whiteElo");
+                      print("PruebaElo: elo negras: $blackElo");
+                      print("PruebaElo: elo mio: $myElo");
+                      print("PruebaElo: elo rival: $rivalElo");
+                      // 5) Empujar a GameReviewPage con nombre y elos
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => GameReviewPage(historial: movimientos, pgn: p.pgn,),
+                          builder: (_) => GameReviewPage(
+                            historial: movimientos,
+                            pgn:       p.pgn,
+                            rival:     rivalNombre,
+                            miElo:     myElo.toString(),
+                            rivalElo:  rivalElo.toString(),
+                            yo : miNombre,
+                          ),
                         ),
                       );
                     },
                     cells: [
                       DataCell(Icon(iconoModo, color: colorModo)),
-                      DataCell(Text('${nombres["blancas"]} ${formatearEloJugador(whiteElo)}', style: TextStyle(color: Colors.white))),
-                      DataCell(Text('${nombres["negras"]} ${formatearEloJugador(blackElo)}', style: TextStyle(color: Colors.white))),
+                      DataCell(Text('${nombres["blancas"]} ($whiteElo)', style: TextStyle(color: Colors.white))),
+                      DataCell(Text('${nombres["negras"]} ($blackElo)', style: TextStyle(color: Colors.white))),
                       DataCell(Row(
                         children: [
                           Text(res, style: TextStyle(fontSize: 18)),

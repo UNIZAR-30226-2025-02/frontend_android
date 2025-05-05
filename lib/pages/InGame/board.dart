@@ -23,7 +23,8 @@ class BoardScreen extends StatefulWidget {
   final String rivalName;
   final String rivalFoto;
 
-  BoardScreen(this.gameMode, this.color, this.gameId, this.pgn, this.timeLeftW, this.timeLeftB, this.myElo, this.rivalElo, this.rivalName, this.rivalFoto);
+  BoardScreen(this.gameMode, this.color, this.gameId, this.pgn,
+      this.timeLeftW, this.timeLeftB, this.myElo, this.rivalElo, this.rivalName, this.rivalFoto);
 
   @override
   _BoardScreenState createState() => _BoardScreenState();
@@ -46,6 +47,7 @@ class _BoardScreenState extends State<BoardScreen> {
   bool _isChatVisible = false;
   bool _isMovesVisible = false;
   bool _isLoaded = false;
+  String? miNombre;
   int incrementoPorJugada = 0;
   final TextEditingController _chatController = TextEditingController();
   List<String> _mensajesChat = [];
@@ -79,6 +81,9 @@ class _BoardScreenState extends State<BoardScreen> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     idJugador = prefs.getString('idJugador');
     final name = prefs.getString('usuario') ?? "Tú";
+    setState(() {
+      miNombre = name;
+    });
     final miFoto = prefs.getString('fotoPerfil') ?? "none";
     chessGame = chess.Chess();
 
@@ -481,7 +486,14 @@ class _BoardScreenState extends State<BoardScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => GameReviewPage(historial: _historialMovimientos, pgn: widget.pgn,),
+                            builder: (context) => GameReviewPage(
+                              historial: _historialMovimientos,
+                              pgn:       widget.pgn,
+                              rival:     widget.rivalName,
+                              miElo:     widget.myElo.toString(),      // ← tu elo
+                              rivalElo:  widget.rivalElo.toString(),   // ← elo del rival
+                              yo :   miNombre ?? "Tú",
+                            ),
                           ),
                         );
                       },

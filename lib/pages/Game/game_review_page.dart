@@ -14,10 +14,13 @@ import 'package:chess/chess.dart' as chess;
 class GameReviewPage extends StatefulWidget {
   static const String id = "game_review_page";
   final List<String> historial;
-
+  final String miElo;
+  final String rivalElo;
   final String pgn;
-
-  const GameReviewPage({Key? key, required this.historial, required this.pgn}) : super(key: key);
+  final String rival;
+  final String yo;
+  const GameReviewPage({Key? key, required this.historial, required this.pgn, required this.rival,
+    required this.rivalElo, required this.miElo, required this.yo}) : super(key: key);
 
   @override
   _GameReviewPageState createState() => _GameReviewPageState();
@@ -368,7 +371,6 @@ class _GameReviewPageState extends State<GameReviewPage> {
     boardOrientation: esJugadorBlancas ? PlayerColor.white : PlayerColor.black,
     enableUserMoves: false,
   );
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -385,19 +387,41 @@ class _GameReviewPageState extends State<GameReviewPage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            ...(
-                esJugadorBlancas
-                    ? [
-                  _buildBarraVentajaNegra(),
-                  _buildTablero(),
-                  _buildBarraVentajaBlanca(),
-                ]
-                    : [
-                  _buildBarraVentajaBlanca(),
-                  _buildTablero(),
-                  _buildBarraVentajaNegra(),
-                ]
-            ),
+            ...(esJugadorBlancas
+                ? [
+              Padding(
+                padding: const EdgeInsets.only(top: 16.0, bottom: 4.0),
+                child: Text(
+                  '${widget.rival} (${widget.rivalElo})',
+
+                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+              _buildBarraVentajaNegra(),
+              _buildTablero(),
+              _buildBarraVentajaBlanca(),
+              Text(
+
+                '${widget.yo} (${widget.miElo})',
+                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ]
+                : [
+              Padding(
+                padding: const EdgeInsets.only(top: 16.0, bottom: 4.0),
+                child: Text(
+                  '${widget.rival} (${widget.rivalElo})',
+                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+              _buildBarraVentajaBlanca(),
+              _buildTablero(),
+              _buildBarraVentajaNegra(),
+              Text(
+                '${widget.yo} (${widget.miElo})',
+                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ]),
 
             const SizedBox(height: 12),
 
@@ -478,7 +502,7 @@ class _GameReviewPageState extends State<GameReviewPage> {
                   icon: const Icon(Icons.replay, color: Colors.white),
                   label: const Text("Reiniciar", style: TextStyle(color: Colors.white)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent, // mismo color que el de inicio
+                    backgroundColor: Colors.blueAccent,
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -492,7 +516,6 @@ class _GameReviewPageState extends State<GameReviewPage> {
       ),
     );
   }
-
 
   @override
   void dispose() {
