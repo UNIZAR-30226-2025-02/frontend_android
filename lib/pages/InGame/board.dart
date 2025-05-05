@@ -469,7 +469,7 @@ class _BoardScreenState extends State<BoardScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => GameReviewPage(historial: _historialMovimientos),
+                            builder: (context) => GameReviewPage(historial: _historialMovimientos, pgn: widget.pgn,),
                           ),
                         );
                       },

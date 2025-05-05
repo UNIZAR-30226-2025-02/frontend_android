@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../Game/init.dart';
 import 'package:stockfish/stockfish.dart';
@@ -11,9 +12,12 @@ import 'package:chess/chess.dart' as chess;
 
 
 class GameReviewPage extends StatefulWidget {
+  static const String id = "game_review_page";
   final List<String> historial;
 
-  const GameReviewPage({Key? key, required this.historial}) : super(key: key);
+  final String pgn;
+
+  const GameReviewPage({Key? key, required this.historial, required this.pgn}) : super(key: key);
 
   @override
   _GameReviewPageState createState() => _GameReviewPageState();
@@ -45,12 +49,24 @@ class _GameReviewPageState extends State<GameReviewPage> {
 
   int moveIndex = -1;
   late final String? serverBackend;
-
+  bool esJugadorBlancas = true;
 
   @override
   void initState() {
     super.initState();
     _engine = Stockfish();
+
+    SharedPreferences.getInstance().then((prefs) {
+      final userId = prefs.getString('idJugador') ?? '';
+      final pgn = widget.historial.join(' ');
+
+      final whiteMatch = RegExp(r'\[White "(.*?)"\]').firstMatch(widget.pgn);
+      final whiteId = whiteMatch?.group(1) ?? '';
+
+      setState(() {
+        esJugadorBlancas = (userId == whiteId);
+      });
+    });
 
     // 1) Escucha la salida para parsear 'score cp ...'
     _stdoutSub = _engine.stdout.listen((line) {
@@ -125,68 +141,130 @@ class _GameReviewPageState extends State<GameReviewPage> {
     _engine.stdin = 'go depth 10';
   }
 
-
-
+  chess.PieceType _mapPromotionLetterToPieceType(String letter) {
+    switch (letter.toLowerCase()) {
+      case 'q':
+        return chess.PieceType.QUEEN;
+      case 'r':
+        return chess.PieceType.ROOK;
+      case 'b':
+        return chess.PieceType.BISHOP;
+      case 'n':
+        return chess.PieceType.KNIGHT;
+      default:
+        throw ArgumentError('Letra de promoción no válida: $letter');
+    }
+  }
+  void _showGameOverPopup(String mensaje) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        backgroundColor: Colors.grey[900],
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+          side: BorderSide(color: Colors.blueAccent, width: 1.5),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.flag, color: Colors.blueAccent),
+            SizedBox(width: 8),
+            Text("Fin de la partida", style: TextStyle(color: Colors.white)),
+          ],
+        ),
+        content: Text(mensaje, style: TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton.icon(
+            icon: Icon(Icons.home, color: Colors.blueAccent),
+            label: Text("Inicio", style: TextStyle(color: Colors.blueAccent)),
+            onPressed: () {
+              Navigator.pop(context);
+              _goBackToStart();
+            },
+          ),
+          TextButton.icon(
+            icon: Icon(Icons.replay, color: Colors.blueAccent),
+            label: Text("Reiniciar", style: TextStyle(color: Colors.blueAccent)),
+            onPressed: () {
+              Navigator.pop(context);
+              _restartReview();
+            },
+          ),
+        ],
+      ),
+    );
+  }
 
   void _nextMove() {
     if (moveIndex < widget.historial.length - 1) {
       moveIndex++;
-      final rawSan = widget.historial[moveIndex];
-      print('REPE rawSan: $rawSan');
+      final moveStr = widget.historial[moveIndex];
+      print('REPE moveStr: $moveStr');
 
-      // 1) Limpia sufijos de jaque/mate
-      String san = rawSan.replaceAll(RegExp(r'[+#]'), '');
-      print('REPE sanitized SAN: $san');
+      final fromSquare = moveStr.substring(0, 2);
+      final toSquare = moveStr.substring(2, 4);
+      final promotionLetter = moveStr.length == 5 ? moveStr[4] : null;
 
-      // 2) Quita notación de promoción si la hay
-      if (san.contains('=')) {
-        san = san.split('=').first;
-        print('REPE after promotion removal SAN: $san');
-      }
-
-      // 3) Extrae las dos últimas pos-casilla: siempre es el 'to'
-      final toSquare = san.substring(san.length - 2).toLowerCase();
-      print('REPE toSquare: $toSquare');
-
-      // 4) Genera movimientos legales y busca el que apunte ahí
       final legals = _game.generate_moves();
       print('REPE legal moves count: ${legals.length}');
-      final matches = legals.where(
-              (mv) => chess.Chess.algebraic(mv.to) == toSquare
-      );
-      print('REPE matches count: ${matches.length}');
-      final chess.Move? m = matches.isNotEmpty ? matches.first : null;
+
+      chess.Move? m;
+      for (final mv in legals) {
+        final fromMatches = chess.Chess.algebraic(mv.from) == fromSquare;
+        final toMatches = chess.Chess.algebraic(mv.to) == toSquare;
+
+        bool promoMatches = true;
+        if (promotionLetter != null) {
+          final expected = _mapPromotionLetterToPieceType(promotionLetter);
+          promoMatches = mv.promotion == expected;
+        }
+
+        if (fromMatches && toMatches && promoMatches) {
+          m = mv;
+          break;
+        }
+      }
 
       if (m != null) {
         _moveStackReal.add('${chess.Chess.algebraic(m.from)}-${chess.Chess.algebraic(m.to)}');
 
-        // 5a) actualiza el motor
         _game.make_move(m);
         print('REPE engine moved from ${chess.Chess.algebraic(m.from)} to ${chess.Chess.algebraic(m.to)}');
 
-        // 5b) extrae el 'from'
-        final fromSquare = chess.Chess.algebraic(m.from);
-        print('REPE fromSquare: $fromSquare');
+        final from = chess.Chess.algebraic(m.from);
+        final to = chess.Chess.algebraic(m.to);
+        if (promotionLetter != null) {
+          _controller.makeMoveWithPromotion(
+            from: from,
+            to: to,
+            pieceToPromoteTo: promotionLetter,
+          );
+        } else {
+          _controller.makeMove(from: from, to: to);
+        }
 
-        // 5c) mueve UI y apila
-        _controller.makeMove(from: fromSquare, to: toSquare);
-        _moveStack.add({'from': fromSquare, 'to': toSquare});
+        _moveStack.add({'from': from, 'to': to});
         print('REPE moveStack length: ${_moveStack.length}');
       } else {
-        print('REPE No se encontró ningún movimiento a $toSquare');
+        print('REPE ❌ Movimiento no encontrado: $moveStr');
       }
 
       setState(() {});
-      _evaluatePosition();
+      if (moveIndex == widget.historial.length - 1) {
+        Future.delayed(Duration(milliseconds: 500), () {
+          _showGameOverPopup("Has llegado al final de la partida.");
+        });
+      }
 
+      _evaluatePosition();
     }
   }
+
   double _whiteAdvantage() => ((_currentCp.clamp(-1000, 1000) + 1000) / 20.0);
   double _blackAdvantage() => 100.0 - _whiteAdvantage();
 
 // Y en tu clase, usa este _previousMove() instrumentado:
   void _previousMove() {
-    print("REPE ▶ _previousMove START: moveIndex=$moveIndex");
 
     if (moveIndex >= 0) {
       moveIndex--;
@@ -218,8 +296,6 @@ class _GameReviewPageState extends State<GameReviewPage> {
           print("REPE ▶ ❌ No se pudo rehacer movimiento $san");
         }
       }
-
-      print("REPE ▶ Retrocedido. Nuevo moveIndex=$moveIndex");
       setState(() {});
       _evaluatePosition();
     } else {
@@ -254,73 +330,73 @@ class _GameReviewPageState extends State<GameReviewPage> {
 
     setState(() {});
   }
+
+  Widget _buildBarraVentajaBlanca() => Column(
+    children: [
+      Text("Ventaja blanca: ${_whiteAdvantage().round()}/100", style: TextStyle(color: Colors.white70)),
+      Container(
+        height: 10,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: Row(
+          children: [
+            Expanded(flex: _whiteAdvantage().round(), child: Container(color: Colors.blueAccent)),
+            Expanded(flex: (100 - _whiteAdvantage().round()), child: Container(color: Colors.grey[800])),
+          ],
+        ),
+      ),
+    ],
+  );
+
+  Widget _buildBarraVentajaNegra() => Column(
+    children: [
+      Text("Ventaja negra: ${_blackAdvantage().round()}/100", style: TextStyle(color: Colors.white70)),
+      Container(
+        height: 10,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: Row(
+          children: [
+            Expanded(flex: _blackAdvantage().round(), child: Container(color: Colors.redAccent)),
+            Expanded(flex: (100 - _blackAdvantage().round()), child: Container(color: Colors.grey[800])),
+          ],
+        ),
+      ),
+    ],
+  );
+
+  Widget _buildTablero() => ChessBoard(
+    controller: _controller,
+    boardOrientation: esJugadorBlancas ? PlayerColor.white : PlayerColor.black,
+    enableUserMoves: false,
+  );
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[900],
       appBar: AppBar(
         backgroundColor: Colors.grey[900],
-        title: const Text("Revisión de partida"),
+        title: const Text(
+          "Revisión de partida",
+          style: TextStyle(color: Colors.white),
+        ),
         centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // 🟦 Evaluación para Blancas
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Text(
-                "Ventaja blanca: ${_whiteAdvantage().round()}/100",
-                style: const TextStyle(color: Colors.white70),
-              ),
-            ),
-            Container(
-              height: 10,
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: _whiteAdvantage().round(),
-                    child: Container(color: Colors.blueAccent),
-                  ),
-                  Expanded(
-                    flex: (100 - _whiteAdvantage().round()),
-                    child: Container(color: Colors.grey[800]),
-                  ),
-                ],
-              ),
-            ),
-
-            // Tablero de ajedrez
-            ChessBoard(
-              controller: _controller,
-              boardOrientation: PlayerColor.white,
-              enableUserMoves: false,
-            ),
-
-            // 🔴 Evaluación para Negras
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Text(
-                "Ventaja negra: ${_blackAdvantage().round()}/100",
-                style: const TextStyle(color: Colors.white70),
-              ),
-            ),
-            Container(
-              height: 10,
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Row(
-                children: [
-                  Expanded(
-                    flex: _blackAdvantage().round(),
-                    child: Container(color: Colors.redAccent),
-                  ),
-                  Expanded(
-                    flex: (100 - _blackAdvantage().round()),
-                    child: Container(color: Colors.grey[800]),
-                  ),
-                ],
-              ),
+            ...(
+                esJugadorBlancas
+                    ? [
+                  _buildBarraVentajaNegra(),
+                  _buildTablero(),
+                  _buildBarraVentajaBlanca(),
+                ]
+                    : [
+                  _buildBarraVentajaBlanca(),
+                  _buildTablero(),
+                  _buildBarraVentajaNegra(),
+                ]
             ),
 
             const SizedBox(height: 12),
@@ -352,24 +428,10 @@ class _GameReviewPageState extends State<GameReviewPage> {
                   style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 16)),
               Text('Mejor jugada: ${_bestMoveWhite!.substring(0, 2)}-${_bestMoveWhite!.substring(2, 4)}',
                   style: TextStyle(color: Colors.white, fontSize: 16)),
-              Text('Evaluación: ${(_currentCp / 100.0).toStringAsFixed(2)}',
-                  style: TextStyle(color: Colors.white, fontSize: 16)),
-              if (_moveClassificationWhite != null)
-                Text('Clasificación: $_moveClassificationWhite',
-                    style: TextStyle(color: Colors.white, fontSize: 16)),
-              Text('ACPL Blancas: ${acplWhite.toStringAsFixed(2)}',
-                  style: TextStyle(color: Colors.white, fontSize: 16)),
             ] else if (moveIndex % 2 == 1 && _bestMoveBlack != null) ...[
               Text('♟ Negras',
                   style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 16)),
               Text('Mejor jugada: ${_bestMoveBlack!.substring(0, 2)}-${_bestMoveBlack!.substring(2, 4)}',
-                  style: TextStyle(color: Colors.white, fontSize: 16)),
-              Text('Evaluación: ${(_currentCp / 100.0).toStringAsFixed(2)}',
-                  style: TextStyle(color: Colors.white, fontSize: 16)),
-              if (_moveClassificationBlack != null)
-                Text('Clasificación: $_moveClassificationBlack',
-                    style: TextStyle(color: Colors.white, fontSize: 16)),
-              Text('ACPL Negras: ${acplBlack.toStringAsFixed(2)}',
                   style: TextStyle(color: Colors.white, fontSize: 16)),
             ],
 
@@ -397,30 +459,31 @@ class _GameReviewPageState extends State<GameReviewPage> {
 
             const SizedBox(height: 20),
 
-            // 🏠 Volver al inicio
-            ElevatedButton.icon(
-              onPressed: _goBackToStart,
-              icon: const Icon(Icons.home, color: Colors.white),
-              label: const Text("Volver al inicio", style: TextStyle(color: Colors.white)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueAccent,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // 🔁 Reiniciar revisión
-            ElevatedButton.icon(
-              onPressed: _restartReview,
-              icon: const Icon(Icons.replay, color: Colors.white),
-              label: const Text("Reiniciar repetición", style: TextStyle(color: Colors.white)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.greenAccent,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _goBackToStart,
+                  icon: const Icon(Icons.home, color: Colors.white),
+                  label: const Text("Inicio", style: TextStyle(color: Colors.white)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                ElevatedButton.icon(
+                  onPressed: _restartReview,
+                  icon: const Icon(Icons.replay, color: Colors.white),
+                  label: const Text("Reiniciar", style: TextStyle(color: Colors.white)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent, // mismo color que el de inicio
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ],
             ),
 
             const SizedBox(height: 32),
