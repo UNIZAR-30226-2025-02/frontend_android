@@ -24,6 +24,8 @@ class UltimaPartida {
   final DateTime fecha;
   final String pgn; // NUEVO
   final String rival;
+  final int variacionJW;
+  final int variacionJB;
 
   UltimaPartida({
     required this.modo,
@@ -32,16 +34,27 @@ class UltimaPartida {
     required this.fecha,
     required this.pgn, // NUEVO
     required this.rival,
+    required this.variacionJW,
+    required this.variacionJB,
   });
 
   factory UltimaPartida.fromJson(Map<String, dynamic> json) {
+    num? parseVariacion(dynamic valor) {
+      if (valor == null) return 0;
+      if (valor is num) return valor;
+      if (valor is String) return double.tryParse(valor) ?? 0;
+      return 0;
+    }
+
     return UltimaPartida(
       modo: json['Modo'] ?? '',
       ganadorId: json['Ganador'].toString(),
       movimientos: json['movimientos'] ?? 0,
       fecha: DateTime.parse(json['created_at']),
-      pgn: json['PGN'] ?? '', // NUEVO
-      rival : "pruebaRival",
+      pgn: json['PGN'] ?? '',
+      rival: "pruebaRival",
+      variacionJW: parseVariacion(json['Variacion_JW'])!.round(),
+      variacionJB: parseVariacion(json['Variacion_JB'])!.round(),
     );
   }
 }
@@ -55,6 +68,7 @@ class _ProfilePageState extends State<Profile_page> {
   int gamesPlayed = 0;
   double winRate = 0.0;
   int maxStreak = 0;
+  String gmail= "";
   List<UltimaPartida> ultimasPartidas = [];
   late final responseClasica;
   late final responsePrincipiante;
@@ -140,6 +154,7 @@ class _ProfilePageState extends State<Profile_page> {
           friends = data['Amistades'] ?? friends;
           gamesPlayed = data['totalGames'] ?? gamesPlayed;
           maxStreak = data['maxStreak'] ?? maxStreak;
+          gmail = data['Correo']?? "";
 
           int wins = data['totalWins'] ?? 0;
           int losses = data['totalLosses'] ?? 0;
@@ -149,11 +164,11 @@ class _ProfilePageState extends State<Profile_page> {
           winRate = (total > 0) ? (wins / total) * 100 : 0.0;
         });
 
-        // LLAMADA ADICIONAL: obtener historial de últimas 5 partidas
         final histUrl = Uri.parse('${serverBackend}buscarUlt10PartidasDeUsuario?id=$userId');
         final histResp = await http.get(histUrl);
         if (histResp.statusCode == 200) {
           final List jsonList = jsonDecode(histResp.body);
+          print("🔎 JSON de una partida: ${jsonEncode(jsonList.first)}");
           setState(() {
             ultimasPartidas = jsonList
                 .map((j) => UltimaPartida.fromJson(j as Map<String, dynamic>))
@@ -334,7 +349,6 @@ class _ProfilePageState extends State<Profile_page> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _buildProfileCard(),
-            buildWinLossIconsBar(),
             SizedBox(height: 20),
             _buildGameModeCharts(),
             SizedBox(height: 20),
@@ -345,73 +359,7 @@ class _ProfilePageState extends State<Profile_page> {
     );
   }
 
-  Widget buildWinLossIconsBar() {
-    return Container(
-      margin: EdgeInsets.only(top: 20),
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey[850],
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black54, blurRadius: 8)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Últimos resultados',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(5, (index) {
-              if (index >= ultimasPartidas.length || userId == null) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Icon(
-                    Icons.radio_button_unchecked,
-                    color: Colors.grey,
-                    size: 28,
-                  ),
-                );
-              } else {
-                final partida = ultimasPartidas[index];
 
-                // 👇 AQUI ESTA LA CLAVE
-                if (partida.ganadorId == null || partida.ganadorId == "null") {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Text(
-                      "-",
-                      style: TextStyle(
-                        color: Colors.white60,
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  );
-                }
-
-                final won = partida.ganadorId == userId;
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Icon(
-                    won ? Icons.check_circle : Icons.cancel,
-                    color: won ? Colors.green : Colors.red,
-                    size: 28,
-                  ),
-                );
-              }
-            }),
-          ),
-        ],
-      ),
-    );
-  }
   Map<String, int> extraerEloDesdePGN(String pgn, String? userId) {
     final regexWhiteId = RegExp(r'\[White "(.*?)"\]');
     final regexWhiteElo = RegExp(r'\[White Elo "(.*?)"\]');
@@ -480,13 +428,26 @@ class _ProfilePageState extends State<Profile_page> {
             ],
           ),
           SizedBox(height: 10),
-          Text(
-            playerName,
-            style: TextStyle(
-              color: Colors.blueAccent,
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                playerName,
+                style: TextStyle(
+                  color: Colors.blueAccent,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              if (gmail.isNotEmpty)
+                Text(
+                  '($gmail)',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
+                ),
+            ],
           ),
           Divider(color: Colors.white24),
           Row(
@@ -672,19 +633,19 @@ class _ProfilePageState extends State<Profile_page> {
     Map<String, IconData> modeIcons = {
       "Clásica": Icons.extension,
       "Principiante": Icons.verified,
-      "Avanzado": Icons.timer,
+      "Avanzada": Icons.timer,
       "Relámpago": Icons.flash_on,
       "Incremento": Icons.trending_up,
-      "Incremento exprés": Icons.star,
+      "Incremento Exprés": Icons.star,
     };
 
     Map<String, Color> modeColors = {
       "Clásica": Colors.brown,
       "Principiante": Colors.green,
-      "Avanzado": Colors.red,
+      "Avanzada": Colors.red,
       "Relámpago": Colors.yellow,
       "Incremento": Colors.green,
-      "Incremento exprés": Colors.yellow,
+      "Incremento Exprés": Colors.yellow,
     };
 
     return Container(
@@ -739,7 +700,12 @@ class _ProfilePageState extends State<Profile_page> {
                   final whiteElo = elos["whiteElo"] ?? 1000;
                   final blackElo = elos["blackElo"] ?? 1000;
                   final movimiento = elos["movimientos"] ?? 0;
-                  final variacion = extraerVariacionElo(p, userId!);
+                  final regexJugadorBlancas = RegExp(r'\[White "(.*?)"\]');
+                  final whitePlayer = regexJugadorBlancas.firstMatch(p.pgn)?.group(1) ?? '';
+                  final esBlancas = whitePlayer == userId;
+
+
+                  final variacion = esBlancas ? p.variacionJW : p.variacionJB;
 
                   return DataRow.byIndex(
                     index: ultimasPartidas.indexOf(p),
@@ -778,10 +744,6 @@ class _ProfilePageState extends State<Profile_page> {
 
                       final myElo    = eresBlancas ? whiteElo : blackElo;
                       final rivalElo = eresBlancas ? blackElo : whiteElo;
-                      print("PruebaElo: elo blancas: $whiteElo");
-                      print("PruebaElo: elo negras: $blackElo");
-                      print("PruebaElo: elo mio: $myElo");
-                      print("PruebaElo: elo rival: $rivalElo");
                       // 5) Empujar a GameReviewPage con nombre y elos
                       final miFoto = prefs.getString('fotoPerfil') ?? "none";
                       Navigator.push(
@@ -865,19 +827,39 @@ class _ProfilePageState extends State<Profile_page> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('nombre'),
+          backgroundColor: Colors.grey[900],
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+            side: BorderSide(color: Colors.blueAccent, width: 1.5),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.edit, color: Colors.blueAccent),
+              SizedBox(width: 8),
+              Text('Editar nombre', style: TextStyle(color: Colors.white)),
+            ],
+          ),
           content: TextField(
             controller: _nameController,
+            style: TextStyle(color: Colors.white),
             decoration: InputDecoration(
               labelText: 'Nuevo nombre',
+              labelStyle: TextStyle(color: Colors.white70),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.blueAccent),
+              ),
+              focusedBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.blueAccent),
+              ),
             ),
+            cursorColor: Colors.blueAccent,
           ),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: Text('Cancelar'),
+              child: Text('Cancelar', style: TextStyle(color: Colors.blueAccent)),
             ),
             TextButton(
               onPressed: () async {
@@ -892,21 +874,29 @@ class _ProfilePageState extends State<Profile_page> {
                   showDialog(
                     context: context,
                     builder: (ctx) => AlertDialog(
-                      title: Text('Error'),
-                      content: Text('El nombre de usuario "$newName" ya está en uso'),
+                      backgroundColor: Colors.grey[900],
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                        side: BorderSide(color: Colors.blueAccent, width: 1.5),
+                      ),
+                      title: Text('Error', style: TextStyle(color: Colors.white)),
+                      content: Text(
+                        'El nombre de usuario "$newName" ya está en uso',
+                        style: TextStyle(color: Colors.white70),
+                      ),
                       actions: [
                         TextButton(
                           onPressed: () {
                             Navigator.of(ctx).pop();
                           },
-                          child: Text('OK'),
+                          child: Text('OK', style: TextStyle(color: Colors.blueAccent)),
                         ),
                       ],
                     ),
                   );
                 }
               },
-              child: Text('Guardar'),
+              child: Text('Guardar', style: TextStyle(color: Colors.blueAccent)),
             ),
           ],
         );
@@ -919,7 +909,18 @@ class _ProfilePageState extends State<Profile_page> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Selecciona una foto de perfil"),
+          backgroundColor: Colors.grey[900],
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+            side: BorderSide(color: Colors.blueAccent, width: 1.5),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.image, color: Colors.blueAccent),
+              SizedBox(width: 8),
+              Text("Foto de perfil", style: TextStyle(color: Colors.white)),
+            ],
+          ),
           content: Container(
             width: double.maxFinite,
             height: 300,
@@ -932,7 +933,6 @@ class _ProfilePageState extends State<Profile_page> {
               itemCount: multiavatarImages.length,
               itemBuilder: (context, index) {
                 String imageFileName = multiavatarImages[index];
-                // Usamos la nueva ruta: assets/fotosPerfil/
                 String imagePath = "assets/fotosPerfil/$imageFileName";
                 return GestureDetector(
                   onTap: () async {
@@ -944,12 +944,20 @@ class _ProfilePageState extends State<Profile_page> {
                       showDialog(
                         context: context,
                         builder: (ctx) => AlertDialog(
-                          title: Text("Error"),
-                          content: Text("La foto de perfil no se pudo actualizar."),
+                          backgroundColor: Colors.grey[900],
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                            side: BorderSide(color: Colors.blueAccent, width: 1.5),
+                          ),
+                          title: Text("Error", style: TextStyle(color: Colors.white)),
+                          content: Text(
+                            "La foto de perfil no se pudo actualizar.",
+                            style: TextStyle(color: Colors.white70),
+                          ),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.of(ctx).pop(),
-                              child: Text("OK"),
+                              child: Text("OK", style: TextStyle(color: Colors.blueAccent)),
                             ),
                           ],
                         ),
@@ -965,7 +973,7 @@ class _ProfilePageState extends State<Profile_page> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text("Cancelar"),
+              child: Text("Cancelar", style: TextStyle(color: Colors.blueAccent)),
             ),
           ],
         );
