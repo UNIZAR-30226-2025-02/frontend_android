@@ -1,3 +1,4 @@
+
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -75,10 +76,6 @@ class SocketService {
     socket.onError((err) {
       print("❌ Error general: $err");
     });
-    socket.on('errorMessage', (msg) {
-      _showPopupSimple(msg.toString());
-    });
-
 
     // 👇 Eventos importantes
     socket.on('game-ready', (data) => _handleGameReady(data));
@@ -86,43 +83,10 @@ class SocketService {
     socket.on('force-logout', (data) => _handleForceLogout(data, idJugador));
     socket.on('friendRequest', (data) => _showFriendRequestPopup(data));
     socket.on('challengeSent', (data) => _showChallengePopup(data));
-      socket.on('player-surrendered', (data) {
-        print("🏳️ Player surrendered: $data");
-        _showPopupResultado('¡Tu rival se ha rendido!', true);
-      });
-
-      socket.on('draw-accepted', (data) {
-        print("🤝 Draw accepted: $data");
-        _showPopupResultado('¡Tablas acordadas!', true);
-      });
-
-      socket.on('draw-declined', (data) {
-        print("🙅‍♂️ Draw declined: $data");
-        _showPopupSimple('El rival ha rechazado las tablas.');
-      });
-
-      socket.on('gameOver', (data) {
-        print("🏁 Game over: $data");
-        _showPopupResultado('¡La partida ha terminado!', true);
-      });
-
-
-
-    print("✅ Listeners configurados correctamente.");
   }
   void _handleGameReady(dynamic data) {
-    print("✅ gameready.");
-    print("🔍 game-ready data: $data (${data.runtimeType})");
-
-    if (data is List && data.isNotEmpty && data[0] is Map<String, dynamic>) {
-      final partidaInfo = data[0];
-      _gameId = partidaInfo['idPartida'];
-      print("🎯 _gameId correctamente asignado: $_gameId");
-    } else {
-      print("❌ Formato inesperado para game-ready: $data");
-    }
+    _gameId = data[0]['gameId'];
   }
-
 
   void _handleColor(dynamic data) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -137,23 +101,24 @@ class SocketService {
     if (yo.isEmpty) return;
 
     _color = yo['color'];
+
     const int eloPorDefecto = 0;
 
     if (_color == 'white') {
       await prefs.setString('nombreBlancas', yo['nombreW']);
-      await prefs.setInt('eloBlancas', yo['eloW'] ?? eloPorDefecto);
+      await prefs.setInt('eloBlancas', eloPorDefecto);
       await prefs.setString('fotoBlancas', yo['fotoBlancas'] ?? 'none');
 
       await prefs.setString('nombreNegras', rival['nombreB']);
-      await prefs.setInt('eloNegras', rival['eloB'] ?? eloPorDefecto);
+      await prefs.setInt('eloNegras', eloPorDefecto);
       await prefs.setString('fotoNegras', rival['fotoNegras'] ?? 'none');
     } else {
       await prefs.setString('nombreNegras', yo['nombreB']);
-      await prefs.setInt('eloNegras', yo['eloB'] ?? eloPorDefecto);
+      await prefs.setInt('eloNegras', eloPorDefecto);
       await prefs.setString('fotoNegras', yo['fotoNegras'] ?? 'none');
 
       await prefs.setString('nombreBlancas', rival['nombreW']);
-      await prefs.setInt('eloBlancas', rival['eloW'] ?? eloPorDefecto);
+      await prefs.setInt('eloBlancas', eloPorDefecto);
       await prefs.setString('fotoBlancas', rival['fotoBlancas'] ?? 'none');
     }
 
@@ -162,7 +127,6 @@ class SocketService {
 
     _goToBoardScreen();
   }
-
 
   void _handleForceLogout(dynamic data, String idJugador) {
     String? idConectado;
@@ -460,6 +424,7 @@ class SocketService {
     }
     return socket;
   }
+
   void showForceLogoutPopup(String message) {
     final context = navigatorKey.currentContext;
     if (context == null) return;
@@ -469,21 +434,8 @@ class SocketService {
       barrierDismissible: false,
       builder: (_) => AlertDialog(
         backgroundColor: Colors.grey[900],
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15),
-          side: BorderSide(color: Colors.blueAccent, width: 1.5),
-        ),
-        title: Row(
-          children: [
-            Icon(Icons.logout, color: Colors.blueAccent),
-            SizedBox(width: 8),
-            Text("Sesión cerrada", style: TextStyle(color: Colors.white)),
-          ],
-        ),
-        content: Text(
-          message,
-          style: TextStyle(color: Colors.white70),
-        ),
+        title: Text("Sesión cerrada", style: TextStyle(color: Colors.white)),
+        content: Text(message, style: TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
             onPressed: () async {
@@ -497,10 +449,9 @@ class SocketService {
               );
             },
             child: Text("Aceptar", style: TextStyle(color: Colors.blueAccent)),
-          ),
+          )
         ],
       ),
     );
   }
-
 }

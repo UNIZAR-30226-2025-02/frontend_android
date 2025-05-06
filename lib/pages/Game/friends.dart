@@ -202,9 +202,6 @@ class _FriendsPageState extends State<Friends_Page> {
     );
   }
 
-
-
-
   void _reintentarConexion() async {
     print("🔄 Intentando re-subscribirse a eventos para reconectar...");
 
@@ -219,9 +216,6 @@ class _FriendsPageState extends State<Friends_Page> {
       print("❗ Socket desconectado o datos incompletos, no podemos reintentar ahora.");
     }
   }
-
-
-
 
   String clean(String? id) => (id ?? "").trim();
 
