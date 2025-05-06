@@ -503,7 +503,7 @@ class _FriendsPageState extends State<Friends_Page> {
                       final id = f['amigoId']?.toString().trim() ?? "";
                       final fotoPerfilCruda = f['fotoPerfil'] ?? f['fotoAmigo'] ?? 'none';
 
-// 🔥 Aplicas bien la función que me pasaste:
+                      // 🔥 Aplicas bien la función que me pasaste:
                       final fotoSegura = getRutaSeguraFoto(fotoPerfilCruda);
 
                       return Card(

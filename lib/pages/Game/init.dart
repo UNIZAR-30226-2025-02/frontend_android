@@ -125,17 +125,17 @@ class _InitPageState extends State<Init_page> {
 
         if (_gameColor == 'white') {
           await prefs.setString('nombreBlancas', yo['nombreW']);
-          await prefs.setInt('eloBlancas', yo['eloW']);
+          await prefs.setInt('eloBlancas', (yo['eloW'] as num).toInt());
           await prefs.setString('fotoBlancas', yo['fotoBlancas'] ?? 'none');
           await prefs.setString('nombreNegras', rival['nombreB']);
-          await prefs.setInt('eloNegras', rival['eloB']);
+          await prefs.setInt('eloNegras', (rival['eloB'] as num).toInt());
           await prefs.setString('fotoNegras', rival['fotoNegras'] ?? 'none');
         } else {
           await prefs.setString('nombreNegras', yo['nombreB']);
-          await prefs.setInt('eloNegras', yo['eloB']);
+          await prefs.setInt('eloNegras', (yo['eloB'] as num).toInt());
           await prefs.setString('fotoNegras', yo['fotoNegras'] ?? 'none');
           await prefs.setString('nombreBlancas', rival['nombreW']);
-          await prefs.setInt('eloBlancas', rival['eloW']);
+          await prefs.setInt('eloBlancas', (rival['eloW'] as num).toInt());
           await prefs.setString('fotoBlancas', rival['fotoBlancas'] ?? 'none');
         }
         _intentarEntrarAPartida();

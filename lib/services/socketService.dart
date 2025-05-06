@@ -85,7 +85,7 @@ class SocketService {
     socket.on('challengeSent', (data) => _showChallengePopup(data));
   }
   void _handleGameReady(dynamic data) {
-    _gameId = data[0]['gameId'];
+    _gameId = data[0]['idPartida'];
   }
 
   void _handleColor(dynamic data) async {
@@ -106,19 +106,19 @@ class SocketService {
 
     if (_color == 'white') {
       await prefs.setString('nombreBlancas', yo['nombreW']);
-      await prefs.setInt('eloBlancas', eloPorDefecto);
+      await prefs.setInt('eloBlancas', (yo['eloW'] as num).toInt());
       await prefs.setString('fotoBlancas', yo['fotoBlancas'] ?? 'none');
 
       await prefs.setString('nombreNegras', rival['nombreB']);
-      await prefs.setInt('eloNegras', eloPorDefecto);
+      await prefs.setInt('eloNegras', (rival['eloB'] as num).toInt());
       await prefs.setString('fotoNegras', rival['fotoNegras'] ?? 'none');
     } else {
       await prefs.setString('nombreNegras', yo['nombreB']);
-      await prefs.setInt('eloNegras', eloPorDefecto);
+      await prefs.setInt('eloNegras', (yo['eloB'] as num).toInt());
       await prefs.setString('fotoNegras', yo['fotoNegras'] ?? 'none');
 
       await prefs.setString('nombreBlancas', rival['nombreW']);
-      await prefs.setInt('eloBlancas', eloPorDefecto);
+      await prefs.setInt('eloBlancas', (rival['eloW'] as num).toInt());
       await prefs.setString('fotoBlancas', rival['fotoBlancas'] ?? 'none');
     }
 
