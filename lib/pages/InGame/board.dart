@@ -852,7 +852,6 @@ class _BoardScreenState extends State<BoardScreen> {
 
   @override
   void dispose() {
-    print("[DISPOSE] Cerrando BoardScreen...");
     _timerWhite.cancel();
     _timerBlack.cancel();
 

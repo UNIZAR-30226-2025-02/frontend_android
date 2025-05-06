@@ -8,9 +8,6 @@ import '../Game/init.dart';
 import 'package:stockfish/stockfish.dart';
 import 'package:chess/chess.dart' as chess;
 
-
-
-
 class GameReviewPage extends StatefulWidget {
   static const String id = "game_review_page";
   final List<String> historial;

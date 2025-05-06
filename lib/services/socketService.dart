@@ -1,4 +1,5 @@
 
+
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -106,19 +107,19 @@ class SocketService {
 
     if (_color == 'white') {
       await prefs.setString('nombreBlancas', yo['nombreW']);
-      await prefs.setInt('eloBlancas', (yo['eloW'] as num).toInt());
+      await prefs.setInt('eloBlancas', eloPorDefecto);
       await prefs.setString('fotoBlancas', yo['fotoBlancas'] ?? 'none');
 
       await prefs.setString('nombreNegras', rival['nombreB']);
-      await prefs.setInt('eloNegras', (rival['eloB'] as num).toInt());
+      await prefs.setInt('eloNegras', eloPorDefecto);
       await prefs.setString('fotoNegras', rival['fotoNegras'] ?? 'none');
     } else {
       await prefs.setString('nombreNegras', yo['nombreB']);
-      await prefs.setInt('eloNegras', (yo['eloB'] as num).toInt());
+      await prefs.setInt('eloNegras', eloPorDefecto);
       await prefs.setString('fotoNegras', yo['fotoNegras'] ?? 'none');
 
       await prefs.setString('nombreBlancas', rival['nombreW']);
-      await prefs.setInt('eloBlancas', (rival['eloW'] as num).toInt());
+      await prefs.setInt('eloBlancas', eloPorDefecto);
       await prefs.setString('fotoBlancas', rival['fotoBlancas'] ?? 'none');
     }
 
