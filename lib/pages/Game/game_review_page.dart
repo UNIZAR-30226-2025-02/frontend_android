@@ -202,10 +202,14 @@ class _GameReviewPageState extends State<GameReviewPage> {
     if (moveIndex < widget.historial.length - 1) {
       moveIndex++;
       final moveStr = widget.historial[moveIndex];
+      print('REPE moveStr: $moveStr');
+
       final fromSquare = moveStr.substring(0, 2);
       final toSquare = moveStr.substring(2, 4);
       final promotionLetter = moveStr.length == 5 ? moveStr[4] : null;
+
       final legals = _game.generate_moves();
+      print('REPE legal moves count: ${legals.length}');
 
       chess.Move? m;
       for (final mv in legals) {
@@ -228,6 +232,7 @@ class _GameReviewPageState extends State<GameReviewPage> {
         _moveStackReal.add('${chess.Chess.algebraic(m.from)}-${chess.Chess.algebraic(m.to)}');
 
         _game.make_move(m);
+        print('REPE engine moved from ${chess.Chess.algebraic(m.from)} to ${chess.Chess.algebraic(m.to)}');
 
         final from = chess.Chess.algebraic(m.from);
         final to = chess.Chess.algebraic(m.to);
@@ -242,7 +247,9 @@ class _GameReviewPageState extends State<GameReviewPage> {
         }
 
         _moveStack.add({'from': from, 'to': to});
+        print('REPE moveStack length: ${_moveStack.length}');
       } else {
+        print('REPE ❌ Movimiento no encontrado: $moveStr');
       }
 
       setState(() {});
@@ -289,11 +296,13 @@ class _GameReviewPageState extends State<GameReviewPage> {
           _moveStack.add({'from': fromSquare, 'to': toSquare});
           _moveStackReal.add('$fromSquare-$toSquare');
         } else {
+          print("REPE ▶ ❌ No se pudo rehacer movimiento $san");
         }
       }
       setState(() {});
       _evaluatePosition();
     } else {
+      print("REPE ▶ Ya estás al inicio de la partida.");
     }
   }
 

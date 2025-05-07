@@ -59,17 +59,18 @@ class _InitPageState extends State<Init_page> {
     super.initState();
     _startInitSequence();
     resumenFuture = _fetchResumenPartidas();
-    print("Socket conectado: ${socket?.connected}");  // 👈
   }
 
   Future<void> _startInitSequence() async {
     await _cargarUsuario(); // Espera a que idJugador esté listo
     await _initializeSocketAndStartMatchmaking();
+    print("Socket ID en friends: ${socket?.id}");
   }
 
   Future<void> _initializeSocketAndStartMatchmaking() async {
     await socketService.connect(context); // 👈 Context de LoginPage
     socket = await socketService.getSocket(context);
+    print("Socket ID en init: ${socket?.id}");
     encontrarPartida(); // Ahora sí: ya puedes registrar listeners
   }
 
@@ -115,7 +116,7 @@ class _InitPageState extends State<Init_page> {
       _gameId = idPartida;
     });
 
-    socket?.on('color', (data) async{
+    /*socket?.on('color', (data) async{
       if (idJugador == null) return;
       final jugadores = List<Map<String, dynamic>>.from(data[0]['jugadores']);
       final yo = jugadores.firstWhere((jugador) => jugador['id'] == idJugador, orElse: () => {});
@@ -141,7 +142,7 @@ class _InitPageState extends State<Init_page> {
         }
         _intentarEntrarAPartida();
       }
-    });
+    });*/
   }
 
   void _intentarEntrarAPartida() async {
@@ -431,6 +432,8 @@ class _InitPageState extends State<Init_page> {
 
     final partidas = jsonDecode(partidasRes.body) as List<dynamic>;
     final userInfo = jsonDecode(userInfoRes.body);
+    print("🧪 Datos recibidos de getUserInfo:");
+    print(userInfo);
 
     List<String> resultados = partidas.map<String>((partida) {
       final ganadorId = partida['Ganador'];

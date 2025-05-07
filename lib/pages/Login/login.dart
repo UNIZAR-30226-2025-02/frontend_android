@@ -40,6 +40,7 @@ class _LoginPageState extends State<Login_page> {
       setState(() {
         socket = connectedSocket as IO.Socket?; // ✅ Ahora el socket está disponible
       });
+      print("✅ Socket inicializado correctamente");
     }
   }
 
@@ -112,6 +113,7 @@ class _LoginPageState extends State<Login_page> {
           await _initializeSocket(); // conecta y espera
           Navigator.pushReplacementNamed(context, Init_page.id); // solo si todo va bien
         } catch (e) {
+          print("❌ Error al conectar socket: $e");
           _mostrarSnackBar("No se pudo conectar con el servidor.");
         }
       } else {
@@ -286,6 +288,7 @@ class _LoginPageState extends State<Login_page> {
       }
     } catch (e) {
       _mostrarSnackBar("Error al conectarse con el servidor.");
+      print("❌ Error crearInvitado: $e");
     }
   }
 

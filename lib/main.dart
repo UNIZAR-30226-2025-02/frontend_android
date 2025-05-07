@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:frontend_android/pages/Game/friends.dart';
 import 'package:frontend_android/pages/Game/init.dart';
 import 'package:frontend_android/pages/Game/settings.dart';
 import 'package:frontend_android/pages/Login/login.dart';
@@ -43,7 +42,6 @@ class MyApp extends StatelessWidget {
         Settings_page.id:(_) => Settings_page(),
         Profile_page.id: (_) => Profile_page(),
         Password_page.id: (_) => Password_page(),
-        Friends_Page.id: (_) => Friends_Page(),
       },
     );
   }

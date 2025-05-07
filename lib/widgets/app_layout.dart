@@ -42,6 +42,7 @@ class _AppLayoutState extends State<AppLayout> {
   }
 
   void recargarFoto() async {
+    print("🔁 recargarFoto() llamado desde otra página");
     await _cargarDatosSesion();
   }
 
@@ -59,9 +60,12 @@ class _AppLayoutState extends State<AppLayout> {
         );
 
         if (response.statusCode == 200) {
+          print("✅ Sesión cerrada correctamente en el servidor.");
         } else {
+          print("❌ Error al cerrar sesión en el servidor: ${response.body}");
         }
       } catch (e) {
+        print("❌ Error de conexión al servidor: $e");
       }
     }
 
@@ -88,6 +92,8 @@ class _AppLayoutState extends State<AppLayout> {
     final idJugador = prefs.getString('idJugador'); // ✅ Asegúrate de tener el ID
     final backendUrl = dotenv.env['SERVER_BACKEND'];
 
+    print("➡️ Enviando ID del invitado: $idJugador");
+
     try {
       final response = await http.post(
         Uri.parse("${backendUrl}borrarInvitado"),
@@ -101,9 +107,12 @@ class _AppLayoutState extends State<AppLayout> {
       );
 
       if (response.statusCode == 200) {
+        print("✅ Invitado eliminado correctamente.");
       } else {
+        print("❌ Error al borrar invitado: ${response.body}");
       }
     } catch (e) {
+      print("❌ Error de conexión al borrar invitado: $e");
     }
 
     // Limpia sesión y muestra mensaje

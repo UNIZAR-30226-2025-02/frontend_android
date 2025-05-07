@@ -1,3 +1,5 @@
+
+
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -75,10 +77,14 @@ class SocketService {
     socket.onError((err) {
       print("❌ Error general: $err");
     });
-    //socket.on('friendRequest', (data) => _showFriendRequestPopup(data));
-    //socket.on('challengeSent', (data) => _showChallengePopup(data));
 
-    print("✅ Listeners configurados correctamente.");
+    // 👇 Eventos importantes
+    socket.on('game-ready', (data) => _handleGameReady(data));
+    socket.on('color', (data) async=> _handleColor(data));
+    //socket.on('force-logout', (data) => _handleForceLogout(data, idJugador));
+    socket.on('friendRequest', (data) async=> _showFriendRequestPopup(data));
+    socket.on('challengeSent', (data) async=> _showChallengePopup(data));
+
   }
   void _handleGameReady(dynamic data) {
     _gameId = data[0]['idPartida'];
@@ -256,7 +262,7 @@ class SocketService {
     );
   }
 
- /* void _showFriendRequestPopup(dynamic dataRaw) async {
+  void _showFriendRequestPopup(dynamic dataRaw) async {
     final context = navigatorKey.currentContext;
     if (context == null) return;
 
@@ -347,7 +353,7 @@ class SocketService {
         ],
       ),
     );
-  }*/
+  }
 
   void _goToBoardScreen() async {
     final context = navigatorKey.currentContext;
@@ -376,7 +382,7 @@ class SocketService {
   }
 
 
-  /*String _mapearModo(String modoServidor) {
+  String _mapearModo(String modoServidor) {
     switch (modoServidor) {
       case "Punt_10":
         return "Clásica";
@@ -393,7 +399,7 @@ class SocketService {
       default:
         return "Clásica";
     }
-  }*/
+  }
 
   Future<void> connect(BuildContext context) async {
     _latestContext = context;
@@ -420,6 +426,7 @@ class SocketService {
     }
     return socket;
   }
+
   void showForceLogoutPopup(String message) {
     final context = navigatorKey.currentContext;
     if (context == null) return;
@@ -429,21 +436,8 @@ class SocketService {
       barrierDismissible: false,
       builder: (_) => AlertDialog(
         backgroundColor: Colors.grey[900],
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15),
-          side: BorderSide(color: Colors.blueAccent, width: 1.5),
-        ),
-        title: Row(
-          children: [
-            Icon(Icons.logout, color: Colors.blueAccent),
-            SizedBox(width: 8),
-            Text("Sesión cerrada", style: TextStyle(color: Colors.white)),
-          ],
-        ),
-        content: Text(
-          message,
-          style: TextStyle(color: Colors.white70),
-        ),
+        title: Text("Sesión cerrada", style: TextStyle(color: Colors.white)),
+        content: Text(message, style: TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
             onPressed: () async {
@@ -457,10 +451,9 @@ class SocketService {
               );
             },
             child: Text("Aceptar", style: TextStyle(color: Colors.blueAccent)),
-          ),
+          )
         ],
       ),
     );
   }
-
 }

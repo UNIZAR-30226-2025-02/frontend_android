@@ -92,6 +92,7 @@ class _Wellcome_pageState extends State<Wellcome_page> {
       }
     } catch (e) {
       _mostrarSnackBar("Error al conectarse con el servidor.");
+      print("❌ Error crearInvitado: $e");
     }
   }
 

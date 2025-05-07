@@ -88,6 +88,10 @@ class _RankingPageState extends State<Ranking_page> {
     final res = await http.get(Uri.parse('${serverBackend}rankingPorModo?modo=$modo'));
     if (res.statusCode == 200) {
       final List data = jsonDecode(res.body);
+      print("🔍 Datos recibidos para modo $modo:");
+      for (var jugador in data) {
+        print(jugador); // imprime cada jugador individualmente
+      }
       return data.cast<Map<String, dynamic>>();
     } else {
       return [];

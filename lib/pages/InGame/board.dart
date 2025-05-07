@@ -238,6 +238,7 @@ class _BoardScreenState extends State<BoardScreen> {
           });
 
         } catch (e) {
+          print("❌ Error al aplicar el movimiento recibido: $e");
         }
       }
     }
@@ -308,6 +309,7 @@ class _BoardScreenState extends State<BoardScreen> {
       String? idJugador = prefs.getString('idJugador');
 
       if (data[0]['idJugador'] != idJugador) {
+        print("[SOCKET] Tu rival se ha rendido");
       }
     });
 
