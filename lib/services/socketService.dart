@@ -107,7 +107,7 @@ class SocketService {
     print("✅ Listeners configurados correctamente.");
   }
   void _handleGameReady(dynamic data) {
-    _gameId = data[0]['Idpartida'];
+    _gameId = data[0]['idPartida'];
   }
 
   void _handleColor(dynamic data) async {
