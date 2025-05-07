@@ -34,6 +34,7 @@ class GameMode {
 }
 
 class Friends_Page extends StatefulWidget {
+  static void Function()? onFriendListShouldRefresh;
   static const String id = "friends_page";
 
   @override
@@ -42,8 +43,6 @@ class Friends_Page extends StatefulWidget {
 
 class _FriendsPageState extends State<Friends_Page> {
   late IO.Socket socket;
-  String? _nombreRival;
-  String? _fotoRival;
   String? idJugador;
   String? nombreJugador;
   String searchInput = "";
@@ -78,6 +77,10 @@ class _FriendsPageState extends State<Friends_Page> {
   @override
   void initState() {
     super.initState();
+    Friends_Page.onFriendListShouldRefresh = () async {
+      await _cargarAmigos();
+      setState(() {});
+    };
     verificarAccesoInvitado(context);
     _initializeSocketAndUser();
   }
@@ -108,11 +111,24 @@ class _FriendsPageState extends State<Friends_Page> {
 
     try {
       final response = await http.get(uri);
+      print("📦 Respuesta cruda: ${response.body}");
+
       if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        setState(() {
-          friends = data.cast<Map<String, dynamic>>();
-        });
+        final decoded = jsonDecode(response.body);
+
+        if (decoded is List) {
+          setState(() {
+            friends = decoded.cast<Map<String, dynamic>>();
+          });
+        } else if (decoded is Map && decoded.containsKey('Message')) {
+          print("ℹ️ Mensaje del backend: ${decoded['Message']}");
+          setState(() {
+            friends = []; // vacío si no hay amigos
+          });
+        } else {
+          print("⚠️ Respuesta inesperada: $decoded");
+        }
+
       } else {
         print("❌ Error cargando amigos: ${response.statusCode}");
       }
@@ -122,12 +138,23 @@ class _FriendsPageState extends State<Friends_Page> {
   }
 
   void _configureSocketListeners() {
-    print("🛠️ Configurando listeners...");
+    socket.off('friendRequestAccepted'); // importante para evitar duplicados
+    socket.on('friendRequestAccepted', (data) async {
+      print("📬 Solicitud de amistad aceptada: $data");
+      await Future.delayed(Duration(milliseconds: 300));
+      await _cargarAmigos(); // recarga lista desde el servidor
 
+      if (!mounted) return;
 
+      setState(() {}); // fuerza reconstrucción del widget
 
-    print("Socket ID en friends: ${socket?.id}");
-    print("✅ Listeners configurados");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("¡Tu solicitud de amistad fue aceptada!"),
+          backgroundColor: Colors.green,
+        ),
+      );
+    });
   }
 
   void _sendFriendRequest(String idAmigo, String nombreAmigo) {

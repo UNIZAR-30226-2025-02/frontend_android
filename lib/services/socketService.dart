@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import '../main.dart';
+import '../pages/Game/friends.dart';
 import '../pages/Presentation/wellcome.dart';
 import '../pages/inGame/board.dart';
 
@@ -55,7 +56,6 @@ class SocketService {
       'query': {'token': token},
       'autoConnect': true,
     });
-    //socket.clearListeners();
     _setupListeners(idJugador);
   }
 
@@ -81,7 +81,6 @@ class SocketService {
     // 👇 Eventos importantes
     socket.on('game-ready', (data) => _handleGameReady(data));
     socket.on('color', (data) async=> _handleColor(data));
-    //socket.on('force-logout', (data) => _handleForceLogout(data, idJugador));
     socket.on('friendRequest', (data) async=> _showFriendRequestPopup(data));
     socket.on('challengeSent', (data) async=> _showChallengePopup(data));
 
@@ -104,23 +103,21 @@ class SocketService {
 
     _color = yo['color'];
 
-    const int eloPorDefecto = 0;
-
     if (_color == 'white') {
       await prefs.setString('nombreBlancas', yo['nombreW']);
-      await prefs.setInt('eloBlancas', eloPorDefecto);
+      await prefs.setInt('eloBlancas', (yo['eloW'] as num).toInt());
       await prefs.setString('fotoBlancas', yo['fotoBlancas'] ?? 'none');
 
       await prefs.setString('nombreNegras', rival['nombreB']);
-      await prefs.setInt('eloNegras', eloPorDefecto);
+      await prefs.setInt('eloNegras', (rival['eloB'] as num).toInt());
       await prefs.setString('fotoNegras', rival['fotoNegras'] ?? 'none');
     } else {
       await prefs.setString('nombreNegras', yo['nombreB']);
-      await prefs.setInt('eloNegras', eloPorDefecto);
+      await prefs.setInt('eloNegras', (yo['eloB'] as num).toInt());
       await prefs.setString('fotoNegras', yo['fotoNegras'] ?? 'none');
 
       await prefs.setString('nombreBlancas', rival['nombreW']);
-      await prefs.setInt('eloBlancas', eloPorDefecto);
+      await prefs.setInt('eloBlancas', (rival['eloW'] as num).toInt());
       await prefs.setString('fotoBlancas', rival['fotoBlancas'] ?? 'none');
     }
 
@@ -128,138 +125,6 @@ class SocketService {
     _fotoRival = _color == 'white' ? rival['fotoNegras'] : rival['fotoBlancas'];
 
     _goToBoardScreen();
-  }
-
-  void _handleForceLogout(dynamic data, String idJugador) {
-    String? idConectado;
-    String? mensaje;
-
-    if (data is List && data.isNotEmpty) {
-      final primerElemento = data[0];
-      if (primerElemento is Map<String, dynamic>) {
-        idConectado = primerElemento['idJugador'];
-        mensaje = primerElemento['message'];
-      }
-    } else if (data is Map<String, dynamic>) {
-      idConectado = data['idJugador'];
-      mensaje = data['message'];
-    }
-
-    if (idConectado == null || idConectado == idJugador) {
-      showForceLogoutPopup(mensaje ?? "Sesión cerrada en otro dispositivo.");
-    }
-  }
-
-  void _showPopupResultado(String mensaje, bool salir) {
-    final context = navigatorKey.currentContext;
-    if (context == null) return;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        backgroundColor: Colors.grey[900],
-        title: Text("Partida finalizada", style: TextStyle(color: Colors.white)),
-        content: Text(mensaje, style: TextStyle(color: Colors.white70)),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              if (salir) {
-                Navigator.of(context).pushReplacementNamed('/home');
-              }
-            },
-            child: Text("Aceptar", style: TextStyle(color: Colors.blueAccent)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showPopupSimple(String mensaje) {
-    final context = navigatorKey.currentContext;
-    if (context == null) return;
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: Colors.grey[900],
-        title: Text("Información", style: TextStyle(color: Colors.white)),
-        content: Text(mensaje, style: TextStyle(color: Colors.white70)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text("Cerrar", style: TextStyle(color: Colors.blueAccent)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _handleSurrender() {
-    final context = navigatorKey.currentContext;
-    if (context == null) return;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        backgroundColor: Colors.grey[900],
-        title: Text("🏳️ Te has rendido", style: TextStyle(color: Colors.white)),
-        content: Text("Partida finalizada.", style: TextStyle(color: Colors.white70)),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => Wellcome_page()),
-                    (route) => false,
-              );
-            },
-            child: Text("Aceptar", style: TextStyle(color: Colors.blueAccent)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _handleDrawAccepted() {
-    final context = navigatorKey.currentContext;
-    if (context == null) return;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        backgroundColor: Colors.grey[900],
-        title: Text("🤝 Tablas aceptadas", style: TextStyle(color: Colors.white)),
-        content: Text("La partida ha terminado en empate.", style: TextStyle(color: Colors.white70)),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => Wellcome_page()),
-                    (route) => false,
-              );
-            },
-            child: Text("Aceptar", style: TextStyle(color: Colors.blueAccent)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _handleDrawDeclined() {
-    final context = navigatorKey.currentContext;
-    if (context == null) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("❌ Solicitud de tablas rechazada"),
-        backgroundColor: Colors.redAccent,
-      ),
-    );
   }
 
   void _showFriendRequestPopup(dynamic dataRaw) async {
@@ -300,6 +165,7 @@ class SocketService {
                 "idAmigo": miIdJugador,
                 "nombre": nombre,
               });
+              Friends_Page.onFriendListShouldRefresh?.call();
               Navigator.of(context).pop();
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
@@ -362,6 +228,8 @@ class SocketService {
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String modoGuardado = prefs.getString('modoDeJuegoActivo') ?? "Clásica";
+    int whiteElo = prefs.getInt('eloBlancas') ?? 0;
+    int blackElo = prefs.getInt('eloNegras') ?? 0;
 
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
@@ -372,8 +240,8 @@ class SocketService {
           "null",
           0,
           0,
-          0,
-          0,
+          whiteElo,
+          blackElo,
           _nombreRival ?? "Rival",
           _fotoRival ?? 'fotoPerfil.png',
         ),

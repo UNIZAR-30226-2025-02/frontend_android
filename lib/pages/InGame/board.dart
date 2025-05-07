@@ -396,7 +396,7 @@ class _BoardScreenState extends State<BoardScreen> {
 
     if (rank == null) return false;
 
-    final isPawn = piece == 'np';
+    final isPawn = piece.contains('p');
     final isWhitePromotion = rank == "8";
     final isBlackPromotion = rank == "1";
 
@@ -546,6 +546,7 @@ class _BoardScreenState extends State<BoardScreen> {
 
     if (promotion != null) {
       movimiento = "$from$to$promotion";
+      print("$movimiento");
     }
     else{
       movimiento = "$from$to";
