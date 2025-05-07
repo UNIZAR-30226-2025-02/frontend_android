@@ -41,7 +41,8 @@ class Friends_Page extends StatefulWidget {
 }
 
 class _FriendsPageState extends State<Friends_Page> {
-  late IO.Socket socket;
+  SocketService socketService = SocketService();
+  IO.Socket? socket;
   String? _nombreRival;
   String? _fotoRival;
   String? idJugador;
@@ -83,7 +84,8 @@ class _FriendsPageState extends State<Friends_Page> {
   }
 
   Future<void> _initializeSocketAndUser() async {
-    socket = await SocketService().getSocket(context);
+    await socketService.connect(context); // 👈 Context de LoginPage
+    socket = await socketService.getSocket(context);
     prefs = await SharedPreferences.getInstance();  // <-- GUARDAMOS prefs una vez
     idJugador = prefs.getString('idJugador');
     nombreJugador = prefs.getString('usuario');
@@ -130,7 +132,7 @@ class _FriendsPageState extends State<Friends_Page> {
     print("📤 Enviando solicitud a $idClean ($nombreAmigo)");
 
     if (idJugador != null && idClean != idJugador) {
-      socket.emit('add-friend', {
+      socket?.emit('add-friend', {
         'idJugador': idJugador,
         'idAmigo': idClean,
         'nombre': nombreJugador,
@@ -202,7 +204,7 @@ class _FriendsPageState extends State<Friends_Page> {
     await Future.delayed(Duration(milliseconds: 500));
 
     // Intentamos "forzar" que el servidor nos reenvíe la info (o reusamos la existente)
-    if (socket.connected && _gameId != null && _gameColor != null && !_yaEntramosAPartida) {
+    if (socket!.connected && _gameId != null && _gameColor != null && !_yaEntramosAPartida) {
       print("🔁 Reintento: parece que tenemos partida preparada, intentando navegación de nuevo...");
       _intentarEntrarAPartida(); // Vuelve a intentar navegar
     } else {
@@ -259,7 +261,7 @@ class _FriendsPageState extends State<Friends_Page> {
     if (aceptado == true) {
       print("✅ Aceptando reto...");
 
-      socket.emit('accept-challenge', {
+      socket?.emit('accept-challenge', {
         "idRetador": idRetador,
         "idRetado": idRetado,
         "modo": modo,
@@ -325,7 +327,7 @@ class _FriendsPageState extends State<Friends_Page> {
 
     print("📡 Enviando reto → idRetador: $idJugador | idRetado: $idRetado | modo: $modoBackend");
 
-    socket.emit('challenge-friend', {
+    socket?.emit('challenge-friend', {
       'idRetador': idJugador,
       'idRetado': idRetado,
       'modo': modoBackend,
@@ -338,8 +340,8 @@ class _FriendsPageState extends State<Friends_Page> {
   }
 
   void _removeFriend(String idAmigo, String nombreAmigo) {
-    if (socket.connected && idJugador != null) {
-      socket.emit("remove-friend", {
+    if (socket!.connected && idJugador != null) {
+      socket?.emit("remove-friend", {
         "idJugador": idJugador,
         "idAmigo": idAmigo,
       });

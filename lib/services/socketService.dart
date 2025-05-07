@@ -77,12 +77,12 @@ class SocketService {
     });
 
     // 👇 Eventos importantes
-    socket.on('game-ready', (data) => _handleGameReady(data));
-    socket.on('color', (data) => _handleColor(data));
-    socket.on('force-logout', (data) => _handleForceLogout(data, idJugador));
+    //socket.on('game-ready', (data) => _handleGameReady(data));
+    //socket.on('color', (data) => _handleColor(data));
+    //socket.on('force-logout', (data) => _handleForceLogout(data, idJugador));
     socket.on('friendRequest', (data) => _showFriendRequestPopup(data));
     socket.on('challengeSent', (data) => _showChallengePopup(data));
-    socket.on('player-surrendered', (data) {
+  /*  socket.on('player-surrendered', (data) {
       print("🏳️ Player surrendered: $data");
       _showPopupResultado('¡Tu rival se ha rendido!', true);
     });
@@ -100,7 +100,7 @@ class SocketService {
     socket.on('gameOver', (data) {
       print("🏁 Game over: $data");
       _showPopupResultado('¡La partida ha terminado!', true);
-    });
+    });*/
 
 
 
