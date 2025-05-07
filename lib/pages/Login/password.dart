@@ -170,7 +170,7 @@ class _ResetPasswordPageState extends State<Password_page> {
               SizedBox(height: 15.0),
               _textField(_confirmPasswordController, "Confirmar Contraseña", Icons.lock, _mensajeErrorConfirmPassword, isPassword: true),
               SizedBox(height: 20),
-              _isLoading ? CircularProgressIndicator() : _buttonResetPassword(),
+              _isLoading ? CircularProgressIndicator(color: Colors.blueAccent,) : _buttonResetPassword(),
             ],
           ),
         ),

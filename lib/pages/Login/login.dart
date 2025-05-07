@@ -11,7 +11,6 @@ import 'package:frontend_android/pages/playerInfo.dart';
 import 'package:socket_io_client/src/socket.dart' as IO;
 
 import '../../services/socketService.dart';
-import '../InGame/board.dart';
 class Login_page extends StatefulWidget {
   static const String id = "login_page";
 
@@ -131,30 +130,50 @@ class _LoginPageState extends State<Login_page> {
 
     await showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: Text("Recuperar Contraseña"),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
+              backgroundColor: Colors.grey[900],
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+                side: BorderSide(color: Colors.blueAccent, width: 1.5),
+              ),
+              title: Row(
                 children: [
-                  TextField(
-                    controller: _emailController,
-                    decoration: InputDecoration(
-                      labelText: "Correo Electrónico",
-                      prefixIcon: Icon(Icons.email),
-                      filled: true,
-                      fillColor: Colors.white,
-                      errorText: mensajeErrorCorreo,
-                    ),
-                  ),
+                  Icon(Icons.lock_reset, color: Colors.blueAccent),
+                  SizedBox(width: 8),
+                  Text("Recuperar Contraseña", style: TextStyle(color: Colors.white)),
                 ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: _emailController,
+                      style: TextStyle(color: Colors.black),
+                      decoration: InputDecoration(
+                        hintText: "Correo Electrónico",
+                        labelStyle: TextStyle(color: Colors.grey[700]),
+                        prefixIcon: Icon(Icons.email, color: Colors.grey[700]),
+                        filled: true,
+                        fillColor: Colors.white, // Fondo blanco siempre visible
+                        errorText: mensajeErrorCorreo,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.blueAccent),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text("Cancelar"),
+                  child: Text("Cancelar", style: TextStyle(color: Colors.redAccent)),
                 ),
                 TextButton(
                   onPressed: () async {
@@ -172,7 +191,7 @@ class _LoginPageState extends State<Login_page> {
                     Navigator.pop(context);
                     await _enviarRecuperacion(email);
                   },
-                  child: Text("Enviar"),
+                  child: Text("Enviar", style: TextStyle(color: Colors.blueAccent)),
                 ),
               ],
             );
@@ -223,16 +242,32 @@ class _LoginPageState extends State<Login_page> {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Correo de recuperación enviado"),
-          content: Text("Su correo de recuperación de contrseña ha sido "
-              "enviado. Revise el correo."),
+          backgroundColor: Colors.grey[900],
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+            side: BorderSide(color: Colors.blueAccent, width: 1.5),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.check_circle_outline, color: Colors.greenAccent),
+              SizedBox(width: 8),
+              Text(
+                "Correo enviado",
+                style: TextStyle(color: Colors.white),
+              ),
+            ],
+          ),
+          content: Text(
+            "Tu correo de recuperación ha sido enviado.\nRevisa tu bandeja de entrada.",
+            style: TextStyle(color: Colors.white70),
+          ),
           actions: <Widget>[
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
                 _redirigirAPassword();
               },
-              child: Text("Aceptar"),
+              child: Text("Aceptar", style: TextStyle(color: Colors.blueAccent)),
             ),
           ],
         );
@@ -346,7 +381,7 @@ class _LoginPageState extends State<Login_page> {
               _textFieldPassword(),
               SizedBox(height: 20.0),
               _isLoading
-                  ? CircularProgressIndicator()
+                  ? CircularProgressIndicator(color: Colors.blueAccent)
                   : _buttonLogin(),
               SizedBox(height: 20),
               GestureDetector(

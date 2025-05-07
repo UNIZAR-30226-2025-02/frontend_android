@@ -304,8 +304,21 @@ class SocketService {
       barrierDismissible: false,
       builder: (_) => AlertDialog(
         backgroundColor: Colors.grey[900],
-        title: Text("Sesión cerrada", style: TextStyle(color: Colors.white)),
-        content: Text(message, style: TextStyle(color: Colors.white70)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+          side: BorderSide(color: Colors.blueAccent, width: 1.5),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.logout, color: Colors.blueAccent),
+            SizedBox(width: 8),
+            Text("Sesión cerrada", style: TextStyle(color: Colors.white)),
+          ],
+        ),
+        content: Text(
+          message,
+          style: TextStyle(color: Colors.white70),
+        ),
         actions: [
           TextButton(
             onPressed: () async {
@@ -319,7 +332,7 @@ class SocketService {
               );
             },
             child: Text("Aceptar", style: TextStyle(color: Colors.blueAccent)),
-          )
+          ),
         ],
       ),
     );

@@ -150,8 +150,17 @@ class _FriendsPageState extends State<Friends_Page> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("¡Tu solicitud de amistad fue aceptada!"),
           backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+          content: RichText(
+            text: TextSpan(
+              style: TextStyle(color: Colors.white, fontSize: 16),
+              children: [
+                TextSpan(text: 'Tu solicitud de amistad fue aceptada'),
+
+              ],
+            ),
+          ),
         ),
       );
     });
@@ -168,12 +177,25 @@ class _FriendsPageState extends State<Friends_Page> {
         'nombre': nombreJugador,
       });
 
-      print("📬 Evento emitido: add-friend {idJugador: $idJugador, idAmigo: $idClean}");
-
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text("Solicitud enviada a $nombreAmigo"),
-        backgroundColor: Colors.orange,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.blueAccent,
+          duration: Duration(seconds: 2),
+          content: RichText(
+            text: TextSpan(
+              style: TextStyle(color: Colors.white, fontSize: 16),
+              children: [
+                TextSpan(text: 'Solicitud enviada a '),
+                TextSpan(
+                  text: nombreAmigo,
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+                TextSpan(text: ' de tus amigos.'),
+              ],
+            ),
+          ),
+        ),
+      );
     }
   }
   void _intentarEntrarAPartida() async {
@@ -363,10 +385,24 @@ class _FriendsPageState extends State<Friends_Page> {
       'modo': modoBackend,
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text("Reto enviado en modo $modoNombre"),
-      backgroundColor: Colors.green,
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: Colors.blueAccent,
+        duration: Duration(seconds: 2),
+        content: RichText(
+          text: TextSpan(
+            style: TextStyle(color: Colors.white, fontSize: 16),
+            children: [
+              TextSpan(text: 'Reto enviado en modo '),
+              TextSpan(
+                text: modoNombre,
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _removeFriend(String idAmigo, String nombreAmigo) {
@@ -375,10 +411,26 @@ class _FriendsPageState extends State<Friends_Page> {
         "idJugador": idJugador,
         "idAmigo": idAmigo,
       });
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text("Has eliminado a $nombreAmigo de tus amigos."),
-        backgroundColor: Colors.red,
-      ));
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
+          content: RichText(
+            text: TextSpan(
+              style: TextStyle(color: Colors.white, fontSize: 16),
+              children: [
+                TextSpan(text: 'Has eliminado a '),
+                TextSpan(
+                  text: nombreAmigo,
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+                TextSpan(text: ' de tus amigos.'),
+              ],
+            ),
+          ),
+        ),
+      );
 
       setState(() {
         friends.removeWhere((f) => f['amigoId'].toString().trim() == idAmigo);

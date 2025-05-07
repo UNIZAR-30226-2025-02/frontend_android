@@ -204,7 +204,7 @@ class _InitPageState extends State<Init_page> {
                             SizedBox(height: 12),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
-                              children: resultados.reversed.map((resultado) {
+                              children: resultados.map((resultado) {
                                 switch (resultado) {
                                   case "victoria":
                                     return Padding(

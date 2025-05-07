@@ -242,30 +242,29 @@ class _RuleCardState extends State<RuleCard> {
                         ),
                       ),
                     ),
-                    if (hasMoves)
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.arrow_back, color: Colors.white),
-                            onPressed: _previousMove,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                          ),
-                          IconButton(
-                            icon: Icon(
-                              Icons.arrow_forward,
-                              color: moveIndex >= widget.rule['moves'].length - 1
-                                  ? Colors.grey
-                                  : Colors.white,
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.arrow_back, color: Colors.white),
+                              onPressed: _previousMove,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
                             ),
-                            onPressed: moveIndex >= widget.rule['moves'].length - 1
-                                ? null
-                                : _nextMove,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                          ),
-                        ],
-                      ),
+                            IconButton(
+                              icon: Icon(
+                                Icons.arrow_forward,
+                                color: moveIndex >= widget.rule['moves'].length - 1
+                                    ? Colors.grey
+                                    : Colors.white,
+                              ),
+                              onPressed: moveIndex >= widget.rule['moves'].length - 1
+                                  ? null
+                                  : _nextMove,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
+                          ],
+                        ),
                   ],
                 ),
               ),

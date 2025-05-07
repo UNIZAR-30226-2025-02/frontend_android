@@ -145,9 +145,9 @@ class _BoardScreenState extends State<BoardScreen> {
         (!isWhite && playerColor == PlayerColor.black);
 
     if (idJugador != null) {
-      socket.emit('gameOver', [
+      socket.emit('game-timeout', [
         {
-          "winner": hasLost ? "opponent" : idJugador,
+          "idJugador": idJugador,
           "idPartida": widget.gameId
         }
       ]);
@@ -190,61 +190,61 @@ class _BoardScreenState extends State<BoardScreen> {
 
     socket.on('new-move', (data) {
 
-    if (data is List && data.isNotEmpty && data[0] is Map<String, dynamic>) {
-      var moveData = data[0];
+      if (data is List && data.isNotEmpty && data[0] is Map<String, dynamic>) {
+        var moveData = data[0];
 
-      if (moveData.containsKey("movimiento")) {
-        String? promotion;
-        String movimiento = moveData["movimiento"];
-        String from = movimiento.substring(0, 2);
-        String to = movimiento.substring(2, 4);
+        if (moveData.containsKey("movimiento")) {
+          String? promotion;
+          String movimiento = moveData["movimiento"];
+          String from = movimiento.substring(0, 2);
+          String to = movimiento.substring(2, 4);
 
-        if (movimiento.length == 5) {
-          promotion = movimiento[4];
-        } else {
-          promotion = "";
-        }
-
-        try {
-          bool wasWhiteTurn = isWhiteTurn;
-          if (promotion.isNotEmpty) {
-            controller.makeMoveWithPromotion(
-              from: from,
-              to: to,
-              pieceToPromoteTo: promotion,
-            );
+          if (movimiento.length == 5) {
+            promotion = movimiento[4];
           } else {
-            controller.makeMove(
-              from: from,
-              to: to,
-            );
+            promotion = "";
           }
 
-          // Aplica incremento antes de cambiar turno
-          if (incrementoPorJugada > 0) {
+          try {
+            bool wasWhiteTurn = isWhiteTurn;
+            if (promotion.isNotEmpty) {
+              controller.makeMoveWithPromotion(
+                from: from,
+                to: to,
+                pieceToPromoteTo: promotion,
+              );
+            } else {
+              controller.makeMove(
+                from: from,
+                to: to,
+              );
+            }
+
+            // Aplica incremento antes de cambiar turno
+            if (incrementoPorJugada > 0) {
+              setState(() {
+                if (wasWhiteTurn) {
+                  whiteTime += incrementoPorJugada;
+                } else {
+                  blackTime += incrementoPorJugada;
+                }
+              });
+            }
+
+            _changeTurn();
+
             setState(() {
-              if (wasWhiteTurn) {
-                whiteTime += incrementoPorJugada;
-              } else {
-                blackTime += incrementoPorJugada;
-              }
+              _historialMovimientos.add("${from.toUpperCase()}-${to.toUpperCase()}-$promotion");
             });
+
+          } catch (e) {
+            print("❌ Error al aplicar el movimiento recibido: $e");
           }
-
-          _changeTurn();
-
-          setState(() {
-            _historialMovimientos.add("${from.toUpperCase()}-${to.toUpperCase()}-$promotion");
-          });
-
-        } catch (e) {
-          print("❌ Error al aplicar el movimiento recibido: $e");
         }
       }
-    }
-  });
+    });
 
-  socket.on('get-game-status', (_) {
+    socket.on('get-game-status', (_) {
       socket.emit('game-status', {
         "estadoPartida": "ingame",
         "timeLeftW": whiteTime,
@@ -301,6 +301,7 @@ class _BoardScreenState extends State<BoardScreen> {
         if (!context.mounted) {
           return;
         }
+        _exitGame("La partida ha terminado en tablas.");
       });
     });
 
@@ -317,17 +318,20 @@ class _BoardScreenState extends State<BoardScreen> {
       Future.microtask(() {
         if (!context.mounted) return;
 
-        final winner = data[0]['winner'];
+        final info = (data is List && data.isNotEmpty) ? data[0] : data;
+        final winner = info['winner'];
+        final timeout = info['timeout'] == 'true';
 
         if (winner == "draw") {
           _exitGame("La partida ha terminado en tablas.");
         } else if (winner == idJugador) {
-          _exitGame("¡Has ganado!");
+          _exitGame(timeout ? "¡Has ganado por tiempo!" : "¡Has ganado!");
         } else {
-          _exitGame("Has perdido. Tu rival ha ganado.");
+          _exitGame(timeout ? "Has perdido por tiempo." : "Has perdido. Tu rival ha ganado.");
         }
       });
     });
+
   }
 
   void _listenToBoardChanges() {
@@ -352,20 +356,20 @@ class _BoardScreenState extends State<BoardScreen> {
         final isPromotion = isRealPromotion(flags, to);
 
         if (isPromotion){
-           if (movedPiece.type == PieceType.ROOK){
-             promotion = "r";
-           }
-           if (movedPiece.type == PieceType.BISHOP){
-             promotion = "b";
-           }
-           if (movedPiece.type == PieceType.QUEEN){
-             promotion = "q";
-           }
-           if (movedPiece.type == PieceType.KNIGHT){
-             promotion = "n";
-           }
+          if (movedPiece.type == PieceType.ROOK){
+            promotion = "r";
+          }
+          if (movedPiece.type == PieceType.BISHOP){
+            promotion = "b";
+          }
+          if (movedPiece.type == PieceType.QUEEN){
+            promotion = "q";
+          }
+          if (movedPiece.type == PieceType.KNIGHT){
+            promotion = "n";
+          }
 
-           _sendMoveToServer(from, to, promotion);
+          _sendMoveToServer(from, to, promotion);
         }
         else{
           promotion = "";
@@ -423,15 +427,15 @@ class _BoardScreenState extends State<BoardScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                message == "¡Has ganado!"
+                message.toLowerCase().contains("has ganado")
                     ? Icons.emoji_events
-                    : message.contains("tablas")
+                    : message.toLowerCase().contains("tablas")
                     ? Icons.handshake
                     : Icons.sentiment_dissatisfied,
                 size: 60,
-                color: message == "¡Has ganado!"
+                color: message.toLowerCase().contains("has ganado")
                     ? Colors.amber
-                    : message.contains("tablas")
+                    : message.toLowerCase().contains("tablas")
                     ? Colors.blueAccent
                     : Colors.redAccent,
               ),
@@ -525,7 +529,7 @@ class _BoardScreenState extends State<BoardScreen> {
         setState(() {
           whiteTime--;
         });
-        if (whiteTime == 0) await _handleTimeout(isWhite: true);
+        if (whiteTime == 0 && playerColor == PlayerColor.white) await _handleTimeout(isWhite: true);
       }
     });
 
@@ -534,7 +538,7 @@ class _BoardScreenState extends State<BoardScreen> {
         setState(() {
           blackTime--;
         });
-        if (blackTime == 0) await _handleTimeout(isWhite: false);
+        if (blackTime == 0 && playerColor == PlayerColor.black) await _handleTimeout(isWhite: false);
       }
     });
   }
@@ -890,7 +894,6 @@ class _BoardScreenState extends State<BoardScreen> {
               child: Column(
                 children: [
                   SizedBox(height: 36), // margen superior
-
                   // 🧍‍♂️ Rival con avatar
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -986,8 +989,6 @@ class _BoardScreenState extends State<BoardScreen> {
                   ),
 
                   SizedBox(height: 36), // aire antes de los botones
-
-                  // 🎯 Botones de acción
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16),
                     child: Row(
@@ -1022,42 +1023,38 @@ class _BoardScreenState extends State<BoardScreen> {
                       ],
                     ),
                   ),
+                  // Nueva fila para botones flotantes
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 20),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        FloatingActionButton(
+                          heroTag: "chatFAB",
+                          backgroundColor: Colors.blueAccent,
+                          child: Icon(Icons.chat, color: Colors.white),
+                          onPressed: () {
+                            setState(() {
+                              _isChatVisible = !_isChatVisible;
+                            });
+                          },
+                        ),
+                        FloatingActionButton(
+                          heroTag: "movesFAB",
+                          backgroundColor: Colors.blueAccent,
+                          child: Icon(Icons.list_alt, color: Colors.white),
+                          onPressed: () {
+                            setState(() {
+                              _isMovesVisible = !_isMovesVisible;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
-
-            // 💬 FAB Chat
-            Positioned(
-              bottom: 100, // 🧼 más espacio
-              left: 45,
-              child: FloatingActionButton(
-                heroTag: "chatFAB",
-                backgroundColor: Colors.blueAccent,
-                child: Icon(Icons.chat, color: Colors.white),
-                onPressed: () {
-                  setState(() {
-                    _isChatVisible = !_isChatVisible;
-                  });
-                },
-              ),
-            ),
-
-            // 📜 FAB Movimientos
-            Positioned(
-              bottom: 100,
-              right: 45,
-              child: FloatingActionButton(
-                heroTag: "movesFAB",
-                backgroundColor: Colors.blueAccent,
-                child: Icon(Icons.list_alt, color: Colors.white),
-                onPressed: () {
-                  setState(() {
-                    _isMovesVisible = !_isMovesVisible;
-                  });
-                },
-              ),
-            ),
-
             if (_isChatVisible)
               Positioned(
                 bottom: 170,
@@ -1164,24 +1161,6 @@ class _BoardScreenState extends State<BoardScreen> {
           ],
         ),
 
-      ),
-    );
-  }
-
-  Widget _buildPlayerInfo(String nombre, int elo, int tiempo) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Column(
-        children: [
-          Text(
-            "$nombre (ELO: $elo)",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-          ),
-          Text(
-            "${(tiempo ~/ 60).toString().padLeft(2, '0')}:${(tiempo % 60).toString().padLeft(2, '0')}",
-            style: TextStyle(fontSize: 16, color: Colors.white),
-          ),
-        ],
       ),
     );
   }
