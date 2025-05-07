@@ -430,8 +430,6 @@ class _InitPageState extends State<Init_page> {
 
     final partidas = jsonDecode(partidasRes.body) as List<dynamic>;
     final userInfo = jsonDecode(userInfoRes.body);
-    print("🧪 Datos recibidos de getUserInfo:");
-    print(userInfo);
 
     List<String> resultados = partidas.map<String>((partida) {
       final ganadorId = partida['Ganador'];

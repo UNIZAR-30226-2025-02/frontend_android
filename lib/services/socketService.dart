@@ -1,5 +1,3 @@
-
-
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -84,9 +82,32 @@ class SocketService {
     socket.on('force-logout', (data) => _handleForceLogout(data, idJugador));
     socket.on('friendRequest', (data) => _showFriendRequestPopup(data));
     socket.on('challengeSent', (data) => _showChallengePopup(data));
+    socket.on('player-surrendered', (data) {
+      print("🏳️ Player surrendered: $data");
+      _showPopupResultado('¡Tu rival se ha rendido!', true);
+    });
+
+    socket.on('draw-accepted', (data) {
+      print("🤝 Draw accepted: $data");
+      _showPopupResultado('¡Tablas acordadas!', true);
+    });
+
+    socket.on('draw-declined', (data) {
+      print("🙅‍♂️ Draw declined: $data");
+      _showPopupSimple('El rival ha rechazado las tablas.');
+    });
+
+    socket.on('gameOver', (data) {
+      print("🏁 Game over: $data");
+      _showPopupResultado('¡La partida ha terminado!', true);
+    });
+
+
+
+    print("✅ Listeners configurados correctamente.");
   }
   void _handleGameReady(dynamic data) {
-    _gameId = data[0]['idPartida'];
+    _gameId = data[0]['Idpartida'];
   }
 
   void _handleColor(dynamic data) async {
@@ -425,7 +446,6 @@ class SocketService {
     }
     return socket;
   }
-
   void showForceLogoutPopup(String message) {
     final context = navigatorKey.currentContext;
     if (context == null) return;
@@ -435,8 +455,21 @@ class SocketService {
       barrierDismissible: false,
       builder: (_) => AlertDialog(
         backgroundColor: Colors.grey[900],
-        title: Text("Sesión cerrada", style: TextStyle(color: Colors.white)),
-        content: Text(message, style: TextStyle(color: Colors.white70)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+          side: BorderSide(color: Colors.blueAccent, width: 1.5),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.logout, color: Colors.blueAccent),
+            SizedBox(width: 8),
+            Text("Sesión cerrada", style: TextStyle(color: Colors.white)),
+          ],
+        ),
+        content: Text(
+          message,
+          style: TextStyle(color: Colors.white70),
+        ),
         actions: [
           TextButton(
             onPressed: () async {
@@ -450,9 +483,10 @@ class SocketService {
               );
             },
             child: Text("Aceptar", style: TextStyle(color: Colors.blueAccent)),
-          )
+          ),
         ],
       ),
     );
   }
+
 }

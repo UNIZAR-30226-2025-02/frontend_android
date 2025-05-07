@@ -12,7 +12,6 @@ Future<void> verificarAccesoInvitado(BuildContext context) async {
   final estadoUser = prefs.getString('estadoUser');
 
   if (estadoUser == 'guest') {
-    print("⚠️ Invitado detectado. Mostrando opciones de acceso.");
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _mostrarDialogoOpcionesInvitado(context);
     });
@@ -78,17 +77,13 @@ Future<void> _cerrarSesionInvitado(BuildContext context) async {
     );
 
     if (response.statusCode == 200) {
-      print("✅ Invitado eliminado correctamente.");
     } else {
-      print("❌ Error al borrar invitado: ${response.body}");
     }
   } catch (e) {
-    print("❌ Error al conectar con el servidor: $e");
   }
 
   await prefs.clear();
 
-  print("🔌 Desconectando socket...");
   SocketService socketService = SocketService();
   socketService.socket.clearListeners();
   socketService.socket.disconnect();

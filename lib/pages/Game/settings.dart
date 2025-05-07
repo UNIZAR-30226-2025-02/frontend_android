@@ -76,7 +76,6 @@ class _Settings_pageState extends State<Settings_page> {
                   );
 
                   if (result == true) {
-                    print("✅ Recargando usuario desde Settings porque hubo cambios");
                     await _cargarUsuario();
                     setState(() {});
                   }
@@ -179,12 +178,10 @@ class _Settings_pageState extends State<Settings_page> {
         );
 
         if (response.statusCode == 200) {
-          print("✅ Sesión cerrada correctamente en el servidor.");
         } else {
-          print("❌ Error al cerrar sesión en el servidor: ${response.body}");
         }
       } catch (e) {
-        print("❌ Error de conexión al servidor: $e");
+
       }
     }
 

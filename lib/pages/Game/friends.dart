@@ -89,7 +89,6 @@ class _FriendsPageState extends State<Friends_Page> {
     nombreJugador = prefs.getString('usuario');
 
     if (idJugador == null || nombreJugador == null) {
-      print("⚠️ No se encontró idJugador o nombre en SharedPreferences.");
       return;
     }
 
@@ -116,19 +115,13 @@ class _FriendsPageState extends State<Friends_Page> {
           friends = data.cast<Map<String, dynamic>>();
         });
       } else {
-        print("❌ Error cargando amigos: ${response.statusCode}");
+
       }
-    } catch (e) {
-      print("❌ Excepción al cargar amigos: $e");
-    }
+    } catch (e) {}
   }
 
   void _configureSocketListeners() {
     print("🛠️ Configurando listeners...");
-
-
-
-
     print("✅ Listeners configurados");
   }
 
