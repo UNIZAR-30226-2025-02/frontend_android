@@ -59,6 +59,7 @@ class _InitPageState extends State<Init_page> {
     super.initState();
     _startInitSequence();
     resumenFuture = _fetchResumenPartidas();
+    print("Socket conectado: ${socket?.connected}");  // 👈
   }
 
   Future<void> _startInitSequence() async {

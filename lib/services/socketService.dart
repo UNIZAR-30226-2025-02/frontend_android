@@ -75,34 +75,8 @@ class SocketService {
     socket.onError((err) {
       print("❌ Error general: $err");
     });
-
-    // 👇 Eventos importantes
-    //socket.on('game-ready', (data) => _handleGameReady(data));
-    //socket.on('color', (data) => _handleColor(data));
-    //socket.on('force-logout', (data) => _handleForceLogout(data, idJugador));
-    socket.on('friendRequest', (data) => _showFriendRequestPopup(data));
-    socket.on('challengeSent', (data) => _showChallengePopup(data));
-  /*  socket.on('player-surrendered', (data) {
-      print("🏳️ Player surrendered: $data");
-      _showPopupResultado('¡Tu rival se ha rendido!', true);
-    });
-
-    socket.on('draw-accepted', (data) {
-      print("🤝 Draw accepted: $data");
-      _showPopupResultado('¡Tablas acordadas!', true);
-    });
-
-    socket.on('draw-declined', (data) {
-      print("🙅‍♂️ Draw declined: $data");
-      _showPopupSimple('El rival ha rechazado las tablas.');
-    });
-
-    socket.on('gameOver', (data) {
-      print("🏁 Game over: $data");
-      _showPopupResultado('¡La partida ha terminado!', true);
-    });*/
-
-
+    //socket.on('friendRequest', (data) => _showFriendRequestPopup(data));
+    //socket.on('challengeSent', (data) => _showChallengePopup(data));
 
     print("✅ Listeners configurados correctamente.");
   }
@@ -282,7 +256,7 @@ class SocketService {
     );
   }
 
-  void _showFriendRequestPopup(dynamic dataRaw) async {
+ /* void _showFriendRequestPopup(dynamic dataRaw) async {
     final context = navigatorKey.currentContext;
     if (context == null) return;
 
@@ -373,7 +347,7 @@ class SocketService {
         ],
       ),
     );
-  }
+  }*/
 
   void _goToBoardScreen() async {
     final context = navigatorKey.currentContext;
@@ -402,7 +376,7 @@ class SocketService {
   }
 
 
-  String _mapearModo(String modoServidor) {
+  /*String _mapearModo(String modoServidor) {
     switch (modoServidor) {
       case "Punt_10":
         return "Clásica";
@@ -419,7 +393,7 @@ class SocketService {
       default:
         return "Clásica";
     }
-  }
+  }*/
 
   Future<void> connect(BuildContext context) async {
     _latestContext = context;
