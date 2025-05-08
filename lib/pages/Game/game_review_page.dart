@@ -355,6 +355,7 @@ class _GameReviewPageState extends State<GameReviewPage> {
       backgroundColor: Colors.grey[900],
       appBar: AppBar(
         backgroundColor: Colors.grey[900],
+        automaticallyImplyLeading: false,
         title: const Text(
           "Revisión de partida",
           style: TextStyle(color: Colors.white),
@@ -392,7 +393,7 @@ class _GameReviewPageState extends State<GameReviewPage> {
                   _buildTablero(),
                   _buildBarraVentajaBlanca(),
                   Padding(
-                    padding: const EdgeInsets.only(left: 20.0, top: 4.0, bottom: 16.0),
+                    padding: const EdgeInsets.only(left: 20.0, top: 4.0, bottom: 4.0),
                     child: Row(
                       children: [
                         CircleAvatar(
@@ -414,7 +415,7 @@ class _GameReviewPageState extends State<GameReviewPage> {
                 ]
                     : [
                   Padding(
-                    padding: const EdgeInsets.only(top: 16.0, bottom: 4.0),
+                    padding: const EdgeInsets.only(left: 20.0, top: 4.0, bottom: 4.0),
                     child: Row(
                       children: [
                         CircleAvatar(
@@ -437,7 +438,7 @@ class _GameReviewPageState extends State<GameReviewPage> {
                   _buildTablero(),
                   _buildBarraVentajaNegra(),
                   Padding(
-                    padding: const EdgeInsets.only(top: 4.0, bottom: 16.0),
+                    padding: const EdgeInsets.only(left: 20.0, top: 4.0, bottom: 4.0),
                     child: Row(
                       children: [
                         CircleAvatar(
@@ -506,7 +507,7 @@ class _GameReviewPageState extends State<GameReviewPage> {
                 ElevatedButton.icon(
                   onPressed: _goBackToStart,
                   icon: const Icon(Icons.home, color: Colors.white),
-                  label: const Text("Volver", style: TextStyle(color: Colors.white)),
+                  label: const Text("Inicio", style: TextStyle(color: Colors.white)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blueAccent,
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),

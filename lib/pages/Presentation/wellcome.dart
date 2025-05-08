@@ -129,12 +129,15 @@ class _Wellcome_pageState extends State<Wellcome_page> {
                 ),
               ),
               SizedBox(height: 10),
-              Text(
-                "Juega, aprende y mejora tu ajedrez con jugadores de todo el mundo.",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 16,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Text(
+                  "Juega, aprende y mejora tu ajedrez con jugadores de todo el mundo.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 16,
+                  ),
                 ),
               ),
               SizedBox(height: 40),

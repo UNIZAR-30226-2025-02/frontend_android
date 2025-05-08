@@ -202,7 +202,18 @@ class _ResetPasswordPageState extends State<Password_page> {
   Widget _buttonResetPassword() {
     return ElevatedButton(
       onPressed: _resetPassword,
-      child: Text('Confirmar'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.blueAccent,
+        foregroundColor: Colors.white,
+        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      child: Text(
+        'Confirmar',
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      ),
     );
   }
 

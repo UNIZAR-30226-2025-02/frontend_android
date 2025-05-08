@@ -463,7 +463,18 @@ class _LoginPageState extends State<Login_page> {
   Widget _buttonLogin() {
     return ElevatedButton(
       onPressed: _login,
-      child: Text('Iniciar Sesión'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.blueAccent,
+        foregroundColor: Colors.white, // color de texto e íconos
+        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      child: Text(
+        'Iniciar Sesión',
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      ),
     );
   }
 
