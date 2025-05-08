@@ -1,10 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
-import 'package:frontend_android/pages/Game/profile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stockfish/stockfish.dart';
 import 'package:chess/chess.dart' as chess;
+
+import 'init.dart';
 
 class GameReviewPage extends StatefulWidget {
   static const String id = "game_review_page";
@@ -297,7 +298,7 @@ class _GameReviewPageState extends State<GameReviewPage> {
   }
 
   void _goBackToStart() {
-    Navigator.pushReplacementNamed(context, Profile_page.id);
+    Navigator.pushReplacementNamed(context, Init_page.id);
   }
 
   void _restartReview() {
