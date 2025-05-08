@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:frontend_android/pages/Game/init.dart';
 import 'package:frontend_android/pages/Game/settings.dart';
@@ -8,7 +9,13 @@ import 'package:frontend_android/pages/Login/password.dart';
 import 'package:frontend_android/pages/Presentation/wellcome.dart';
 import 'package:frontend_android/pages/Game/profile.dart';
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
   await dotenv.load();
   runApp(MyApp());
 }
@@ -19,6 +26,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blue,

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io' as IO;
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:frontend_android/pages/Login/password.dart';
@@ -6,7 +7,10 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:frontend_android/pages/Game/init.dart';
 import 'package:frontend_android/pages/Login/signin.dart';
+import 'package:frontend_android/pages/playerInfo.dart';
+import 'package:socket_io_client/src/socket.dart' as IO;
 
+import '../../services/socketService.dart';
 class Login_page extends StatefulWidget {
   static const String id = "login_page";
 
@@ -23,12 +27,25 @@ class _LoginPageState extends State<Login_page> {
   String? _mensajeErrorPassword;
   bool _isLoading = false;
 
+  IO.Socket? socket;
+
+  SocketService socketService = SocketService();
+
+  Future<void> _initializeSocket() async {
+    await socketService.connect(context);
+    IO.Socket connectedSocket = await socketService.getSocket(context);
+
+    if (mounted) {
+      setState(() {
+        socket = connectedSocket as IO.Socket?;
+      });
+    }
+  }
+
   Future<void> _login() async {
     String user = _userController.text.trim();
     String password = _passwordController.text.trim();
 
-
-    // Resetear mensajes de error
     setState(() {
       _mensajeErrorUser = null;
       _mensajeErrorPassword = null;
@@ -75,15 +92,25 @@ class _LoginPageState extends State<Login_page> {
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
+        final accessToken = responseData['accessToken'];
+        final publicUser = responseData['publicUser'];
 
         SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString('idJugador', responseData['id']);
-        await prefs.setString('usuario', responseData['NombreUser']);
-        await prefs.setString('Correo', responseData['Correo']);
-        await prefs.setString('estadoUser', responseData['estadoUser']);
-        await prefs.setString('fotoPerfil', responseData['FotoPerfil'] ?? "");
-
-        Navigator.pushReplacementNamed(context, Init_page.id);
+        await prefs.setString('accessToken', accessToken);
+        await prefs.setString('idJugador', publicUser['id']);
+        await prefs.setString('usuario', publicUser['NombreUser']);
+        await prefs.setString('Correo', publicUser['Correo']);
+        await prefs.setString('estadoPartida', publicUser['EstadoPartida']?? "NULL");
+        await prefs.setString('estadoUser', publicUser['estadoUser']);
+        await prefs.setString('fotoPerfil', publicUser['FotoPerfil'] ?? "");
+        playerInfo(prefs.getString('idJugador'),prefs.getString('usuario'), prefs.getString('Correo'),
+            prefs.getString('estadoUser'), prefs.getString('fotoPerfil'));
+        try {
+          await _initializeSocket();
+          Navigator.pushReplacementNamed(context, Init_page.id);
+        } catch (e) {
+          _mostrarSnackBar("No se pudo conectar con el servidor.");
+        }
       } else {
         _mostrarSnackBar("Usuario o contraseña incorrectos");
       }
@@ -99,30 +126,50 @@ class _LoginPageState extends State<Login_page> {
 
     await showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: Text("Recuperar Contraseña"),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
+              backgroundColor: Colors.grey[900],
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+                side: BorderSide(color: Colors.blueAccent, width: 1.5),
+              ),
+              title: Row(
                 children: [
-                  TextField(
-                    controller: _emailController,
-                    decoration: InputDecoration(
-                      labelText: "Correo Electrónico",
-                      prefixIcon: Icon(Icons.email),
-                      filled: true,
-                      fillColor: Colors.white,
-                      errorText: mensajeErrorCorreo,
-                    ),
-                  ),
+                  Icon(Icons.lock_reset, color: Colors.blueAccent),
+                  SizedBox(width: 8),
+                  Text("Recuperar Contraseña", style: TextStyle(color: Colors.white)),
                 ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: _emailController,
+                      style: TextStyle(color: Colors.black),
+                      decoration: InputDecoration(
+                        hintText: "Correo Electrónico",
+                        labelStyle: TextStyle(color: Colors.grey[700]),
+                        prefixIcon: Icon(Icons.email, color: Colors.grey[700]),
+                        filled: true,
+                        fillColor: Colors.white,
+                        errorText: mensajeErrorCorreo,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.blueAccent),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text("Cancelar"),
+                  child: Text("Cancelar", style: TextStyle(color: Colors.redAccent)),
                 ),
                 TextButton(
                   onPressed: () async {
@@ -140,7 +187,7 @@ class _LoginPageState extends State<Login_page> {
                     Navigator.pop(context);
                     await _enviarRecuperacion(email);
                   },
-                  child: Text("Enviar"),
+                  child: Text("Enviar", style: TextStyle(color: Colors.blueAccent)),
                 ),
               ],
             );
@@ -191,16 +238,32 @@ class _LoginPageState extends State<Login_page> {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Correo de recuperación enviado"),
-          content: Text("Su correo de recuperación de contrseña ha sido "
-              "enviado. Revise el correo."),
+          backgroundColor: Colors.grey[900],
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+            side: BorderSide(color: Colors.blueAccent, width: 1.5),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.check_circle_outline, color: Colors.greenAccent),
+              SizedBox(width: 8),
+              Text(
+                "Correo enviado",
+                style: TextStyle(color: Colors.white),
+              ),
+            ],
+          ),
+          content: Text(
+            "Tu correo de recuperación ha sido enviado.\nRevisa tu bandeja de entrada.",
+            style: TextStyle(color: Colors.white70),
+          ),
           actions: <Widget>[
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
                 _redirigirAPassword();
               },
-              child: Text("Aceptar"),
+              child: Text("Aceptar", style: TextStyle(color: Colors.blueAccent)),
             ),
           ],
         );
@@ -213,6 +276,52 @@ class _LoginPageState extends State<Login_page> {
     Navigator.pushReplacementNamed(context, Password_page.id);
   }
 
+  Future<void> _entrarComoInvitado() async {
+    final String? baseUrl = dotenv.env['SERVER_BACKEND'];
+    final String apiUrl = "${baseUrl}crearInvitado";
+
+    try {
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        headers: {"Content-Type": "application/json"},
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        final accessToken = responseData['accessToken'];
+        final publicUser = responseData['publicUser'];
+
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('accessToken', accessToken);
+        await prefs.setString('idJugador', publicUser['id']);
+        await prefs.setString('usuario', publicUser['NombreUser']);
+        await prefs.setString('Correo', publicUser['Correo'] ?? '');
+        await prefs.setString('estadoPartida', publicUser['EstadoPartida'] ?? "NULL");
+        await prefs.setString('estadoUser', publicUser['estadoUser']);
+        await prefs.setString(
+            'fotoPerfil',
+            (publicUser['FotoPerfil'] == 'none' || publicUser['FotoPerfil'] == '') ? 'fotoPerfil.png' : publicUser['FotoPerfil']
+        );
+
+        playerInfo(
+          prefs.getString('idJugador'),
+          prefs.getString('usuario'),
+          prefs.getString('Correo'),
+          prefs.getString('estadoUser'),
+          prefs.getString('fotoPerfil'),
+        );
+
+        await _initializeSocket();
+
+        Navigator.pushReplacementNamed(context, Init_page.id);
+      } else {
+        _mostrarSnackBar("No se pudo crear un invitado. Intenta más tarde.");
+      }
+    } catch (e) {
+      _mostrarSnackBar("Error al conectarse con el servidor.");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -223,7 +332,7 @@ class _LoginPageState extends State<Login_page> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                "CheckMates",
+                "CheckMateX",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white,
@@ -236,9 +345,9 @@ class _LoginPageState extends State<Login_page> {
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   GestureDetector(
-                    onTap: () => print('Login'),
+                    onTap: () => print('Iniciar Sesión'),
                     child: Text(
-                      'Login',
+                      'Iniciar Sesión',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 20,
@@ -251,7 +360,7 @@ class _LoginPageState extends State<Login_page> {
                       Navigator.pushNamed(context, Signin_page.id);
                     },
                     child: Text(
-                      'Sign In',
+                      'Registrarse',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 20,
@@ -267,13 +376,11 @@ class _LoginPageState extends State<Login_page> {
               _textFieldPassword(),
               SizedBox(height: 20.0),
               _isLoading
-                  ? CircularProgressIndicator()
+                  ? CircularProgressIndicator(color: Colors.blueAccent)
                   : _buttonLogin(),
               SizedBox(height: 20),
               GestureDetector(
-                onTap: () {
-                  Navigator.pushReplacementNamed(context, Init_page.id);
-                },
+                onTap: _entrarComoInvitado,
                 child: Text(
                   "Entrar como invitado",
                   style: TextStyle(
@@ -304,7 +411,7 @@ class _LoginPageState extends State<Login_page> {
   Widget _textFieldUser() {
     return _textField(
       _userController,
-      "User",
+      "Nombre de usuario",
       Icons.person_outline,
       _mensajeErrorUser,
     );
@@ -313,7 +420,7 @@ class _LoginPageState extends State<Login_page> {
   Widget _textFieldPassword() {
     return _textField(
       _passwordController,
-      "Password",
+      "Contraseña",
       Icons.lock,
       _mensajeErrorPassword,
       isPassword: true,
@@ -356,7 +463,7 @@ class _LoginPageState extends State<Login_page> {
   Widget _buttonLogin() {
     return ElevatedButton(
       onPressed: _login,
-      child: Text('Login'),
+      child: Text('Iniciar Sesión'),
     );
   }
 

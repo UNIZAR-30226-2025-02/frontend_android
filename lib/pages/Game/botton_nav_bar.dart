@@ -5,14 +5,13 @@ import 'package:frontend_android/pages/Game/settings.dart';
 import 'package:frontend_android/pages/Game/ranking.dart';
 import 'package:frontend_android/pages/Game/learn.dart';
 
-
 class BottomNavBar extends StatelessWidget {
   final int currentIndex;
 
   const BottomNavBar({super.key, required this.currentIndex});
 
   void _onItemTapped(BuildContext context, int index) {
-    if (index == currentIndex) return; // Si ya está en la página, no hace nada
+    if (index == currentIndex) return;
 
     switch (index) {
       case 0:
@@ -51,8 +50,17 @@ class BottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.black,
       height: 60,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.grey[850]!,
+            Colors.grey[900]!,
+          ],
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+        ),
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [

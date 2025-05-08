@@ -30,7 +30,6 @@ class _ResetPasswordPageState extends State<Password_page> {
     String password = _passwordController.text.trim();
     String confirmPassword = _confirmPasswordController.text.trim();
 
-    // Resetear mensajes de error
     setState(() {
       _mensajeErrorToken = null;
       _mensajeErrorUser = null;
@@ -170,7 +169,7 @@ class _ResetPasswordPageState extends State<Password_page> {
               SizedBox(height: 15.0),
               _textField(_confirmPasswordController, "Confirmar Contraseña", Icons.lock, _mensajeErrorConfirmPassword, isPassword: true),
               SizedBox(height: 20),
-              _isLoading ? CircularProgressIndicator() : _buttonResetPassword(),
+              _isLoading ? CircularProgressIndicator(color: Colors.blueAccent,) : _buttonResetPassword(),
             ],
           ),
         ),

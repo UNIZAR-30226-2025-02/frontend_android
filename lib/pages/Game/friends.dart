@@ -1,8 +1,15 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:frontend_android/pages/Game/botton_nav_bar.dart';
-import 'package:frontend_android/pages/buildHead.dart';
-
-import '../Login/login.dart';
+import 'package:frontend_android/widgets/app_layout.dart';
+import 'package:frontend_android/services/socketService.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:frontend_android/utils/photoUtils.dart';
+import '../../utils/guestUtils.dart';
 
 class GameMode {
   final String name;
@@ -10,174 +17,457 @@ class GameMode {
   final String time;
   final String description;
   final Color color;
+  final modoMapeado = {
+    "Rápida": "Punt_10",
+    "Clásica": "Punt_30",
+    "Blitz": "Punt_5",
+    "Bullet": "Punt_3",
+    "Incremento": "Punt_5_10",
+    "Incremento exprés": "Punt_3_2",
+  };
 
   GameMode(this.name, this.icon, this.time, this.description, this.color);
 }
 
 class Friends_Page extends StatefulWidget {
+  static void Function()? onFriendListShouldRefresh;
   static const String id = "friends_page";
+
   @override
   _FriendsPageState createState() => _FriendsPageState();
 }
 
 class _FriendsPageState extends State<Friends_Page> {
-  List<String> friends = ["Amigo 1", "Amigo 2", "Amigo 3", "Amigo 4", "Amigo 5"];
-  String? challengedFriend;
-  GameMode? selectedGameMode;
+  late IO.Socket socket;
+  String? idJugador;
+  String? nombreJugador;
+  String searchInput = "";
+  String? selectedGameMode;
+  late SharedPreferences prefs;
+  Map<String, String>? solicitudPendiente;
+  List<Map<String, dynamic>> suggestions = [];
+  List<Map<String, dynamic>> friends = [];
+
+  final Map<String, String> modoMapeado = {
+    "Rápida": "Punt_10",
+    "Clásica": "Punt_30",
+    "Blitz": "Punt_5",
+    "Bullet": "Punt_3",
+    "Incremento": "Punt_5_10",
+    "Incremento exprés": "Punt_3_2"
+  };
 
   final List<GameMode> gameModes = [
-    GameMode("Clásica", Icons.extension, "10 min", "Modo tradicional de ajedrez. Cada jugador consta de 10 min para realizar sus movimientos", Colors.brown),
-    GameMode("Principiante", Icons.verified, "30 min", "Ideal para quienes están aprendiendo. Cada jugador consta de 30 min para realizar sus movimientos", Colors.green),
-    GameMode("Avanzado", Icons.timer_off, "5 min", "Para jugadores experimentados. Cada jugador consta de 5 min para realizar sus movimientos", Colors.red),
-    GameMode("Relámpago", Icons.bolt, "3 min", "Modo para expertos. El tiempo es muy limitado, cada jugador cuenta con 3 minutos.", Colors.yellow),
-    GameMode("Incremento", Icons.trending_up, "15 min + 10 seg", "Cada jugada suma 10 segundos al tiempo del jugador.", Colors.green),
-    GameMode("Incremento exprés", Icons.star, "3 min + 2 seg", "Partidas rápidas con incremento de 2 segundos por jugada.", Colors.yellow),
+    GameMode("Rápida", Icons.extension, "10 min", "Modo tradicional", Colors.brown),
+    GameMode("Clásica", Icons.verified, "30 min", "Ideal para nuevos", Colors.green),
+    GameMode("Blitz", Icons.timer_off, "5 min", "Más desafiante", Colors.red),
+    GameMode("Bullet", Icons.bolt, "3 min", "Rápido", Colors.yellow),
+    GameMode("Incremento", Icons.trending_up, "15+10s", "Incremental", Colors.green),
+    GameMode("Incremento exprés", Icons.star, "3+2s", "Incremento rápido", Colors.yellow),
   ];
 
-  void _removeFriend(String friend) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
-        title: Text("Eliminar amigo", style: TextStyle(color: Colors.white)),
-        content: Text("¿Seguro que quieres eliminar a $friend de tu lista de amigos?", style: TextStyle(color: Colors.white70)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text("Cancelar", style: TextStyle(color: Colors.white)),
+  @override
+  void initState() {
+    super.initState();
+    Friends_Page.onFriendListShouldRefresh = () async {
+      await _cargarAmigos();
+      if (!mounted) return;
+      setState(() {});
+    };
+    verificarAccesoInvitado(context);
+    _initializeSocketAndUser();
+  }
+
+  Future<void> _initializeSocketAndUser() async {
+    socket = await SocketService().getSocket(context);
+    prefs = await SharedPreferences.getInstance();
+    idJugador = prefs.getString('idJugador');
+    nombreJugador = prefs.getString('usuario');
+
+    if (idJugador == null || nombreJugador == null) {
+      return;
+    }
+
+    await _cargarAmigos();
+
+    _configureSocketListeners();
+  }
+
+  Future<void> _cargarAmigos() async {
+    if (idJugador == null) return;
+
+    final serverBackend = dotenv.env['SERVER_BACKEND'];
+    if (serverBackend == null) {
+      return;
+    }
+
+    final uri = Uri.parse('$serverBackend/buscarAmigos?id=$idJugador');
+
+    try {
+      final response = await http.get(uri);
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+
+        if (!mounted) return;
+
+        if (decoded is List) {
+          setState(() {
+            friends = decoded.cast<Map<String, dynamic>>();
+          });
+        } else if (decoded is Map && decoded.containsKey('Message')) {
+          setState(() {
+            friends = [];
+          });
+        } else {
+        }
+
+      } else {
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print("❌ Excepción al cargar amigos: $e");
+      }
+    }
+  }
+
+  void _configureSocketListeners() {
+    socket.off('friendRequestAccepted');
+    socket.on('friendRequestAccepted', (data) async {
+      await Future.delayed(Duration(milliseconds: 300));
+      await _cargarAmigos();
+
+      if (!mounted) return;
+
+      setState(() {});
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+          content: RichText(
+            text: TextSpan(
+              style: TextStyle(color: Colors.white, fontSize: 16),
+              children: [
+                TextSpan(text: 'Tu solicitud de amistad fue aceptada'),
+
+              ],
+            ),
           ),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                friends.remove(friend);
-              });
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text("$friend ha sido eliminado"),
-                  backgroundColor: Colors.red,
+        ),
+      );
+    });
+  }
+
+  void _sendFriendRequest(String idAmigo, String nombreAmigo) {
+    final idClean = idAmigo.trim();
+
+    if (idJugador != null && idClean != idJugador) {
+      socket.emit('add-friend', {
+        'idJugador': idJugador,
+        'idAmigo': idClean,
+        'nombre': nombreJugador,
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.blueAccent,
+          duration: Duration(seconds: 2),
+          content: RichText(
+            text: TextSpan(
+              style: TextStyle(color: Colors.white, fontSize: 16),
+              children: [
+                TextSpan(text: 'Solicitud enviada a '),
+                TextSpan(
+                  text: nombreAmigo,
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
                 ),
-              );
-            },
-            child: Text("Eliminar", style: TextStyle(color: Colors.red)),
+                TextSpan(text: ' de tus amigos.'),
+              ],
+            ),
           ),
-        ],
+        ),
+      );
+    }
+  }
+
+  String clean(String? id) => (id ?? "").trim();
+
+  Future<void> setEloSafe(SharedPreferences prefs, String key, dynamic value) async {
+    if (value == null) return;
+    if (value is int) {
+      await prefs.setInt(key, value);
+    } else if (value is double) {
+      await prefs.setDouble(key, value);
+    } else if (value is String && double.tryParse(value) != null) {
+      await prefs.setDouble(key, double.parse(value));
+    } else {
+    }
+  }
+
+  Future<void> _buscarUsuariosBackend() async {
+    if (searchInput.trim().isEmpty || idJugador == null) return;
+
+    final serverBackend = dotenv.env['SERVER_BACKEND'];
+    if (serverBackend == null) {
+      return;
+    }
+
+    final uri = Uri.parse(
+      '$serverBackend/buscarUsuarioPorUser?NombreUser=${Uri.encodeComponent(searchInput.trim())}',
+    );
+
+    try {
+      final response = await http.get(uri);
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        setState(() {
+          suggestions = data
+              .where((u) =>
+          u['NombreUser'] != nombreJugador &&
+              !friends.any((f) => f['NombreUser'] == u['NombreUser']))
+              .cast<Map<String, dynamic>>()
+              .toList();
+        });
+      } else {
+        setState(() => suggestions = []);
+      }
+    } catch (e) {
+      setState(() => suggestions = []);
+    }
+  }
+
+  void _challengeFriend(String idRetado, String modoNombre) async {
+    final modoBackend = modoMapeado[modoNombre] ?? "Punt_10";
+    await prefs.setString('modoDeJuegoActivo', modoNombre);
+
+    socket.emit('challenge-friend', {
+      'idRetador': idJugador,
+      'idRetado': idRetado,
+      'modo': modoBackend,
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: Colors.blueAccent,
+        duration: Duration(seconds: 2),
+        content: RichText(
+          text: TextSpan(
+            style: TextStyle(color: Colors.white, fontSize: 16),
+            children: [
+              TextSpan(text: 'Reto enviado en modo '),
+              TextSpan(
+                text: modoNombre,
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  void _showGameModes(BuildContext context, String friend) {
+  void _removeFriend(String idAmigo, String nombreAmigo) {
+    if (socket.connected && idJugador != null) {
+      socket.emit("remove-friend", {
+        "idJugador": idJugador,
+        "idAmigo": idAmigo,
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
+          content: RichText(
+            text: TextSpan(
+              style: TextStyle(color: Colors.white, fontSize: 16),
+              children: [
+                TextSpan(text: 'Has eliminado a '),
+                TextSpan(
+                  text: nombreAmigo,
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+                TextSpan(text: ' de tus amigos.'),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      setState(() {
+        friends.removeWhere((f) => f['amigoId'].toString().trim() == idAmigo);
+      });
+    }
+  }
+
+  void _showGameModes(String idAmigo) {
     showModalBottomSheet(
       context: context,
-      builder: (context) {
-        return Container(
-          color: Colors.black,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: gameModes.map((mode) {
-              return ListTile(
-                leading: Icon(mode.icon, color: mode.color),
-                title: Text(mode.name, style: TextStyle(color: Colors.white)),
-                subtitle: Text(mode.time, style: TextStyle(color: Colors.white70)),
-                onTap: () {
-                  setState(() {
-                    selectedGameMode = mode;
-                    challengedFriend = friend;
-                  });
-                  Navigator.pop(context);
-                },
-              );
-            }).toList(),
-          ),
-        );
-      },
+      builder: (_) => Container(
+        color: Colors.black,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: gameModes.map((mode) {
+            return ListTile(
+              leading: Icon(mode.icon, color: mode.color),
+              title: Text(mode.name, style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                setState(() {
+                  selectedGameMode = mode.name;
+                });
+                _challengeFriend(idAmigo, mode.name);
+              },
+            );
+          }).toList(),
+        ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: BuildHeadLogo(actions: [
-        IconButton(
-          icon: Icon(Icons.account_circle, color: Colors.white, size: 32),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => Login_page()),
-            );
-          },
-        ),
-      ]),
-      body: Column(
-        children: [
-          Container(
-            padding: EdgeInsets.all(8),
-            child: TextField(
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: Colors.white,
-                hintText: 'Buscar por nombre de usuario',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: friends.length,
-              itemBuilder: (context, index) {
-                return Container(
-                  margin: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[850],
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.blue, width: 2),
-                  ),
-                  child: ListTile(
-                    title: Text(friends[index], style: TextStyle(color: Colors.white)),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: Icon(Icons.cancel, color: Colors.red),
-                          onPressed: () => _removeFriend(friends[index]),
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.public, color: Colors.blue),
-                          onPressed: () => _showGameModes(context, friends[index]),
-                        ),
-                      ],
+      backgroundColor: Colors.black12,
+      body: AppLayout(
+        child: Column(
+          children: [
+            const SizedBox(height: 16),
+            Container(
+              color: Colors.grey[900],
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'SOCIAL',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 22,
+                      color: Colors.white,
                     ),
                   ),
-                );
-              },
-            ),
-          ),
-          if (challengedFriend != null && selectedGameMode != null)
-            Container(
-              padding: EdgeInsets.all(8),
-              color: Colors.black,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  Text("Has retado a $challengedFriend en modo ${selectedGameMode!.name}", style: TextStyle(color: Colors.white)),
-                  Icon(selectedGameMode!.icon, color: selectedGameMode!.color),
-                  IconButton(
-                    icon: Icon(Icons.close, color: Colors.red),
-                    onPressed: () {
-                      setState(() {
-                        challengedFriend = null;
-                        selectedGameMode = null;
-                      });
-                    },
-                  ),
+                  Icon(Icons.people, color: Colors.white, size: 36),
                 ],
               ),
             ),
-        ],
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      onChanged: (value) {
+                        setState(() => searchInput = value);
+                        _buscarUsuariosBackend();
+                      },
+                      style: TextStyle(color: Colors.black),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Colors.white,
+                        hintText: 'Buscar usuario',
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.search, color: Colors.white),
+                    onPressed: _buscarUsuariosBackend,
+                  )
+                ],
+              ),
+            ),
+            if (suggestions.isNotEmpty)
+              Expanded(
+                child: ListView(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8.0, vertical: 4),
+                      child: Text("Sugerencias",
+                          style: TextStyle(color: Colors.white, fontSize: 18)),
+                    ),
+                    ...suggestions.map((sug) {
+                      final idSug = sug['id'].toString().trim();
+                      final esAmigo = friends.any((f) => f['amigoId'].toString().trim() == idSug);
+
+                      return Card(
+                        color: Colors.grey[850],
+                        child: ListTile(
+                          title: Text(sug['NombreUser'], style: TextStyle(color: Colors.white)),
+                          trailing: esAmigo
+                              ? Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.sports_esports, color: Colors.green),
+                                onPressed: () => _showGameModes(idSug),
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.person_remove, color: Colors.red),
+                                onPressed: () => _removeFriend(idSug, sug['NombreUser']),
+                              ),
+                            ],
+                          )
+                              : IconButton(
+                            icon: Icon(Icons.person_add, color: Colors.blue),
+                            onPressed: () => _sendFriendRequest(idSug, sug['NombreUser']),
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              )
+            else
+              Expanded(
+                child: ListView(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8.0, vertical: 4),
+                      child: Text("Amigos",
+                          style: TextStyle(color: Colors.white, fontSize: 18)),
+                    ),
+                    ...friends.map((f) {
+                      final nombre = f['NombreUser'] ?? f['nombreAmigo'] ?? "Amigo";
+                      final id = f['amigoId']?.toString().trim() ?? "";
+                      final fotoPerfilCruda = f['fotoPerfil'] ?? f['fotoAmigo'] ?? 'none';
+                      final fotoSegura = getRutaSeguraFoto(fotoPerfilCruda);
+
+                      return Card(
+                        color: Colors.grey[900],
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundImage: fotoSegura.startsWith('assets/')
+                                ? AssetImage(fotoSegura) as ImageProvider
+                                : NetworkImage("https://checkmatex-gkfda9h5bfb0gsed.spaincentral-01.azurewebsites.net/$fotoPerfilCruda"),
+                            backgroundColor: Colors.white24,
+                          ),
+                          title: Text(nombre, style: TextStyle(color: Colors.white)),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.sports_esports, color: Colors.green),
+                                onPressed: () => _showGameModes(id),
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.person_remove, color: Colors.red),
+                                onPressed: () => _removeFriend(id, nombre),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    })
+                  ],
+                ),
+              ),
+          ],
+        ),
       ),
       bottomNavigationBar: BottomNavBar(currentIndex: 3),
     );

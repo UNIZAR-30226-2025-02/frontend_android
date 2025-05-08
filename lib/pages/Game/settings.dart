@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:frontend_android/pages/Game/botton_nav_bar.dart';
@@ -6,32 +7,50 @@ import 'package:frontend_android/pages/Game/friends.dart';
 import 'package:frontend_android/pages/Game/profile.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../services/socketService.dart';
+import '../../utils/guestUtils.dart';
+import '../../utils/photoUtils.dart';
+import '../../widgets/app_layout.dart';
 
-import '../Presentation/wellcome.dart';
-import '../buildHead.dart';
-
-class Settings_page extends StatelessWidget {
+class Settings_page extends StatefulWidget {
   static const String id = "setting_page";
 
   @override
+  _Settings_pageState createState() => _Settings_pageState();
+}
+
+class _Settings_pageState extends State<Settings_page> {
+  String fotoPerfil = 'assets/fotosPerfil/fotoPerfil.png';
+
+  @override
+  void initState() {
+    super.initState();
+    verificarAccesoInvitado(context);
+    _cargarUsuario();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _cargarUsuario();
+  }
+
+  Future<void> _cargarUsuario() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final foto = prefs.getString('fotoPerfil');
+    setState(() {
+      fotoPerfil = getRutaSeguraFoto(foto);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black, // Fondo oscuro
-      appBar: BuildHeadLogo(actions: [
-        IconButton(
-          icon: Icon(Icons.account_circle, color: Colors.white, size: 32),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => Wellcome_page()),
-            );
-          },
-        ),
-      ]),
-      body: Column(
+    return AppLayout(
+      child: Column(
         children: [
+          SizedBox(height: 16),
           Container(
-            color: Colors.grey[850],
+            color: Colors.grey[900],
             padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -40,29 +59,33 @@ class Settings_page extends StatelessWidget {
                   'AJUSTES',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 18,
+                    fontSize: 22,
                     color: Colors.white,
                   ),
                 ),
-                Icon(Icons.settings, color: Colors.white),
+                Icon(Icons.settings, color: Colors.white, size: 36),
               ],
             ),
           ),
           Expanded(
             child: ListView(
               children: [
-                _buildMenuItem(Icons.person, 'PERFIL', () {
-                  Navigator.pushAndRemoveUntil(
+                _buildMenuItem(Icons.person, 'PERFIL', () async {
+                  final result = await Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => Profile_page()),
-                        (route) => true, // Mantiene las rutas previas
                   );
+
+                  if (result == true) {
+                    await _cargarUsuario();
+                    setState(() {});
+                  }
                 }),
-                _buildMenuItem(Icons.group, 'AMIGOS', () {
+                _buildMenuItem(Icons.group, 'SOCIAL', () {
                   Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(builder: (context) => Friends_Page()),
-                        (route) => true, // Mantiene las rutas previas
+                        (route) => true,
                   );
                 }),
                 _buildMenuItem(Icons.close, 'CERRAR SESIÓN', () {
@@ -71,9 +94,9 @@ class Settings_page extends StatelessWidget {
               ],
             ),
           ),
+          BottomNavBar(currentIndex: 4),
         ],
       ),
-      bottomNavigationBar: BottomNavBar(currentIndex: 4), // Índice de "Ajustes"
     );
   }
 
@@ -100,26 +123,41 @@ class Settings_page extends StatelessWidget {
     );
   }
 
-  void _confirmCloseSession(BuildContext context) async{
+  void _confirmCloseSession(BuildContext context) async {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Cerrar sesión"),
-          content: Text("¿Estás seguro de que quieres cerrar sesión?"),
+          backgroundColor: Colors.grey[900],
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+            side: BorderSide(color: Colors.blueAccent, width: 1.5),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.logout, color: Colors.blueAccent),
+              SizedBox(width: 8),
+              Text("Cerrar sesión", style: TextStyle(color: Colors.white)),
+            ],
+          ),
+          content: Text(
+            "¿Estás seguro de que quieres cerrar sesión?",
+            style: TextStyle(color: Colors.white70),
+          ),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Cerrar el diálogo sin hacer nada
+                Navigator.of(context).pop();
               },
-              child: Text("Cancelar"),
+              child: Text("Cancelar", style: TextStyle(color: Colors.blueAccent)),
             ),
             TextButton(
-              onPressed: () async{
-                Navigator.pop(context); // Cerrar el diálogo
-                await _cerrarSesion(context); // Ejecutar la función de cerrar sesión
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await Future.delayed(Duration(milliseconds: 300));
+                _cerrarSesion(context);
               },
-              child: Text("Aceptar"),
+              child: Text("Aceptar", style: TextStyle(color: Colors.blueAccent)),
             ),
           ],
         );
@@ -141,31 +179,19 @@ class Settings_page extends StatelessWidget {
         );
 
         if (response.statusCode == 200) {
-          print("✅ Sesión cerrada correctamente en el servidor.");
         } else {
-          print("❌ Error al cerrar sesión en el servidor: ${response.body}");
         }
       } catch (e) {
-        print("❌ Error de conexión al servidor: $e");
+        if (kDebugMode) {
+          print("❌ Error de conexión al servidor: $e");
+        }
       }
     }
 
-    // Eliminar datos de sesión
     await prefs.clear();
 
-    if (!context.mounted) return;
-
-    // Mostrar mensaje de confirmación
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Has cerrado sesión')),
-    );
-
-    Future.microtask(() {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => Wellcome_page()),
-            (route) => false, // Elimina todas las rutas previas
-      );
-    });
+    if (mounted) {
+      SocketService().showForceLogoutPopup("Tu sesión se ha cerrado correctamente.");
+    }
   }
 }

@@ -1,33 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:frontend_android/widgets/app_layout.dart';
 import 'package:frontend_android/pages/Game/botton_nav_bar.dart';
 import 'package:frontend_android/pages/Game/rules.dart';
-import 'package:frontend_android/pages/buildHead.dart';
 import 'package:frontend_android/pages/Game/openings.dart';
-import '../Login/login.dart';
 
 class LearnPage extends StatelessWidget {
   static const String id = "learn_page";
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black, // Fondo oscuro
-      appBar: BuildHeadLogo(actions: [
-        IconButton(
-          icon: Icon(Icons.account_circle, color: Colors.white, size: 32),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => Login_page()),
-            );
-          },
-        ),
-      ]),
-
-      body: Column(
+    return AppLayout(
+      child: Column(
         children: [
+          SizedBox(height: 16),
           Container(
-            color: Colors.grey[850], // Color oscuro para la sección
+            color: Colors.grey[900],
             padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -36,11 +23,11 @@ class LearnPage extends StatelessWidget {
                   'APRENDER',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 18,
+                    fontSize: 22,
                     color: Colors.white,
                   ),
                 ),
-                Icon(Icons.folder, color: Colors.white),
+                Icon(Icons.folder, color: Colors.white, size: 36),
               ],
             ),
           ),
@@ -52,9 +39,9 @@ class LearnPage extends StatelessWidget {
               ],
             ),
           ),
+          BottomNavBar(currentIndex: 2),
         ],
       ),
-      bottomNavigationBar: BottomNavBar(currentIndex: 2), // Índice de "Aprender"
     );
   }
 

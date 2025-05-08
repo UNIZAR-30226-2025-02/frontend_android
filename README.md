@@ -71,6 +71,26 @@ To generate an installable `.apk` file for your Android device, follow these ste
 
 > You can also use `flutter install` if your device is connected and developer mode is enabled.
 
+
+## 🌐 Environment Configuration
+
+To run the app, you need to provide environment-specific variables using a `.env` file.
+
+Create a `.env` file at the root of the project based on the provided example:
+
+```bash
+cp .env.example .env
+```
+
+Then, edit the `.env` file and replace the placeholder values with the actual backend URL. For example:
+
+```env
+SERVER_BACKEND=https://your-real-backend-url.com/
+```
+
+> ⚠️ The actual backend URL is not included in this repository for security reasons. Please contact the project maintainer to obtain the correct value.
+
+
 ## 📄 License
 
 This project is licensed under the terms specified in the [LICENSE](./LICENSE) file.
