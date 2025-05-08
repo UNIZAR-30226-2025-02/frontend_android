@@ -79,7 +79,6 @@ class _AppLayoutState extends State<AppLayout> {
       fotoPerfil = null;
     });
 
-    // ✅ Usa el contexto guardado con SocketService
     SocketService().showForceLogoutPopup(
       "Tu sesión se ha cerrado correctamente.",
     );
@@ -89,7 +88,7 @@ class _AppLayoutState extends State<AppLayout> {
   Future<void> _salirComoInvitado(BuildContext context) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     final accessToken = prefs.getString('accessToken');
-    final idJugador = prefs.getString('idJugador'); // ✅ Asegúrate de tener el ID
+    final idJugador = prefs.getString('idJugador');
     final backendUrl = dotenv.env['SERVER_BACKEND'];
 
     try {
@@ -100,7 +99,7 @@ class _AppLayoutState extends State<AppLayout> {
           "Authorization": "Bearer $accessToken",
         },
         body: jsonEncode({
-          "id": idJugador, // ✅ Ahora sí se lo mandamos al backend
+          "id": idJugador,
         }),
       );
 
@@ -113,7 +112,6 @@ class _AppLayoutState extends State<AppLayout> {
       }
     }
 
-    // Limpia sesión y muestra mensaje
     await prefs.clear();
     if (!mounted) return;
 

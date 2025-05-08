@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:socket_io_client/socket_io_client.dart' as IO;
@@ -10,7 +9,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/socketService.dart';
 import '../../utils/photoUtils.dart';
 import '../../widgets/app_layout.dart';
-
 
 class Init_page extends StatefulWidget {
   static const String id = "init_page";
@@ -32,7 +30,6 @@ class _InitPageState extends State<Init_page> {
   late Future<Map<String, dynamic>> resumenFuture;
   String? serverBackend;
   String? userId;
-
   SocketService socketService = SocketService();
   IO.Socket? socket;
 
@@ -62,14 +59,14 @@ class _InitPageState extends State<Init_page> {
   }
 
   Future<void> _startInitSequence() async {
-    await _cargarUsuario(); // Espera a que idJugador esté listo
+    await _cargarUsuario();
     await _initializeSocketAndStartMatchmaking();
   }
 
   Future<void> _initializeSocketAndStartMatchmaking() async {
-    await socketService.connect(context); // 👈 Context de LoginPage
+    await socketService.connect(context);
     socket = await socketService.getSocket(context);
-    encontrarPartida(); // Ahora sí: ya puedes registrar listeners
+    encontrarPartida();
   }
 
 
@@ -81,7 +78,7 @@ class _InitPageState extends State<Init_page> {
       final gameId = gameData['gameID'];
       final pgnRaw = gameData['pgn'];
       final pgn = (pgnRaw is List)
-          ? pgnRaw.join('\n')  // 🔁 Unís el pgn en un String
+          ? pgnRaw.join('\n')
           : pgnRaw?.toString() ?? "";
       final color = gameData['color'];
       final timeLeftW = gameData['timeLeftW'];
@@ -153,11 +150,10 @@ class _InitPageState extends State<Init_page> {
                   itemCount: gameModes.length + 1,
                   itemBuilder: (context, index) {
                     if (index == 0) {
-                      // Tarjeta resumen como primer ítem
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return Center(
                           child: CircularProgressIndicator(
-                            color: Colors.blueAccent, // 👈 aquí aplicamos el color
+                            color: Colors.blueAccent,
                           ),
                         );
                       }
@@ -242,8 +238,6 @@ class _InitPageState extends State<Init_page> {
                         ),
                       );
                     }
-
-                    // Tarjetas de modos de juego
                     final modo = gameModes[index - 1];
                     return _buildGameButton(context, modo);
                   },
@@ -266,7 +260,7 @@ class _InitPageState extends State<Init_page> {
           return Padding(
             padding: const EdgeInsets.all(16.0),
             child: CircularProgressIndicator(
-              color: Colors.blueAccent, // 👈 aquí añadimos el color azul que quieres
+              color: Colors.blueAccent,
             ),
           );
         }

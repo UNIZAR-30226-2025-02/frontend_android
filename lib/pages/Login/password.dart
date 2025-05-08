@@ -30,7 +30,6 @@ class _ResetPasswordPageState extends State<Password_page> {
     String password = _passwordController.text.trim();
     String confirmPassword = _confirmPasswordController.text.trim();
 
-    // Resetear mensajes de error
     setState(() {
       _mensajeErrorToken = null;
       _mensajeErrorUser = null;

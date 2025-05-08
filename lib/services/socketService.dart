@@ -15,14 +15,12 @@ class SocketService {
   late IO.Socket socket;
   bool _isConnected = false;
   bool _isInitialized = false;
-  BuildContext? _latestContext;
-
-  // 📌 Variables internas para partida
   String? _gameId;
   String? _color;
   String? _nombreRival;
   String? _fotoRival;
   String? _modoSeleccionado = "Rápida";
+  BuildContext? _latestContext;
 
   factory SocketService() {
     return _instance;
@@ -72,7 +70,6 @@ class SocketService {
     socket.onError((err) {
     });
 
-    // 👇 Eventos importantes
     socket.on('game-ready', (data) => _handleGameReady(data));
     socket.on('color', (data) async=> _handleColor(data));
     socket.on('friendRequest', (data) async=> _showFriendRequestPopup(data));
@@ -196,7 +193,7 @@ class SocketService {
     final idRetado = data['idRetado'].toString();
     final modo = data['modo'];
     final retador = data['nombreRetador'];
-    final modoVisible = _mapearModo(modo); // nuevo
+    final modoVisible = _mapearModo(modo);
 
     showDialog(
       context: context,
@@ -257,7 +254,7 @@ class SocketService {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (_) => BoardScreen(
-          modoGuardado,   // 👈 aquí pasamos el modo REAL
+          modoGuardado,
           _color!,
           _gameId!,
           "null",

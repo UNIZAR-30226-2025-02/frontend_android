@@ -165,7 +165,7 @@ class _RuleCardState extends State<RuleCard> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       child: SizedBox(
-        height: 140, // 🔹 Fijamos la altura total de la tarjeta
+        height: 140,
         child: Container(
           decoration: BoxDecoration(
             color: Colors.grey[850],

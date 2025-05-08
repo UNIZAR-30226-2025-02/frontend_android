@@ -5,9 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart' as chess;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
-import 'package:frontend_android/pages/buildHead.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../utils/photoUtils.dart';
 import '../Game/game_review_page.dart';
 
@@ -23,7 +21,7 @@ class UltimaPartida {
   final String ganadorId;
   final int movimientos;
   final DateTime fecha;
-  final String pgn; // NUEVO
+  final String pgn;
   final String rival;
   final int variacionJW;
   final int variacionJB;
@@ -33,7 +31,7 @@ class UltimaPartida {
     required this.ganadorId,
     required this.movimientos,
     required this.fecha,
-    required this.pgn, // NUEVO
+    required this.pgn,
     required this.rival,
     required this.variacionJW,
     required this.variacionJB,
@@ -61,9 +59,7 @@ class UltimaPartida {
 }
 
 class _ProfilePageState extends State<Profile_page> {
-  // Datos del usuario (valores por defecto)
   String playerName = "Cargando...";
-  // Nuevo valor por defecto usando la nueva ruta:
   String profileImage = "assets/fotosPerfil/fotoPerfil.png";
   int friends = 0;
   int gamesPlayed = 0;
@@ -77,13 +73,10 @@ class _ProfilePageState extends State<Profile_page> {
   late final responseRelampago;
   late final responseIncremento;
   late final responseIncrementoExpres;
-  // URL base del servidor backend (se obtiene de la variable de entorno)
   late final String? serverBackend;
-  // ID del usuario (por ejemplo, obtenido de SharedPreferences)
   late final String? userId;
   bool _isLoading = true;
 
-  // Lista de nombres de archivos (sin ruta) de las imágenes disponibles
   List<String> multiavatarImages = [
     "avatar_1.webp",
     "avatar_2.webp",
@@ -184,27 +177,21 @@ class _ProfilePageState extends State<Profile_page> {
       }
     }
 
-    // Clásica
     final urlClasica = Uri.parse('${serverBackend}buscarPartidasPorModo?id=$userId&modo=Punt_10');
     responseClasica = await http.get(urlClasica);
 
-    // Principiante
     final urlPrincipiante = Uri.parse('${serverBackend}buscarPartidasPorModo?id=$userId&modo=Punt_30');
     responsePrincipiante = await http.get(urlPrincipiante);
 
-    // Avanzado
     final urlAvanzado = Uri.parse('${serverBackend}buscarPartidasPorModo?id=$userId&modo=Punt_5');
     responseAvanzado = await http.get(urlAvanzado);
 
-    // Relámpago
     final urlRelampago = Uri.parse('${serverBackend}buscarPartidasPorModo?id=$userId&modo=Punt_3');
     responseRelampago = await http.get(urlRelampago);
 
-    // Incremento
     final urlIncremento = Uri.parse('${serverBackend}buscarPartidasPorModo?id=$userId&modo=Punt_5_10');
     responseIncremento = await http.get(urlIncremento);
 
-    // Incremento exprés
     final urlIncrementoExpres = Uri.parse('${serverBackend}buscarPartidasPorModo?id=$userId&modo=Punt_3_2');
     responseIncrementoExpres = await http.get(urlIncrementoExpres);
     userData = await construirUserDataPorModo(userId: userId, serverBackend: serverBackend);
@@ -218,7 +205,6 @@ class _ProfilePageState extends State<Profile_page> {
     required String? userId,
     required String? serverBackend,
   }) async {
-    // Mapeo frontend <-> backend
     final modoMapeado = {
       "Rápida": "Punt_10",
       "Clásica": "Punt_30",
@@ -250,7 +236,7 @@ class _ProfilePageState extends State<Profile_page> {
         }
         userData[modoFront] = elos;
       } else {
-        userData[modoFront] = []; // lista vacía por si falla
+        userData[modoFront] = [];
       }
     }
 
@@ -266,13 +252,11 @@ class _ProfilePageState extends State<Profile_page> {
   }
 
   String normalizarPGN(String pgnCrudo) {
-    // Divide cada tag en su propia línea
     final tagsSeparados = pgnCrudo.replaceAllMapped(
       RegExp(r'(\[.*?\])'),
           (match) => '${match.group(1)}\n',
     );
 
-    // Asegúrate de que las jugadas estén separadas después de los tags
     final conSaltos = tagsSeparados.replaceAll(RegExp(r'\]\s+(?=\d+\.)'), ']\n');
 
     return conSaltos.trim();
@@ -294,18 +278,15 @@ class _ProfilePageState extends State<Profile_page> {
       final flags = move['flags'] ?? '';
       String promotion = '';
 
-      // Si el movimiento fue una promoción, extraemos la letra desde SAN (ej: gxh8=R)
       if (flags.contains('p') && move['san'].contains('=')) {
         final san = move['san'];
         final index = san.indexOf('=');
         if (index != -1 && index + 1 < san.length) {
-          promotion = san[index + 1].toLowerCase(); // r, q, b, n
+          promotion = san[index + 1].toLowerCase();
         }
       }
-
       movimientos.add("$from$to$promotion");
     }
-
     return movimientos;
   }
 
@@ -319,7 +300,6 @@ class _ProfilePageState extends State<Profile_page> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            // ✅ Al volver atrás, forzamos que se recargue la cabecera con la foto nueva
             Navigator.pop(context);
           },
         ),
@@ -355,7 +335,6 @@ class _ProfilePageState extends State<Profile_page> {
     );
   }
 
-
   Map<String, int> extraerEloDesdePGN(String pgn, String? userId) {
     final regexWhiteId = RegExp(r'\[White "(.*?)"\]');
     final regexWhiteElo = RegExp(r'\[White Elo "(.*?)"\]');
@@ -376,7 +355,6 @@ class _ProfilePageState extends State<Profile_page> {
     };
   }
 
-
   Widget _buildProfileCard() {
     return Container(
       padding: EdgeInsets.all(16),
@@ -391,17 +369,15 @@ class _ProfilePageState extends State<Profile_page> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Avatar: para mostrar la imagen en la UI, si profileImage es solo el nombre, concatenamos la ruta.
               CircleAvatar(
                 radius: 35,
                 backgroundImage: AssetImage(getRutaSeguraFoto(profileImage)),
 
               ),
-              // Botones en una fila aparte
               Row(
                 children: [
                   ElevatedButton.icon(
-                    onPressed: _showEditPhotoDialog, // Función para editar foto
+                    onPressed: _showEditPhotoDialog,
                     icon: Icon(Icons.image, color: Colors.white),
                     label: Text('Foto'),
                     style: ElevatedButton.styleFrom(
@@ -409,9 +385,9 @@ class _ProfilePageState extends State<Profile_page> {
                       foregroundColor: Colors.white,
                     ),
                   ),
-                  SizedBox(width: 8), // Separación horizontal
+                  SizedBox(width: 8),
                   ElevatedButton.icon(
-                    onPressed: _showEditNameDialog, // Función para editar nombre
+                    onPressed: _showEditNameDialog,
                     icon: Icon(Icons.edit, color: Colors.white),
                     label: Text('Nombre'),
                     style: ElevatedButton.styleFrom(
@@ -577,7 +553,7 @@ class _ProfilePageState extends State<Profile_page> {
   }
 
   int contarMovimientosDesdePGN(String pgn) {
-    final regex = RegExp(r'\d+\.\s*[a-hNBRQK]'); // busca patrones como "1. e4" o "2. Nf3"
+    final regex = RegExp(r'\d+\.\s*[a-hNBRQK]');
     return regex.allMatches(pgn).length;
   }
 
@@ -706,14 +682,9 @@ class _ProfilePageState extends State<Profile_page> {
                   return DataRow.byIndex(
                     index: ultimasPartidas.indexOf(p),
                     onSelectChanged: (_) async {
-                      // 1) Convertir PGN a lista de movimientos
                       final movimientos = convertirPGNaHistorial(p.pgn);
-
-                      // 2) Leer tu userId
                       final prefs  = await SharedPreferences.getInstance();
                       final userId = prefs.getString('idJugador') ?? '';
-
-                      // 3) Extraer alias blancas/negras del PGN
                       final whiteId = RegExp(r'\[White "(.*?)"\]').firstMatch(p.pgn)?.group(1) ?? '';
                       final blackId = RegExp(r'\[Black "(.*?)"\]').firstMatch(p.pgn)?.group(1) ?? '';
 
@@ -725,9 +696,6 @@ class _ProfilePageState extends State<Profile_page> {
                         final rivalData = jsonDecode(response.body);
                         String rivalFoto = rivalData['FotoPerfil'] ??
                             'fotoPerfil.png';
-
-                        // aquí puedes usar rivalFoto como quieras
-
                       final rivalFotoSegura = getRutaSeguraFoto(rivalFoto);
 
 
@@ -739,8 +707,8 @@ class _ProfilePageState extends State<Profile_page> {
 
                       final myElo    = eresBlancas ? whiteElo : blackElo;
                       final rivalElo = eresBlancas ? blackElo : whiteElo;
-                      // 5) Empujar a GameReviewPage con nombre y elos
                       final miFoto = prefs.getString('fotoPerfil') ?? "none";
+
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -981,8 +949,8 @@ class _ProfilePageState extends State<Profile_page> {
 
     final bodyData = jsonEncode({
       "id": userId,
-      "NombreUser": playerName,  // Mantenemos el nombre actual
-      "FotoPerfil": newPhotoName  // Solo el nombre de la imagen
+      "NombreUser": playerName,
+      "FotoPerfil": newPhotoName
     });
 
     try {

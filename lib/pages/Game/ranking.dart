@@ -5,9 +5,7 @@ import 'package:frontend_android/widgets/app_layout.dart';
 import 'package:frontend_android/pages/Game/botton_nav_bar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-
 import '../../utils/photoUtils.dart';
-
 
 class Ranking_page extends StatefulWidget {
   static const String id = "ranking_page";

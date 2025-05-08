@@ -1,11 +1,8 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:frontend_android/pages/Game/profile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../Game/init.dart';
 import 'package:stockfish/stockfish.dart';
 import 'package:chess/chess.dart' as chess;
 
@@ -31,9 +28,9 @@ class GameReviewPage extends StatefulWidget {
 
 class _GameReviewPageState extends State<GameReviewPage> {
   final ChessBoardController _controller = ChessBoardController();
-  final chess.Chess _game = chess.Chess();  // el motor para parsear SAN
+  final chess.Chess _game = chess.Chess();
   final List<Map<String,String>> _moveStack = [];
-  final List<String> _moveStackReal = []; // Guarda los movimientos reales tipo 'e5-g6'
+  final List<String> _moveStackReal = [];
   late final Stockfish _engine;
   String? _bestMove;
   int? _previousCp;
@@ -45,13 +42,10 @@ class _GameReviewPageState extends State<GameReviewPage> {
   final List<int> _cpLossesBlack = [];
   int? _previousCpWhite;
   int? _previousCpBlack;
-
   final List<int> _cpLosses = [];
   String? _moveClassification;
-
   int _currentCp = 0;
   StreamSubscription<String>? _stdoutSub;
-
   int moveIndex = -1;
   late final String? serverBackend;
   bool esJugadorBlancas = true;
@@ -73,7 +67,6 @@ class _GameReviewPageState extends State<GameReviewPage> {
       });
     });
 
-    // 1) Escucha la salida para parsear 'score cp ...'
     _stdoutSub = _engine.stdout.listen((line) {
       final cpMatch = RegExp(r'score cp (-?\d+)').firstMatch(line);
       if (cpMatch != null) {
@@ -110,11 +103,8 @@ class _GameReviewPageState extends State<GameReviewPage> {
       }
     });
 
-
-    // 2) Espera hasta que state cambie a ready, y entonces envía tus primeros comandos
     _engine.state.addListener(() {
       if (_engine.state.value == StockfishState.ready) {
-        // Ahora ya está listo: podemos pedirle que compruebe isready y luego evaluar
         _engine.stdin = 'isready';
         _evaluatePosition();
       }
@@ -137,10 +127,8 @@ class _GameReviewPageState extends State<GameReviewPage> {
 
 
   void _evaluatePosition() {
-    // Si no está listo, ignora la llamada
     if (_engine.state.value != StockfishState.ready) return;
 
-    // OK, envío la posición y pido el análisis
     final fen = _controller.value.fen;
     _engine.stdin = 'position fen $fen';
     _engine.stdin = 'go depth 10';
@@ -261,7 +249,6 @@ class _GameReviewPageState extends State<GameReviewPage> {
   double _whiteAdvantage() => ((_currentCp.clamp(-1000, 1000) + 1000) / 20.0);
   double _blackAdvantage() => 100.0 - _whiteAdvantage();
 
-// Y en tu clase, usa este _previousMove() instrumentado:
   void _previousMove() {
 
     if (moveIndex >= 0) {
@@ -313,13 +300,9 @@ class _GameReviewPageState extends State<GameReviewPage> {
     Navigator.pushReplacementNamed(context, Profile_page.id);
   }
 
-  // 1) Método para reiniciar por completo la revisión
   void _restartReview() {
-    // Reinicia el motor y el tablero UI
     _game.reset();
     _controller.resetBoard();
-
-    // Vuelve al índice inicial y limpia tus pilas
     moveIndex = -1;
     _moveStack.clear();
     _moveStackReal.clear();
@@ -384,7 +367,6 @@ class _GameReviewPageState extends State<GameReviewPage> {
             ...(
                 esJugadorBlancas
                     ? [
-                  // Rival arriba
                   Padding(
                     padding: const EdgeInsets.only(left: 20.0, top: 16.0, bottom: 4.0),
                     child: Row(
@@ -408,7 +390,6 @@ class _GameReviewPageState extends State<GameReviewPage> {
                   _buildBarraVentajaNegra(),
                   _buildTablero(),
                   _buildBarraVentajaBlanca(),
-                  // Tú abajo
                   Padding(
                     padding: const EdgeInsets.only(left: 20.0, top: 4.0, bottom: 16.0),
                     child: Row(
@@ -431,7 +412,6 @@ class _GameReviewPageState extends State<GameReviewPage> {
                   ),
                 ]
                     : [
-                  // Rival arriba (jugando negras)
                   Padding(
                     padding: const EdgeInsets.only(top: 16.0, bottom: 4.0),
                     child: Row(
@@ -455,7 +435,6 @@ class _GameReviewPageState extends State<GameReviewPage> {
                   _buildBarraVentajaBlanca(),
                   _buildTablero(),
                   _buildBarraVentajaNegra(),
-                  // Tú abajo
                   Padding(
                     padding: const EdgeInsets.only(top: 4.0, bottom: 16.0),
                     child: Row(
@@ -479,7 +458,6 @@ class _GameReviewPageState extends State<GameReviewPage> {
                 ]
             ),
             const SizedBox(height: 12),
-            // Movimiento actual
             Center(
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
@@ -500,7 +478,6 @@ class _GameReviewPageState extends State<GameReviewPage> {
               ),
             ),
             const SizedBox(height: 16),
-            // Navegación de movimientos
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -522,7 +499,6 @@ class _GameReviewPageState extends State<GameReviewPage> {
               ],
             ),
             const SizedBox(height: 20),
-            // Botones Inicio / Reiniciar
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -562,7 +538,4 @@ class _GameReviewPageState extends State<GameReviewPage> {
     _engine.dispose();
     super.dispose();
   }
-
-
-
 }

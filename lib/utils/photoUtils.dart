@@ -3,7 +3,6 @@ String getRutaSeguraFoto(String? fotoGuardada) {
     return 'assets/fotosPerfil/fotoPerfil.png';
   }
 
-  // Si ya es una ruta completa, no la modifiques
   return fotoGuardada.startsWith('assets/')
       ? fotoGuardada
       : 'assets/fotosPerfil/$fotoGuardada';

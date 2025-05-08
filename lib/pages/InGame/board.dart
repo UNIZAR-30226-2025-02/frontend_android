@@ -8,7 +8,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../../services/socketService.dart';
 import 'package:frontend_android/pages/Game/init.dart';
-
 import '../../utils/photoUtils.dart';
 
 class BoardScreen extends StatefulWidget {
@@ -162,23 +161,23 @@ class _BoardScreenState extends State<BoardScreen> {
 
     switch (modo.toLowerCase()) {
       case "rápida":
-        whiteTime = blackTime = 600; // 10 minutos
+        whiteTime = blackTime = 600;
         break;
       case "clásica":
-        whiteTime = blackTime = 1800; // 30 minutos
+        whiteTime = blackTime = 1800;
         break;
       case "blitz":
-        whiteTime = blackTime = 300; // 5 minutos
+        whiteTime = blackTime = 300;
         break;
       case "bullet":
-        whiteTime = blackTime = 180; // 3 minutos
+        whiteTime = blackTime = 180;
         break;
       case "incremento":
-        whiteTime = blackTime = 900; // 15 minutos
+        whiteTime = blackTime = 900;
         incrementoPorJugada = 10;
         break;
       case "incremento exprés":
-        whiteTime = blackTime = 180; // 3 minutos
+        whiteTime = blackTime = 180;
         incrementoPorJugada = 2;
         break;
       default:
@@ -221,7 +220,6 @@ class _BoardScreenState extends State<BoardScreen> {
               );
             }
 
-            // Aplica incremento antes de cambiar turno
             if (incrementoPorJugada > 0) {
               setState(() {
                 if (wasWhiteTurn) {
@@ -281,7 +279,6 @@ class _BoardScreenState extends State<BoardScreen> {
           "idJugador": idJugador,
         });
 
-        // 👇 Mostrar popup también para quien acepta
         Future.delayed(Duration.zero, () {
           if (!context.mounted) return;
         });
@@ -460,7 +457,6 @@ class _BoardScreenState extends State<BoardScreen> {
     for (final mov in movimientosRaw) {
       final uci = mov.replaceAll(RegExp(r'[^a-h1-8qrbn]'), '').toLowerCase();
 
-      // Solo acepta strings de longitud 4 o 5 (con promoción válida)
       if (uci.length == 4 || (uci.length == 5 && RegExp(r'[qrbn]$').hasMatch(uci))) {
         movimientosLimpios.add(uci);
       } else {
@@ -533,7 +529,6 @@ class _BoardScreenState extends State<BoardScreen> {
                 style: TextStyle(color: Colors.white70, fontSize: 18),
               ),
               SizedBox(height: 20),
-              // Botones normales como querías
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -554,7 +549,7 @@ class _BoardScreenState extends State<BoardScreen> {
                       style: TextStyle(fontSize: 14, color: Colors.white),
                     ),
                   ),
-                  if (estadoUser != "guest") // Solo si no es invitado
+                  if (estadoUser != "guest")
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blueAccent,
@@ -872,7 +867,7 @@ class _BoardScreenState extends State<BoardScreen> {
 
     showDialog(
       context: context,
-      barrierDismissible: true, // Puedes cerrar tocando fuera del dialog
+      barrierDismissible: true,
       builder: (context) => Dialog(
         backgroundColor: Colors.grey[900],
         shape: RoundedRectangleBorder(
@@ -938,7 +933,7 @@ class _BoardScreenState extends State<BoardScreen> {
         "message": mensaje.trim(),
       });
 
-      _chatController.clear(); // Limpia el input
+      _chatController.clear();
     }
   }
 
@@ -980,8 +975,7 @@ class _BoardScreenState extends State<BoardScreen> {
             SafeArea(
               child: Column(
                 children: [
-                  SizedBox(height: 36), // margen superior
-                  // 🧍‍♂️ Rival con avatar
+                  SizedBox(height: 36),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Row(
@@ -1019,12 +1013,12 @@ class _BoardScreenState extends State<BoardScreen> {
                     ),
                   ),
 
-                  SizedBox(height: 12), // entre nombre y tablero
+                  SizedBox(height: 12),
 
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: SizedBox(
-                      height: MediaQuery.of(context).size.width * 0.95, // tablero cuadrado proporcional
+                      height: MediaQuery.of(context).size.width * 0.95,
                       child: ChessBoard(
                         controller: controller,
                         boardOrientation: playerColor,
@@ -1037,7 +1031,6 @@ class _BoardScreenState extends State<BoardScreen> {
 
                   SizedBox(height: 12),
 
-                  // 🧍‍♂️ Tú con avatar
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Row(
@@ -1075,7 +1068,8 @@ class _BoardScreenState extends State<BoardScreen> {
                     ),
                   ),
 
-                  SizedBox(height: 36), // aire antes de los botones
+                  SizedBox(height: 36),
+
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16),
                     child: Row(
@@ -1110,7 +1104,6 @@ class _BoardScreenState extends State<BoardScreen> {
                       ],
                     ),
                   ),
-                  // Nueva fila para botones flotantes
                   Padding(
                     padding: const EdgeInsets.only(bottom: 20),
                     child: Row(
@@ -1148,15 +1141,15 @@ class _BoardScreenState extends State<BoardScreen> {
                 right: 20,
                 left: 20,
                 child: Container(
-                  padding: EdgeInsets.all(12), // Más espacio interior
+                  padding: EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.grey[850], // Fondo oscuro acorde con el tema
-                    borderRadius: BorderRadius.circular(16), // Bordes redondeados
+                    color: Colors.grey[850],
+                    borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.2),
                         blurRadius: 10,
-                        offset: Offset(0, 4), // Sombra suave abajo
+                        offset: Offset(0, 4),
                       ),
                     ],
                   ),
@@ -1168,7 +1161,7 @@ class _BoardScreenState extends State<BoardScreen> {
                           itemCount: _mensajesChat.length,
                           itemBuilder: (context, index) => Text(
                             _mensajesChat[index],
-                            style: TextStyle(color: Colors.white), // Texto blanco para contraste
+                            style: TextStyle(color: Colors.white),
                           ),
                         ),
                       ),
@@ -1185,12 +1178,12 @@ class _BoardScreenState extends State<BoardScreen> {
                                   borderSide: BorderSide.none,
                                 ),
                                 filled: true,
-                                fillColor: Colors.white, // Fondo sutil del campo de texto
+                                fillColor: Colors.white,
                               ),
                             ),
                           ),
                           IconButton(
-                            icon: Icon(Icons.send, color: Colors.blueAccent), // Icono en azul
+                            icon: Icon(Icons.send, color: Colors.blueAccent),
                             onPressed: () {
                               if (_chatController.text.trim().isNotEmpty) {
                                 setState(() {
@@ -1213,15 +1206,15 @@ class _BoardScreenState extends State<BoardScreen> {
                 right: 20,
                 left: 20,
                 child: Container(
-                  padding: EdgeInsets.all(12), // Más espacio interior
+                  padding: EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.grey[850], // Fondo oscuro acorde con el tema
-                    borderRadius: BorderRadius.circular(16), // Bordes redondeados
+                    color: Colors.grey[850],
+                    borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.2),
                         blurRadius: 10,
-                        offset: Offset(0, 4), // Sombra suave abajo
+                        offset: Offset(0, 4),
                       ),
                     ],
                   ),
@@ -1237,7 +1230,7 @@ class _BoardScreenState extends State<BoardScreen> {
                           itemCount: _historialMovimientos.length,
                           itemBuilder: (context, index) => Text(
                             "${index + 1}. ${_historialMovimientos[index]}",
-                            style: TextStyle(color: Colors.white70), // Texto en gris suave
+                            style: TextStyle(color: Colors.white70),
                           ),
                         ),
                       ),

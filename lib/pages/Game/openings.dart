@@ -14,7 +14,6 @@ class Openings_Page extends StatelessWidget {
     'Apertura Italiana',
   ];
 
-  // 👇 Map de posiciones FEN para cada apertura
   final Map<String, String> openingFens = {
     'Apertura Española': 'r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 2 3',
     'Defensa Siciliana': 'rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq c6 0 3',
@@ -63,7 +62,7 @@ class Openings_Page extends StatelessWidget {
                 child: Row(
                   children: [
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(12), // 👈 Bordes redondeados
+                      borderRadius: BorderRadius.circular(12),
                       child: SizedBox(
                         width: 100,
                         height: 100,
@@ -90,7 +89,7 @@ class Openings_Page extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           Container(
-                            height: 70, // 👈 altura máxima para el texto scrollable
+                            height: 70,
                             child: SingleChildScrollView(
                               child: Text(
                                 descriptions[index],
@@ -193,8 +192,6 @@ class _OpeningDetailPageState extends State<OpeningDetailPage> {
   void _previousMove() {
     if (moveIndex >= 0) {
       moveIndex--;
-
-      // Resetear el tablero y rehacer todos los movimientos hasta moveIndex
       _chessController.resetBoard();
 
       for (int i = 0; i <= moveIndex; i++) {
@@ -204,12 +201,8 @@ class _OpeningDetailPageState extends State<OpeningDetailPage> {
           _chessController.makeMove(from: moveParts[0], to: moveParts[1]);
         }
       }
-
       setState(() {});
     }
-
-
-
   }
 
   @override
@@ -221,11 +214,11 @@ class _OpeningDetailPageState extends State<OpeningDetailPage> {
       backgroundColor: Colors.grey[900],
       appBar: BuildHeadArrow(),
       body: Column(
-        mainAxisAlignment: MainAxisAlignment.start, // <-- Lo cambiamos a start mejor
+        mainAxisAlignment: MainAxisAlignment.start,
         children: [
           const SizedBox(height: 20),
           Text(
-            widget.openingName, // <-- Aquí mostramos el nombre de la apertura
+            widget.openingName,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 24,

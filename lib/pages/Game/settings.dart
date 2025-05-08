@@ -10,7 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/socketService.dart';
 import '../../utils/guestUtils.dart';
 import '../../utils/photoUtils.dart';
-import '../../widgets/app_layout.dart'; // 👈 importa AppLayout
+import '../../widgets/app_layout.dart';
 
 class Settings_page extends StatefulWidget {
   static const String id = "setting_page";
@@ -147,13 +147,13 @@ class _Settings_pageState extends State<Settings_page> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Cancelar
+                Navigator.of(context).pop();
               },
               child: Text("Cancelar", style: TextStyle(color: Colors.blueAccent)),
             ),
             TextButton(
               onPressed: () async {
-                Navigator.of(context).pop(); // Cierra el diálogo
+                Navigator.of(context).pop();
                 await Future.delayed(Duration(milliseconds: 300));
                 _cerrarSesion(context);
               },

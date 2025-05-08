@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'dart:async'; // Para el temporizador
+import 'dart:async';
 import 'package:frontend_android/pages/Game/init.dart';
 import 'package:frontend_android/pages/Login/login.dart';
 import 'package:frontend_android/pages/Login/signin.dart';
@@ -39,7 +39,7 @@ class _Wellcome_pageState extends State<Wellcome_page> {
 
   @override
   void dispose() {
-    _timer.cancel(); // <- Esto evita el memory leak
+    _timer.cancel();
     super.dispose();
   }
 
@@ -66,7 +66,6 @@ class _Wellcome_pageState extends State<Wellcome_page> {
         await prefs.setString('estadoPartida', publicUser['EstadoPartida'] ?? "NULL");
         await prefs.setString('estadoUser', publicUser['estadoUser']);
 
-        // ✅ Manejo del campo 'none' en fotoPerfil
         await prefs.setString(
           'fotoPerfil',
           (publicUser['FotoPerfil'] == 'none' || publicUser['FotoPerfil'] == '')
@@ -82,7 +81,6 @@ class _Wellcome_pageState extends State<Wellcome_page> {
           prefs.getString('fotoPerfil'),
         );
 
-        // ✅ Conexión al socket
         SocketService socketService = SocketService();
         await socketService.connect(context);
 

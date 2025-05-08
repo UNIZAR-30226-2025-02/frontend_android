@@ -44,10 +44,6 @@ class _FriendsPageState extends State<Friends_Page> {
   String searchInput = "";
   String? selectedGameMode;
   late SharedPreferences prefs;
-
-  String? _gameId;
-  String? _gameColor;
-  bool _yaEntramosAPartida = false;
   Map<String, String>? solicitudPendiente;
   List<Map<String, dynamic>> suggestions = [];
   List<Map<String, dynamic>> friends = [];
@@ -84,7 +80,7 @@ class _FriendsPageState extends State<Friends_Page> {
 
   Future<void> _initializeSocketAndUser() async {
     socket = await SocketService().getSocket(context);
-    prefs = await SharedPreferences.getInstance();  // <-- GUARDAMOS prefs una vez
+    prefs = await SharedPreferences.getInstance();
     idJugador = prefs.getString('idJugador');
     nombreJugador = prefs.getString('usuario');
 
@@ -92,7 +88,7 @@ class _FriendsPageState extends State<Friends_Page> {
       return;
     }
 
-    await _cargarAmigos(); // 👈 Cargamos amigos confirmados
+    await _cargarAmigos();
 
     _configureSocketListeners();
   }
@@ -121,7 +117,7 @@ class _FriendsPageState extends State<Friends_Page> {
           });
         } else if (decoded is Map && decoded.containsKey('Message')) {
           setState(() {
-            friends = []; // vacío si no hay amigos
+            friends = [];
           });
         } else {
         }
@@ -136,14 +132,14 @@ class _FriendsPageState extends State<Friends_Page> {
   }
 
   void _configureSocketListeners() {
-    socket.off('friendRequestAccepted'); // importante para evitar duplicados
+    socket.off('friendRequestAccepted');
     socket.on('friendRequestAccepted', (data) async {
       await Future.delayed(Duration(milliseconds: 300));
-      await _cargarAmigos(); // recarga lista desde el servidor
+      await _cargarAmigos();
 
       if (!mounted) return;
 
-      setState(() {}); // fuerza reconstrucción del widget
+      setState(() {});
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -243,7 +239,7 @@ class _FriendsPageState extends State<Friends_Page> {
 
   void _challengeFriend(String idRetado, String modoNombre) async {
     final modoBackend = modoMapeado[modoNombre] ?? "Punt_10";
-    await prefs.setString('modoDeJuegoActivo', modoNombre); // ✅ Añadir esto
+    await prefs.setString('modoDeJuegoActivo', modoNombre);
 
     socket.emit('challenge-friend', {
       'idRetador': idJugador,
@@ -318,9 +314,9 @@ class _FriendsPageState extends State<Friends_Page> {
               onTap: () {
                 Navigator.pop(context);
                 setState(() {
-                  selectedGameMode = mode.name; // ✅ Guardamos el modo seleccionado
+                  selectedGameMode = mode.name;
                 });
-                _challengeFriend(idAmigo, mode.name); // enviamos reto
+                _challengeFriend(idAmigo, mode.name);
               },
             );
           }).toList(),
@@ -383,10 +379,6 @@ class _FriendsPageState extends State<Friends_Page> {
                 ],
               ),
             ),
-
-            // ✅ Solicitud de amistad entrante (si hay)
-
-
             if (suggestions.isNotEmpty)
               Expanded(
                 child: ListView(
@@ -426,8 +418,6 @@ class _FriendsPageState extends State<Friends_Page> {
                         ),
                       );
                     }),
-
-
                   ],
                 ),
               )
@@ -445,8 +435,6 @@ class _FriendsPageState extends State<Friends_Page> {
                       final nombre = f['NombreUser'] ?? f['nombreAmigo'] ?? "Amigo";
                       final id = f['amigoId']?.toString().trim() ?? "";
                       final fotoPerfilCruda = f['fotoPerfil'] ?? f['fotoAmigo'] ?? 'none';
-
-                      // 🔥 Aplicas bien la función que me pasaste:
                       final fotoSegura = getRutaSeguraFoto(fotoPerfilCruda);
 
                       return Card(
@@ -474,7 +462,6 @@ class _FriendsPageState extends State<Friends_Page> {
                           ),
                         ),
                       );
-
                     })
                   ],
                 ),

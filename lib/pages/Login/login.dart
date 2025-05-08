@@ -32,12 +32,12 @@ class _LoginPageState extends State<Login_page> {
   SocketService socketService = SocketService();
 
   Future<void> _initializeSocket() async {
-    await socketService.connect(context); // ✅ Asegurar que el socket esté listo
+    await socketService.connect(context);
     IO.Socket connectedSocket = await socketService.getSocket(context);
 
     if (mounted) {
       setState(() {
-        socket = connectedSocket as IO.Socket?; // ✅ Ahora el socket está disponible
+        socket = connectedSocket as IO.Socket?;
       });
     }
   }
@@ -46,8 +46,6 @@ class _LoginPageState extends State<Login_page> {
     String user = _userController.text.trim();
     String password = _passwordController.text.trim();
 
-
-    // Resetear mensajes de error
     setState(() {
       _mensajeErrorUser = null;
       _mensajeErrorPassword = null;
@@ -108,8 +106,8 @@ class _LoginPageState extends State<Login_page> {
         playerInfo(prefs.getString('idJugador'),prefs.getString('usuario'), prefs.getString('Correo'),
             prefs.getString('estadoUser'), prefs.getString('fotoPerfil'));
         try {
-          await _initializeSocket(); // conecta y espera
-          Navigator.pushReplacementNamed(context, Init_page.id); // solo si todo va bien
+          await _initializeSocket();
+          Navigator.pushReplacementNamed(context, Init_page.id);
         } catch (e) {
           _mostrarSnackBar("No se pudo conectar con el servidor.");
         }
@@ -157,7 +155,7 @@ class _LoginPageState extends State<Login_page> {
                         labelStyle: TextStyle(color: Colors.grey[700]),
                         prefixIcon: Icon(Icons.email, color: Colors.grey[700]),
                         filled: true,
-                        fillColor: Colors.white, // Fondo blanco siempre visible
+                        fillColor: Colors.white,
                         errorText: mensajeErrorCorreo,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),

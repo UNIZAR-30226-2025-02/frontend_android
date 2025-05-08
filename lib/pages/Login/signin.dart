@@ -224,9 +224,9 @@ class _SigninPageState extends State<Signin_page> {
               filled: true,
               fillColor: Colors.white,
               errorStyle: TextStyle(
-                fontSize: 14, // Aumenta el tamaño del texto del error
-                fontWeight: FontWeight.bold, // Hace que el texto sea más grueso
-                color: Colors.red, // Mantiene el color rojo
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.red,
               ),
               errorText: errorMessage,
             ),

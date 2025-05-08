@@ -39,7 +39,7 @@ class LearnPage extends StatelessWidget {
               ],
             ),
           ),
-          BottomNavBar(currentIndex: 2), // "Aprender"
+          BottomNavBar(currentIndex: 2),
         ],
       ),
     );

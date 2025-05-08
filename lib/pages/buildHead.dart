@@ -9,7 +9,7 @@ class BuildHeadLogo extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: Colors.transparent, // Hacemos el fondo transparente
+      backgroundColor: Colors.transparent,
       elevation: 0,
       flexibleSpace: Container(
         decoration: BoxDecoration(
@@ -74,7 +74,7 @@ class BuildHeadArrow extends StatelessWidget implements PreferredSizeWidget {
       leading: IconButton(
         icon: Icon(Icons.arrow_back),
         onPressed: () {
-          Navigator.pop(context, true); // ✅ devolvemos un "resultado"
+          Navigator.pop(context, true);
         },
       ),
       title: Image.asset("assets/logoNombre.png", height: 50),
