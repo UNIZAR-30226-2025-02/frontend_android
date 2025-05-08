@@ -88,10 +88,6 @@ class _RankingPageState extends State<Ranking_page> {
     final res = await http.get(Uri.parse('${serverBackend}rankingPorModo?modo=$modo'));
     if (res.statusCode == 200) {
       final List data = jsonDecode(res.body);
-      print("🔍 Datos recibidos para modo $modo:");
-      for (var jugador in data) {
-        print(jugador); // imprime cada jugador individualmente
-      }
       return data.cast<Map<String, dynamic>>();
     } else {
       return [];
@@ -154,26 +150,39 @@ class _RankingPageState extends State<Ranking_page> {
               ),
               const SizedBox(height: 12),
               for (var player in ranking)
-                ListTile(
-                  leading: Text(
-                    '${player['rank']}°',
-                    style: TextStyle(
-                      color: getPodiumColor(player['rank']),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                Container(
+                  decoration: player['nombre'] == userName
+                      ? BoxDecoration(
+                    color: Colors.blueAccent.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  )
+                      : null,
+                  child: ListTile(
+                    leading: Text(
+                      '${player['rank']}°',
+                      style: TextStyle(
+                        color: getPodiumColor(player['rank']),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
-                  ),
-                  title: Text(
-                    player['nombre'],
-                    style: TextStyle(
-                      color: getPodiumColor(player['rank']),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                    title: Text(
+                      player['nombre'],
+                      style: TextStyle(
+                        color: player['nombre'] == userName
+                            ? Colors.blueAccent
+                            : getPodiumColor(player['rank']),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
-                  ),
-                  trailing: Text(
-                    _formatearPuntuacion(player['puntuacion']),
-                    style: TextStyle(color: Colors.white70),
+                    trailing: Text(
+                      _formatearPuntuacion(player['puntuacion']),
+                      style: TextStyle(
+                        color: player['nombre'] == userName ? Colors.blueAccent : Colors.white70,
+                        fontWeight: player['nombre'] == userName ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
                   ),
                 ),
             ],

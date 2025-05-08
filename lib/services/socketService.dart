@@ -22,7 +22,7 @@ class SocketService {
   String? _color;
   String? _nombreRival;
   String? _fotoRival;
-  String? _modoSeleccionado = "Clásica";
+  String? _modoSeleccionado = "Rápida";
 
   factory SocketService() {
     return _instance;
@@ -32,7 +32,6 @@ class SocketService {
   Future<void> initializeSocket(BuildContext context) async {
     _latestContext = context;
     if (_isInitialized) {
-      print("⚠️ Socket ya inicializado.");
       return;
     }
     _isInitialized = true;
@@ -47,7 +46,6 @@ class SocketService {
     String? idJugador = prefs.getString('idJugador');
 
     if (token == null || idJugador == null) {
-      print("⚠️ Token o ID no encontrado, abortando conexión.");
       return;
     }
 
@@ -61,21 +59,17 @@ class SocketService {
 
   void _setupListeners(String idJugador) {
     socket.onConnect((_) {
-      print("✅ Socket conectado correctamente.");
       _isConnected = true;
     });
 
     socket.onDisconnect((_) {
-      print("🔴 Socket desconectado.");
       showForceLogoutPopup("Se ha perdido la conexión con el servidor.");
     });
 
     socket.onConnectError((err) {
-      print("⚠️ Error de conexión: $err");
     });
 
     socket.onError((err) {
-      print("❌ Error general: $err");
     });
 
     // 👇 Eventos importantes
@@ -133,7 +127,7 @@ class SocketService {
 
     final data = dataRaw is String ? jsonDecode(dataRaw) : dataRaw;
     final userData = data[0];
-    final nombre = userData["nombre"] ?? "Usuario desconocido";
+    final nombre = userData["nombreJugador"] ?? "Usuario desconocido";
     final idRemitente = userData["idJugador"].toString();
 
     final prefs = await SharedPreferences.getInstance();
@@ -144,8 +138,26 @@ class SocketService {
       barrierDismissible: false,
       builder: (_) => AlertDialog(
         backgroundColor: Colors.grey[900],
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text("$nombre quiere ser tu amigo", style: TextStyle(color: Colors.white)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+          side: BorderSide(color: Colors.blueAccent, width: 1.5),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.person_add, color: Colors.blueAccent),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                "$nombre quiere ser tu amigo",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          "¿Deseas aceptar la solicitud de amistad?",
+          style: TextStyle(color: Colors.white70),
+        ),
         actions: [
           TextButton(
             onPressed: () {
@@ -158,7 +170,7 @@ class SocketService {
             },
             child: Text("Rechazar", style: TextStyle(color: Colors.redAccent)),
           ),
-          ElevatedButton(
+          TextButton(
             onPressed: () {
               socket.emit('accept-request', {
                 "idJugador": idRemitente,
@@ -168,8 +180,7 @@ class SocketService {
               Friends_Page.onFriendListShouldRefresh?.call();
               Navigator.of(context).pop();
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
-            child: Text("Aceptar", style: TextStyle(color: Colors.black)),
+            child: Text("Aceptar", style: TextStyle(color: Colors.blueAccent)),
           ),
         ],
       ),
@@ -184,24 +195,39 @@ class SocketService {
     final idRetador = data['idRetador'].toString();
     final idRetado = data['idRetado'].toString();
     final modo = data['modo'];
+    final retador = data['nombreRetador'];
+    final modoVisible = _mapearModo(modo); // nuevo
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (_) => AlertDialog(
         backgroundColor: Colors.grey[900],
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text("¡Reto de partida en $modo!", style: TextStyle(color: Colors.white)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+          side: BorderSide(color: Colors.blueAccent, width: 1.5),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.sports_kabaddi, color: Colors.blueAccent),
+            SizedBox(width: 8),
+            Text("¡Reto recibido!", style: TextStyle(color: Colors.white)),
+          ],
+        ),
+        content: Text(
+          "$retador te ha retado a una partida en modo $modoVisible.\n¿Deseas aceptar?",
+          style: TextStyle(color: Colors.white70),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: Text("Rechazar", style: TextStyle(color: Colors.redAccent)),
           ),
-          ElevatedButton(
+          TextButton(
             onPressed: () async {
               SharedPreferences prefs = await SharedPreferences.getInstance();
-              _modoSeleccionado = _mapearModo(modo); // Mapear el modo
-              await prefs.setString('modoDeJuegoActivo', _modoSeleccionado ?? "Clásica"); // 💥 <- aquí
+              _modoSeleccionado = _mapearModo(modo);
+              await prefs.setString('modoDeJuegoActivo', _modoSeleccionado ?? "Rápida");
 
               socket.emit('accept-challenge', {
                 "idRetador": idRetador,
@@ -211,10 +237,7 @@ class SocketService {
 
               Navigator.of(context).pop();
             },
-
-
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
-            child: Text("Aceptar", style: TextStyle(color: Colors.black)),
+            child: Text("Aceptar", style: TextStyle(color: Colors.blueAccent)),
           ),
         ],
       ),
@@ -227,7 +250,7 @@ class SocketService {
     if (_gameId == null || _color == null) return;
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    String modoGuardado = prefs.getString('modoDeJuegoActivo') ?? "Clásica";
+    String modoGuardado = prefs.getString('modoDeJuegoActivo') ?? "Rápida";
     int whiteElo = prefs.getInt('eloBlancas') ?? 0;
     int blackElo = prefs.getInt('eloNegras') ?? 0;
 
@@ -253,19 +276,19 @@ class SocketService {
   String _mapearModo(String modoServidor) {
     switch (modoServidor) {
       case "Punt_10":
-        return "Clásica";
+        return "Rápida";
       case "Punt_30":
-        return "Principiante";
+        return "Clásica";
       case "Punt_5":
-        return "Avanzado";
+        return "Blitz";
       case "Punt_3":
-        return "Relámpago";
+        return "Bullet";
       case "Punt_5_10":
         return "Incremento";
       case "Punt_3_2":
         return "Incremento exprés";
       default:
-        return "Clásica";
+        return "Rápida";
     }
   }
 
@@ -274,9 +297,7 @@ class SocketService {
     if (!_isConnected) {
       await initializeSocket(context);
       socket.connect();
-      print("🔌 Socket conectado.");
     } else {
-      print("✅ Ya estaba conectado.");
     }
   }
 

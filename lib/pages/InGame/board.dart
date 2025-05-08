@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:chess/chess.dart' as chess;
+import 'package:flutter/foundation.dart';
 import 'package:frontend_android/pages/Game/game_review_page.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:flutter/material.dart';
@@ -239,7 +240,9 @@ class _BoardScreenState extends State<BoardScreen> {
             });
 
           } catch (e) {
-            print("❌ Error al aplicar el movimiento recibido: $e");
+            if (kDebugMode) {
+              print("❌ Error al aplicar el movimiento recibido: $e");
+            }
           }
         }
       }
@@ -311,7 +314,6 @@ class _BoardScreenState extends State<BoardScreen> {
       String? idJugador = prefs.getString('idJugador');
 
       if (data[0]['idJugador'] != idJugador) {
-        print("[SOCKET] Tu rival se ha rendido");
       }
     });
 
@@ -445,7 +447,6 @@ class _BoardScreenState extends State<BoardScreen> {
     try {
       game.load_pgn(pgn);
     } catch (e) {
-      print("❌ Error al cargar PGN: $e");
       return [];
     }
 
@@ -463,7 +464,6 @@ class _BoardScreenState extends State<BoardScreen> {
       if (uci.length == 4 || (uci.length == 5 && RegExp(r'[qrbn]$').hasMatch(uci))) {
         movimientosLimpios.add(uci);
       } else {
-        print("⚠️ Movimiento descartado por formato inválido: $uci");
       }
     }
 
@@ -564,7 +564,6 @@ class _BoardScreenState extends State<BoardScreen> {
                         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
                       onPressed: () {
-                        print("PGN sin tags: ${chessGame.pgn()}");
                         final pgnFinal = generarPGNConTags(
                           pgnBody: chessGame.pgn(),
                           myId: idJugador ?? "yo",
@@ -639,7 +638,6 @@ class _BoardScreenState extends State<BoardScreen> {
 
     if (promotion != null) {
       movimiento = "$from$to$promotion";
-      print("$movimiento");
     }
     else{
       movimiento = "$from$to";

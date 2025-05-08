@@ -1,16 +1,14 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:frontend_android/pages/Game/botton_nav_bar.dart';
 import 'package:frontend_android/widgets/app_layout.dart';
 import 'package:frontend_android/services/socketService.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'package:frontend_android/pages/inGame/board.dart';
 import 'package:http/http.dart' as http;
 import 'package:frontend_android/utils/photoUtils.dart';
-
-
-
 import '../../utils/guestUtils.dart';
 
 class GameMode {
@@ -27,8 +25,6 @@ class GameMode {
     "Incremento": "Punt_5_10",
     "Incremento exprés": "Punt_3_2",
   };
-
-
 
   GameMode(this.name, this.icon, this.time, this.description, this.color);
 }
@@ -79,6 +75,7 @@ class _FriendsPageState extends State<Friends_Page> {
     super.initState();
     Friends_Page.onFriendListShouldRefresh = () async {
       await _cargarAmigos();
+      if (!mounted) return;
       setState(() {});
     };
     verificarAccesoInvitado(context);
@@ -87,13 +84,11 @@ class _FriendsPageState extends State<Friends_Page> {
 
   Future<void> _initializeSocketAndUser() async {
     socket = await SocketService().getSocket(context);
-    print("Socket ID en init: ${socket?.id}");
     prefs = await SharedPreferences.getInstance();  // <-- GUARDAMOS prefs una vez
     idJugador = prefs.getString('idJugador');
     nombreJugador = prefs.getString('usuario');
 
     if (idJugador == null || nombreJugador == null) {
-      print("⚠️ No se encontró idJugador o nombre en SharedPreferences.");
       return;
     }
 
@@ -105,42 +100,44 @@ class _FriendsPageState extends State<Friends_Page> {
   Future<void> _cargarAmigos() async {
     if (idJugador == null) return;
 
-    final uri = Uri.parse(
-      'https://checkmatex-gkfda9h5bfb0gsed.spaincentral-01.azurewebsites.net/buscarAmigos?id=$idJugador',
-    );
+    final serverBackend = dotenv.env['SERVER_BACKEND'];
+    if (serverBackend == null) {
+      return;
+    }
+
+    final uri = Uri.parse('$serverBackend/buscarAmigos?id=$idJugador');
 
     try {
       final response = await http.get(uri);
-      print("📦 Respuesta cruda: ${response.body}");
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
+
+        if (!mounted) return;
 
         if (decoded is List) {
           setState(() {
             friends = decoded.cast<Map<String, dynamic>>();
           });
         } else if (decoded is Map && decoded.containsKey('Message')) {
-          print("ℹ️ Mensaje del backend: ${decoded['Message']}");
           setState(() {
             friends = []; // vacío si no hay amigos
           });
         } else {
-          print("⚠️ Respuesta inesperada: $decoded");
         }
 
       } else {
-        print("❌ Error cargando amigos: ${response.statusCode}");
       }
     } catch (e) {
-      print("❌ Excepción al cargar amigos: $e");
+      if (kDebugMode) {
+        print("❌ Excepción al cargar amigos: $e");
+      }
     }
   }
 
   void _configureSocketListeners() {
     socket.off('friendRequestAccepted'); // importante para evitar duplicados
     socket.on('friendRequestAccepted', (data) async {
-      print("📬 Solicitud de amistad aceptada: $data");
       await Future.delayed(Duration(milliseconds: 300));
       await _cargarAmigos(); // recarga lista desde el servidor
 
@@ -168,7 +165,6 @@ class _FriendsPageState extends State<Friends_Page> {
 
   void _sendFriendRequest(String idAmigo, String nombreAmigo) {
     final idClean = idAmigo.trim();
-    print("📤 Enviando solicitud a $idClean ($nombreAmigo)");
 
     if (idJugador != null && idClean != idJugador) {
       socket.emit('add-friend', {
@@ -198,71 +194,6 @@ class _FriendsPageState extends State<Friends_Page> {
       );
     }
   }
-  void _intentarEntrarAPartida() async {
-    print("⚡ _intentarEntrarAPartida llamado");
-    if (_yaEntramosAPartida || _gameId == null || _gameColor == null) {
-      return;
-    }
-
-    if (!mounted) {
-      await Future.delayed(Duration(milliseconds: 300));
-      _intentarEntrarAPartida();
-      return;
-    }
-    final modoGuardado = prefs.getString('modoDeJuegoActivo') ?? "Rápida";
-
-    final miElo = _gameColor == 'white'
-        ? prefs.getInt('eloBlancas') ?? 0
-        : prefs.getInt('eloNegras') ?? 0;
-
-    final rivalElo = _gameColor == 'white'
-        ? prefs.getInt('eloNegras') ?? 0
-        : prefs.getInt('eloBlancas') ?? 0;
-
-    final rivalName = _gameColor == 'white'
-        ? prefs.getString('nombreNegras') ?? "Rival"
-        : prefs.getString('nombreBlancas') ?? "Rival";
-
-    final rivalFotoCruda = _gameColor == 'white'
-        ? prefs.getString('fotoNegras')
-        : prefs.getString('fotoBlancas');
-
-    final rivalFoto = getRutaSeguraFoto(rivalFotoCruda); // 🔥 Esto es el cambio
-
-    _yaEntramosAPartida = true;
-
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => BoardScreen(
-          modoGuardado,
-          _gameColor!,
-          _gameId!,
-          "null",
-          0,
-          0,
-          miElo,
-          rivalElo,
-          rivalName,
-          rivalFoto,
-        ),
-      ),
-    );
-  }
-
-  void _reintentarConexion() async {
-    print("🔄 Intentando re-subscribirse a eventos para reconectar...");
-
-    // Esperamos un poco para evitar un bucle rápido
-    await Future.delayed(Duration(milliseconds: 500));
-
-    // Intentamos "forzar" que el servidor nos reenvíe la info (o reusamos la existente)
-    if (socket.connected && _gameId != null && _gameColor != null && !_yaEntramosAPartida) {
-      print("🔁 Reintento: parece que tenemos partida preparada, intentando navegación de nuevo...");
-      _intentarEntrarAPartida(); // Vuelve a intentar navegar
-    } else {
-      print("❗ Socket desconectado o datos incompletos, no podemos reintentar ahora.");
-    }
-  }
 
   String clean(String? id) => (id ?? "").trim();
 
@@ -275,81 +206,19 @@ class _FriendsPageState extends State<Friends_Page> {
     } else if (value is String && double.tryParse(value) != null) {
       await prefs.setDouble(key, double.parse(value));
     } else {
-      print("❌ Valor de elo inválido para $key: $value");
     }
-  }
-
-  void _mostrarPopupReto(String idRetador, String idRetado, String modo) async {
-    if (!mounted) {
-      print("⚠️ Widget desmontado. No se puede mostrar popup.");
-      return;
-    }
-
-    print("📥 Popup de reto recibido → idRetador: $idRetador | idRetado: $idRetado | modo: $modo");
-
-    final aceptado = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false, // Para que no cierre tocando fuera
-      builder: (context) => AlertDialog(
-        title: Text("¡Has recibido un reto!"),
-        content: Text("Te han retado a una partida en modo $modo."),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(false); // Rechazado
-            },
-            child: Text("Rechazar"),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(true); // Aceptado
-            },
-            child: Text("Aceptar"),
-          ),
-        ],
-      ),
-    );
-
-    if (aceptado == true) {
-      print("✅ Aceptando reto...");
-
-      socket.emit('accept-challenge', {
-        "idRetador": idRetador,
-        "idRetado": idRetado,
-        "modo": modo,
-      });
-
-      print("✅ accept-challenge enviado.");
-      // Ahora el flujo sigue normal: recibes game-ready y color -> navegarás
-    } else {
-      print("❌ Reto rechazado, no hacemos nada.");
-    }
-  }
-
-
-  void _showInfoDialog(String message) {
-    if (!mounted) return;
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text("Información"),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text("Aceptar"),
-          )
-        ],
-      ),
-    );
   }
 
   Future<void> _buscarUsuariosBackend() async {
     if (searchInput.trim().isEmpty || idJugador == null) return;
 
+    final serverBackend = dotenv.env['SERVER_BACKEND'];
+    if (serverBackend == null) {
+      return;
+    }
+
     final uri = Uri.parse(
-      'https://checkmatex-gkfda9h5bfb0gsed.spaincentral-01.azurewebsites.net/buscarUsuarioPorUser?NombreUser=${Uri.encodeComponent(searchInput.trim())}',
+      '$serverBackend/buscarUsuarioPorUser?NombreUser=${Uri.encodeComponent(searchInput.trim())}',
     );
 
     try {
@@ -368,7 +237,6 @@ class _FriendsPageState extends State<Friends_Page> {
         setState(() => suggestions = []);
       }
     } catch (e) {
-      print("❌ Error buscando usuarios: $e");
       setState(() => suggestions = []);
     }
   }
@@ -376,8 +244,6 @@ class _FriendsPageState extends State<Friends_Page> {
   void _challengeFriend(String idRetado, String modoNombre) async {
     final modoBackend = modoMapeado[modoNombre] ?? "Punt_10";
     await prefs.setString('modoDeJuegoActivo', modoNombre); // ✅ Añadir esto
-
-    print("📡 Enviando reto → idRetador: $idJugador | idRetado: $idRetado | modo: $modoBackend");
 
     socket.emit('challenge-friend', {
       'idRetador': idJugador,
@@ -610,9 +476,6 @@ class _FriendsPageState extends State<Friends_Page> {
                       );
 
                     })
-
-
-
                   ],
                 ),
               ),

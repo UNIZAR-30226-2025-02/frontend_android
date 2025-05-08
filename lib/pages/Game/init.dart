@@ -64,13 +64,11 @@ class _InitPageState extends State<Init_page> {
   Future<void> _startInitSequence() async {
     await _cargarUsuario(); // Espera a que idJugador esté listo
     await _initializeSocketAndStartMatchmaking();
-    print("Socket ID en friends: ${socket?.id}");
   }
 
   Future<void> _initializeSocketAndStartMatchmaking() async {
     await socketService.connect(context); // 👈 Context de LoginPage
     socket = await socketService.getSocket(context);
-    print("Socket ID en init: ${socket?.id}");
     encontrarPartida(); // Ahora sí: ya puedes registrar listeners
   }
 
@@ -507,10 +505,9 @@ class _InitPageState extends State<Init_page> {
       _buscandoPartida = true;
     });
 
-    selectedGameModeKey = modoBackendMap[selectedGameMode] ?? "Clásica";
+    selectedGameModeKey = modoBackendMap[selectedGameMode] ?? "Rápida";
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('modoDeJuegoActivo', selectedGameMode);
-
 
     socket?.emit('find-game', {
       'idJugador': idJugador,

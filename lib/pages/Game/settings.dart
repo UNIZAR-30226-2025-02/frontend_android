@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:frontend_android/pages/Game/botton_nav_bar.dart';
@@ -76,7 +77,6 @@ class _Settings_pageState extends State<Settings_page> {
                   );
 
                   if (result == true) {
-                    print("✅ Recargando usuario desde Settings porque hubo cambios");
                     await _cargarUsuario();
                     setState(() {});
                   }
@@ -179,12 +179,12 @@ class _Settings_pageState extends State<Settings_page> {
         );
 
         if (response.statusCode == 200) {
-          print("✅ Sesión cerrada correctamente en el servidor.");
         } else {
-          print("❌ Error al cerrar sesión en el servidor: ${response.body}");
         }
       } catch (e) {
-        print("❌ Error de conexión al servidor: $e");
+        if (kDebugMode) {
+          print("❌ Error de conexión al servidor: $e");
+        }
       }
     }
 

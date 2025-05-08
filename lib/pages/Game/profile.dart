@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart' as chess;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -132,7 +133,6 @@ class _ProfilePageState extends State<Profile_page> {
     serverBackend = dotenv.env['SERVER_BACKEND'];
 
     if (userId == null || serverBackend == null) {
-      print("Falta el id del usuario o la URL del backend");
       return;
     }
 
@@ -168,21 +168,20 @@ class _ProfilePageState extends State<Profile_page> {
         final histResp = await http.get(histUrl);
         if (histResp.statusCode == 200) {
           final List jsonList = jsonDecode(histResp.body);
-          print("🔎 JSON de una partida: ${jsonEncode(jsonList.first)}");
           setState(() {
             ultimasPartidas = jsonList
                 .map((j) => UltimaPartida.fromJson(j as Map<String, dynamic>))
                 .toList();
           });
         } else {
-          print("❌ Error al obtener historial: ${histResp.statusCode}");
         }
 
       } else {
-        print("❌ Error al obtener el perfil: ${response.statusCode}");
       }
     } catch (error) {
-      print("❌ Error en fetchUserInfo: $error");
+      if (kDebugMode) {
+        print("❌ Error en fetchUserInfo: $error");
+      }
     }
 
     // Clásica
@@ -251,7 +250,6 @@ class _ProfilePageState extends State<Profile_page> {
         }
         userData[modoFront] = elos;
       } else {
-        print("❌ Error cargando partidas de modo $modoFront (${response.statusCode})");
         userData[modoFront] = []; // lista vacía por si falla
       }
     }
@@ -285,7 +283,6 @@ class _ProfilePageState extends State<Profile_page> {
     final game = chess.Chess();
 
     if (!game.load_pgn(pgn)) {
-      print("❌ No se pudo cargar el PGN");
       return movimientos;
     }
 
@@ -309,7 +306,6 @@ class _ProfilePageState extends State<Profile_page> {
       movimientos.add("$from$to$promotion");
     }
 
-    print("✅ Historial convertido: $movimientos");
     return movimientos;
   }
 
@@ -730,7 +726,6 @@ class _ProfilePageState extends State<Profile_page> {
                         String rivalFoto = rivalData['FotoPerfil'] ??
                             'fotoPerfil.png';
 
-                        print("PruebaFoto : $rivalFoto");
                         // aquí puedes usar rivalFoto como quieras
 
                       final rivalFotoSegura = getRutaSeguraFoto(rivalFoto);
@@ -789,7 +784,6 @@ class _ProfilePageState extends State<Profile_page> {
 
   Future<bool> updateUserName(String newName) async {
     if (userId == null || serverBackend == null) {
-      print("No se encontró el id del usuario o la URL del backend");
       return false;
     }
 
@@ -808,14 +802,11 @@ class _ProfilePageState extends State<Profile_page> {
         body: bodyData,
       );
       if (response.statusCode == 200) {
-        print("Nombre actualizado exitosamente.");
         return true;
       } else {
-        print("Error al actualizar el nombre: ${response.statusCode}");
         return false;
       }
     } catch (error) {
-      print("Error en la solicitud de actualización: $error");
       return false;
     }
   }
