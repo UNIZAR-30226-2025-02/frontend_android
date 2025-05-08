@@ -18,6 +18,7 @@ class GameReviewPage extends StatefulWidget {
   final String yo;
   final String rivalFoto;
   final String miFoto;
+
   const GameReviewPage({Key? key, required this.historial, required this.pgn, required this.rival,
     required this.rivalElo, required this.miElo, required this.yo,
     required this.rivalFoto, required this.miFoto}) : super(key: key);
@@ -507,27 +508,6 @@ class _GameReviewPageState extends State<GameReviewPage> {
               ),
             ),
             const SizedBox(height: 16),
-            // Análisis según el turno
-            if (moveIndex % 2 == 0 && _bestMoveWhite != null) ...[
-              Text(
-                '♙ Blancas',
-                style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              Text(
-                'Mejor jugada: ${_bestMoveWhite!.substring(0, 2)}-${_bestMoveWhite!.substring(2, 4)}',
-                style: TextStyle(color: Colors.white, fontSize: 16),
-              ),
-            ] else if (moveIndex % 2 == 1 && _bestMoveBlack != null) ...[
-              Text(
-                '♟ Negras',
-                style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              Text(
-                'Mejor jugada: ${_bestMoveBlack!.substring(0, 2)}-${_bestMoveBlack!.substring(2, 4)}',
-                style: TextStyle(color: Colors.white, fontSize: 16),
-              ),
-            ],
-            const SizedBox(height: 16),
             // Navegación de movimientos
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -583,7 +563,6 @@ class _GameReviewPageState extends State<GameReviewPage> {
       ),
     );
   }
-
 
   @override
   void dispose() {

@@ -221,10 +221,10 @@ class _ProfilePageState extends State<Profile_page> {
   }) async {
     // Mapeo frontend <-> backend
     final modoMapeado = {
-      "Clásica": "Punt_10",
-      "Principiante": "Punt_30",
-      "Avanzado": "Punt_5",
-      "Relámpago": "Punt_3",
+      "Rápida": "Punt_10",
+      "Clásica": "Punt_30",
+      "Blitz": "Punt_5",
+      "Bullet": "Punt_3",
       "Incremento": "Punt_5_10",
       "Incremento exprés": "Punt_3_2",
     };
@@ -479,19 +479,19 @@ class _ProfilePageState extends State<Profile_page> {
 
   Widget _buildGameModeCharts() {
     Map<String, IconData> modeIcons = {
-      "Clásica": Icons.extension,
-      "Principiante": Icons.verified,
-      "Avanzado": Icons.timer,
-      "Relámpago": Icons.flash_on,
+      "Rápida": Icons.extension,
+      "Clásica": Icons.verified,
+      "Blitz": Icons.timer,
+      "Bullet": Icons.flash_on,
       "Incremento": Icons.trending_up,
       "Incremento exprés": Icons.star,
     };
 
     Map<String, Color> modeColors = {
-      "Clásica": Colors.brown,
-      "Principiante": Colors.green,
-      "Avanzado": Colors.red,
-      "Relámpago": Colors.yellow,
+      "Rápida": Colors.brown,
+      "Clásica": Colors.green,
+      "Blitz": Colors.red,
+      "Bullet": Colors.yellow,
       "Incremento": Colors.green,
       "Incremento exprés": Colors.yellow,
     };
@@ -570,12 +570,12 @@ class _ProfilePageState extends State<Profile_page> {
 
   String modoFriendly(String modoBack) {
     const m = {
-      "Punt_10": "Clásica",
-      "Punt_30": "Principiante",
-      "Punt_5":  "Avanzada",
-      "Punt_3":  "Relámpago",
+      "Punt_10": "Rápida",
+      "Punt_30": "Clásica",
+      "Punt_5":  "Blitz",
+      "Punt_3":  "Bullet",
       "Punt_5_10": "Incremento",
-      "Punt_3_2":  "Incremento Exprés",
+      "Punt_3_2":  "Incremento exprés",
     };
     return m[modoBack] ?? modoBack;
   }
@@ -631,21 +631,21 @@ class _ProfilePageState extends State<Profile_page> {
 
   Widget buildHistory() {
     Map<String, IconData> modeIcons = {
-      "Clásica": Icons.extension,
-      "Principiante": Icons.verified,
-      "Avanzada": Icons.timer,
-      "Relámpago": Icons.flash_on,
+      "Rápida": Icons.extension,
+      "Clásica": Icons.verified,
+      "Blitz": Icons.timer,
+      "Bullet": Icons.flash_on,
       "Incremento": Icons.trending_up,
-      "Incremento Exprés": Icons.star,
+      "Incremento exprés": Icons.star,
     };
 
     Map<String, Color> modeColors = {
-      "Clásica": Colors.brown,
-      "Principiante": Colors.green,
-      "Avanzada": Colors.red,
-      "Relámpago": Colors.yellow,
+      "Rápida": Colors.brown,
+      "Clásica": Colors.green,
+      "Blitz": Colors.red,
+      "Bullet": Colors.yellow,
       "Incremento": Colors.green,
-      "Incremento Exprés": Colors.yellow,
+      "Incremento exprés": Colors.yellow,
     };
 
     return Container(

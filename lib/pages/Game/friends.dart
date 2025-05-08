@@ -20,10 +20,10 @@ class GameMode {
   final String description;
   final Color color;
   final modoMapeado = {
-    "Clásica": "Punt_10",
-    "Principiante": "Punt_30",
-    "Avanzado": "Punt_5",
-    "Relámpago": "Punt_3",
+    "Rápida": "Punt_10",
+    "Clásica": "Punt_30",
+    "Blitz": "Punt_5",
+    "Bullet": "Punt_3",
     "Incremento": "Punt_5_10",
     "Incremento exprés": "Punt_3_2",
   };
@@ -57,19 +57,19 @@ class _FriendsPageState extends State<Friends_Page> {
   List<Map<String, dynamic>> friends = [];
 
   final Map<String, String> modoMapeado = {
-    "Clásica": "Punt_10",
-    "Principiante": "Punt_30",
-    "Avanzado": "Punt_5",
-    "Relámpago": "Punt_3",
+    "Rápida": "Punt_10",
+    "Clásica": "Punt_30",
+    "Blitz": "Punt_5",
+    "Bullet": "Punt_3",
     "Incremento": "Punt_5_10",
     "Incremento exprés": "Punt_3_2"
   };
 
   final List<GameMode> gameModes = [
-    GameMode("Clásica", Icons.extension, "10 min", "Modo tradicional", Colors.brown),
-    GameMode("Principiante", Icons.verified, "30 min", "Ideal para nuevos", Colors.green),
-    GameMode("Avanzado", Icons.timer_off, "5 min", "Más desafiante", Colors.red),
-    GameMode("Relámpago", Icons.bolt, "3 min", "Rápido", Colors.yellow),
+    GameMode("Rápida", Icons.extension, "10 min", "Modo tradicional", Colors.brown),
+    GameMode("Clásica", Icons.verified, "30 min", "Ideal para nuevos", Colors.green),
+    GameMode("Blitz", Icons.timer_off, "5 min", "Más desafiante", Colors.red),
+    GameMode("Bullet", Icons.bolt, "3 min", "Rápido", Colors.yellow),
     GameMode("Incremento", Icons.trending_up, "15+10s", "Incremental", Colors.green),
     GameMode("Incremento exprés", Icons.star, "3+2s", "Incremento rápido", Colors.yellow),
   ];
@@ -209,7 +209,7 @@ class _FriendsPageState extends State<Friends_Page> {
       _intentarEntrarAPartida();
       return;
     }
-    final modoGuardado = prefs.getString('modoDeJuegoActivo') ?? "Clásica";
+    final modoGuardado = prefs.getString('modoDeJuegoActivo') ?? "Rápida";
 
     final miElo = _gameColor == 'white'
         ? prefs.getInt('eloBlancas') ?? 0

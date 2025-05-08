@@ -60,10 +60,10 @@ class _BoardScreenState extends State<BoardScreen> {
   String fotoNegras = "none";
 
   final Map<String, String> modoVisibleMap = {
-    "Punt_10": "Clásica",
-    "Punt_30": "Principiante",
-    "Punt_5": "Avanzado",
-    "Punt_3": "Relámpago",
+    "Punt_10": "Rápida",
+    "Punt_30": "Clásica",
+    "Punt_5": "Blitz",
+    "Punt_3": "Bullet",
     "Punt_5_10": "Incremento",
     "Punt_3_2": "Incremento exprés",
   };
@@ -160,16 +160,16 @@ class _BoardScreenState extends State<BoardScreen> {
     }
 
     switch (modo.toLowerCase()) {
-      case "clásica":
+      case "rápida":
         whiteTime = blackTime = 600; // 10 minutos
         break;
-      case "principiante":
+      case "clásica":
         whiteTime = blackTime = 1800; // 30 minutos
         break;
-      case "avanzado":
+      case "blitz":
         whiteTime = blackTime = 300; // 5 minutos
         break;
-      case "relámpago":
+      case "bullet":
         whiteTime = blackTime = 180; // 3 minutos
         break;
       case "incremento":
@@ -234,7 +234,8 @@ class _BoardScreenState extends State<BoardScreen> {
             _changeTurn();
 
             setState(() {
-              _historialMovimientos.add("${from.toUpperCase()}-${to.toUpperCase()}-$promotion");
+              final move = "$from$to${promotion ?? ""}".toLowerCase();
+              _historialMovimientos.add(move);
             });
 
           } catch (e) {
@@ -389,7 +390,8 @@ class _BoardScreenState extends State<BoardScreen> {
         }
 
         setState(() {
-          _historialMovimientos.add("${from.toUpperCase()}-${to.toUpperCase()}");
+          final move = "$from$to${promotion ?? ""}".toLowerCase();
+          _historialMovimientos.add(move);
         });
       }
     });
@@ -405,6 +407,82 @@ class _BoardScreenState extends State<BoardScreen> {
     final isBlackPromotion = rank == "1";
 
     return isPawn && (isWhitePromotion || isBlackPromotion);
+  }
+
+  String generarPGNConTags({
+    required String pgnBody,
+    required String myId,
+    required String rivalId,
+    required String myAlias,
+    required String rivalAlias,
+    required int myElo,
+    required int rivalElo,
+    required bool soyBlancas,
+  }) {
+    final whiteId = soyBlancas ? myId : rivalId;
+    final blackId = soyBlancas ? rivalId : myId;
+    final whiteAlias = soyBlancas ? myAlias : rivalAlias;
+    final blackAlias = soyBlancas ? rivalAlias : myAlias;
+    final whiteElo = soyBlancas ? myElo : rivalElo;
+    final blackElo = soyBlancas ? rivalElo : myElo;
+
+    final tags = [
+      '[White "$whiteId"]',
+      '[Black "$blackId"]',
+      '[White Alias "$whiteAlias"]',
+      '[Black Alias "$blackAlias"]',
+      '[White Elo "$whiteElo"]',
+      '[Black Elo "$blackElo"]',
+      '',
+    ];
+
+    return '${tags.join('\n')}\n${pgnBody.trim()}';
+  }
+
+  List<String> convertirPGNaMovimientosUCI(String pgn) {
+    final game = chess.Chess();
+
+    try {
+      game.load_pgn(pgn);
+    } catch (e) {
+      print("❌ Error al cargar PGN: $e");
+      return [];
+    }
+
+    final moves = game.getHistory({'verbose': true});
+    return moves.map((m) => "${m['from']}${m['to']}${m['promotion'] ?? ''}").toList();
+  }
+
+  List<String> transformarMovimientosConPromocion(List<String> movimientosRaw) {
+    final List<String> movimientosLimpios = [];
+
+    for (final mov in movimientosRaw) {
+      final uci = mov.replaceAll(RegExp(r'[^a-h1-8qrbn]'), '').toLowerCase();
+
+      // Solo acepta strings de longitud 4 o 5 (con promoción válida)
+      if (uci.length == 4 || (uci.length == 5 && RegExp(r'[qrbn]$').hasMatch(uci))) {
+        movimientosLimpios.add(uci);
+      } else {
+        print("⚠️ Movimiento descartado por formato inválido: $uci");
+      }
+    }
+
+    return movimientosLimpios;
+  }
+
+  chess.PieceType _mapPromotionLetter(String letter) {
+    switch (letter.toLowerCase()) {
+      case 'q':
+        return chess.PieceType.QUEEN;
+      case 'r':
+        return chess.PieceType.ROOK;
+      case 'b':
+        return chess.PieceType.BISHOP;
+      case 'n':
+        return chess.PieceType.KNIGHT;
+      default:
+        throw ArgumentError("Letra de promoción no válida: $letter");
+    }
   }
 
   Future<void> _exitGame(String message) async {
@@ -455,7 +533,6 @@ class _BoardScreenState extends State<BoardScreen> {
                 style: TextStyle(color: Colors.white70, fontSize: 18),
               ),
               SizedBox(height: 20),
-
               // Botones normales como querías
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -487,16 +564,28 @@ class _BoardScreenState extends State<BoardScreen> {
                         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
                       onPressed: () {
+                        print("PGN sin tags: ${chessGame.pgn()}");
+                        final pgnFinal = generarPGNConTags(
+                          pgnBody: chessGame.pgn(),
+                          myId: idJugador ?? "yo",
+                          rivalId: widget.rivalName,
+                          myAlias: miNombre ?? "Tú",
+                          rivalAlias: widget.rivalName,
+                          myElo: widget.myElo,
+                          rivalElo: widget.rivalElo,
+                          soyBlancas: playerColor == PlayerColor.white,
+                        );
+                        final movimientosConvertidos = transformarMovimientosConPromocion(_historialMovimientos);
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => GameReviewPage(
-                              historial: _historialMovimientos,
-                              pgn:       widget.pgn,
-                              rival:     widget.rivalName,
-                              miElo:     widget.myElo.toString(),      // ← tu elo
-                              rivalElo:  widget.rivalElo.toString(),   // ← elo del rival
-                              yo :   miNombre ?? "Tú",
+                              historial: movimientosConvertidos,
+                              pgn: pgnFinal,
+                              rival: widget.rivalName,
+                              miElo: widget.myElo.toString(),
+                              rivalElo: widget.rivalElo.toString(),
+                              yo: miNombre ?? "Tú",
                               rivalFoto: getRutaSeguraFoto(playerColor == PlayerColor.white ? fotoNegras : fotoBlancas),
                               miFoto: getRutaSeguraFoto(playerColor == PlayerColor.white ? fotoBlancas : fotoNegras),
                             ),

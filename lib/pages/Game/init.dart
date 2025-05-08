@@ -23,8 +23,8 @@ class _InitPageState extends State<Init_page> {
   String? usuarioActual;
   String? idJugador;
   String? fotoPerfil;
-  String selectedGameMode = "Clásica";
-  String selectedGameModeKey = "clasica";
+  String selectedGameMode = "Rápida";
+  String selectedGameModeKey = "Rápida";
   bool _buscandoPartida = false;
   bool _yaEntramosAPartida = false;
   String? _gameId;
@@ -37,19 +37,19 @@ class _InitPageState extends State<Init_page> {
   IO.Socket? socket;
 
   final List<GameMode> gameModes = [
-    GameMode("Clásica", Icons.extension, "10 min", "Modo tradicional de ajedrez.", Colors.brown),
-    GameMode("Principiante", Icons.verified, "30 min", "Ideal para quienes están aprendiendo.", Colors.green),
-    GameMode("Avanzado", Icons.timer_off, "5 min", "Para jugadores experimentados.", Colors.red),
-    GameMode("Relámpago", Icons.bolt, "3 min", "Modo para expertos. Tiempo muy limitado.", Colors.yellow),
-    GameMode("Incremento", Icons.trending_up, "15 min + 10 seg", "Cada jugada suma 10 segundos.", Colors.green),
-    GameMode("Incremento exprés", Icons.star, "3 min + 2 seg", "Partidas rápidas con 2 seg por jugada.", Colors.yellow),
+    GameMode("Rápida", Icons.extension, "10 min", "Modo tradicional de ajedrez. Cada jugador consta de 10 min para realizar sus movimientos.", Colors.brown),
+    GameMode("Clásica", Icons.verified, "30 min", "Ideal para quienes están aprendiendo. Cada jugador consta de 30 min para realizar sus movimientos.", Colors.green),
+    GameMode("Blitz", Icons.timer_off, "5 min", "Para jugadores experimentados. Cada jugador consta de 5 min para realizar sus movimientos.", Colors.red),
+    GameMode("Bullet", Icons.bolt, "3 min", "Modo para expertos. Tiempo muy limitado. Cada jugador consta de 3 min para realizar sus movimientos.", Colors.yellow),
+    GameMode("Incremento", Icons.trending_up, "15 min + 10 seg", "El tiempo aumenta 10 seg con cada jugada, partiendo de 15 min iniciales.", Colors.green),
+    GameMode("Incremento exprés", Icons.star, "3 min + 2 seg", "Versión rápida del incremento. Partiendo de 3+2 seg por jugada.", Colors.yellow),
   ];
 
   final Map<String, String> modoBackendMap = {
-    "Clásica": "Punt_10",
-    "Principiante": "Punt_30",
-    "Avanzado": "Punt_5",
-    "Relámpago": "Punt_3",
+    "Rápida": "Punt_10",
+    "Clásica": "Punt_30",
+    "Blitz": "Punt_5",
+    "Bullet": "Punt_3",
     "Incremento": "Punt_5_10",
     "Incremento exprés": "Punt_3_2",
   };
@@ -361,8 +361,6 @@ class _InitPageState extends State<Init_page> {
 
     final partidas = jsonDecode(partidasRes.body) as List<dynamic>;
     final userInfo = jsonDecode(userInfoRes.body);
-    print("🧪 Datos recibidos de getUserInfo:");
-    print(userInfo);
 
     List<String> resultados = partidas.map<String>((partida) {
       final ganadorId = partida['Ganador'];

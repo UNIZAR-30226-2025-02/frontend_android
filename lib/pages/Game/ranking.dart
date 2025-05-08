@@ -25,25 +25,25 @@ class _RankingPageState extends State<Ranking_page> {
   final List<Map<String, dynamic>> modos = [
     {
       'icon': Icons.extension,
-      'titulo': 'Clásica',
+      'titulo': 'Rápida',
       'modo': 'Punt_10',
       'color': Colors.brown,
     },
     {
       'icon': Icons.verified,
-      'titulo': 'Principiante',
+      'titulo': 'Clásica',
       'modo': 'Punt_30',
       'color': Colors.green,
     },
     {
       'icon': Icons.timer_off,
-      'titulo': 'Avanzado',
+      'titulo': 'Blitz',
       'modo': 'Punt_5',
       'color': Colors.red,
     },
     {
       'icon': Icons.bolt,
-      'titulo': 'Relámpago',
+      'titulo': 'Bullet',
       'modo': 'Punt_3',
       'color': Colors.yellow,
     },
