@@ -134,7 +134,7 @@ class _SigninPageState extends State<Signin_page> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
-        backgroundColor: Color(0xff3A3A3A),
+        backgroundColor: Colors.grey[900],
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,

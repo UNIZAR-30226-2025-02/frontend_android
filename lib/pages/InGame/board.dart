@@ -331,9 +331,10 @@ class _BoardScreenState extends State<BoardScreen> {
         final info = (data is List && data.isNotEmpty) ? data[0] : data;
         final winner = info['winner'];
         final timeout = info['timeout'] == 'true';
-        final variacionW = int.tryParse(info['variacionW']?.toString() ?? '0') ?? 0;
-        final variacionB = int.tryParse(info['variacionB']?.toString() ?? '0') ?? 0;
-        final miVariacion = (playerColor == PlayerColor.white) ? variacionW : variacionB;
+        final variacionW = (info['variacionW'] is num) ? (info['variacionW'] as num).round() : 0;
+        final variacionB = (info['variacionB'] is num) ? (info['variacionB'] as num).round() : 0;
+        final isWhite = playerColor == 'white' || playerColor == PlayerColor.white;
+        final miVariacion = isWhite ? variacionW : variacionB;
         final variacionTexto = " (${miVariacion >= 0 ? '+' : ''}$miVariacion)";
 
         if (winner == "draw") {

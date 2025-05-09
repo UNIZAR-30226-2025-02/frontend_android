@@ -192,72 +192,74 @@ class _RankingPageState extends State<Ranking_page> {
 
   @override
   Widget build(BuildContext context) {
-    return AppLayout(
-      child: Container(
-        color: Colors.grey[900],
-        child: Column(
-          children: [
-            const SizedBox(height: 16),
-            Container(
-              color: Colors.grey[900],
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'RANKING',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 22,
-                      color: Colors.white,
+    return PopScope(
+      canPop: false,
+      child: AppLayout(
+        child: Container(
+          color: Colors.grey[900],
+          child: Column(
+            children: [
+              const SizedBox(height: 16),
+              Container(
+                color: Colors.grey[900],
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'RANKING',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 22,
+                        color: Colors.white,
+                      ),
                     ),
-                  ),
-                  Icon(Icons.emoji_events, color: Colors.white, size: 36),
-                ],
+                    Icon(Icons.emoji_events, color: Colors.white, size: 36),
+                  ],
+                ),
               ),
-            ),
-            Expanded(
-              child: userName == null
-                  ? const Center(child: CircularProgressIndicator(color: Colors.blueAccent,))
-                  : ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: modos.length,
-                itemBuilder: (context, index) {
-                  final modo = modos[index];
-                  return FutureBuilder<List<Map<String, dynamic>>>(
-                    future: fetchRanking(modo['modo']),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) return _loadingCard();
-                      final ranking = snapshot.data!;
-                      return FutureBuilder<Map<String, dynamic>?>(
-                        future: fetchUserRank(modo['modo']),
-                        builder: (context, userSnap) {
-                          final userRank = userSnap.data;
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: GestureDetector(
-                              onTap: () {
-                                _mostrarRankingPopUp(context, modo['modo'], modo['titulo']);
-                              },
-                              child: _buildRankingCard(
-                                icon: modo['icon'],
-                                titulo: modo['titulo'],
-                                modo: modo['modo'],
-                                ranking: ranking.take(4).toList(),
-                                currentUser: userRank,
+              Expanded(
+                child: userName == null
+                    ? const Center(child: CircularProgressIndicator(color: Colors.blueAccent,))
+                    : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: modos.length,
+                  itemBuilder: (context, index) {
+                    final modo = modos[index];
+                    return FutureBuilder<List<Map<String, dynamic>>>(
+                      future: fetchRanking(modo['modo']),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) return _loadingCard();
+                        final ranking = snapshot.data!;
+                        return FutureBuilder<Map<String, dynamic>?>(
+                          future: fetchUserRank(modo['modo']),
+                          builder: (context, userSnap) {
+                            final userRank = userSnap.data;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: GestureDetector(
+                                onTap: () {
+                                  _mostrarRankingPopUp(context, modo['modo'], modo['titulo']);
+                                },
+                                child: _buildRankingCard(
+                                  icon: modo['icon'],
+                                  titulo: modo['titulo'],
+                                  modo: modo['modo'],
+                                  ranking: ranking.take(4).toList(),
+                                  currentUser: userRank,
+                                ),
                               ),
-                            ),
-
-                          );
-                        },
-                      );
-                    },
-                  );
-                },
+                            );
+                          },
+                        );
+                      },
+                    );
+                  },
+                ),
               ),
-            ),
-            BottomNavBar(currentIndex: 1),
-          ],
+              BottomNavBar(currentIndex: 1),
+            ],
+          ),
         ),
       ),
     );

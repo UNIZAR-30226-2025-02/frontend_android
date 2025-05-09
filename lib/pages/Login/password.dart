@@ -121,15 +121,29 @@ class _ResetPasswordPageState extends State<Password_page> {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Contraseña Restablecida"),
-          content: Text("Tu contraseña ha sido actualizada correctamente."),
-          actions: <Widget>[
+          backgroundColor: Colors.grey[900],
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+            side: BorderSide(color: Colors.blueAccent, width: 1.5),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.lock_open, color: Colors.blueAccent),
+              SizedBox(width: 8),
+              Text("Contraseña cambiada", style: TextStyle(color: Colors.white)),
+            ],
+          ),
+          content: Text(
+            "Tu contraseña ha sido actualizada correctamente.",
+            style: TextStyle(color: Colors.white70),
+          ),
+          actions: [
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
                 _redirigirALogin();
               },
-              child: Text("Aceptar"),
+              child: Text("Aceptar", style: TextStyle(color: Colors.blueAccent)),
             ),
           ],
         );
@@ -146,7 +160,7 @@ class _ResetPasswordPageState extends State<Password_page> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
-        backgroundColor: Color(0xff3A3A3A),
+        backgroundColor: Colors.grey[900],
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,

@@ -101,16 +101,19 @@ class Rules_Page extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[900],
-      appBar: BuildHeadArrow(),
-      body: ListView.builder(
-        itemCount: rules.length,
-        itemBuilder: (context, index) {
-          return RuleCard(rule: rules[index]);
-        },
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        backgroundColor: Colors.grey[900],
+        appBar: BuildHeadArrow(),
+        body: ListView.builder(
+          itemCount: rules.length,
+          itemBuilder: (context, index) {
+            return RuleCard(rule: rules[index]);
+          },
+        ),
+        bottomNavigationBar: BottomNavBar(currentIndex: 2),
       ),
-      bottomNavigationBar: BottomNavBar(currentIndex: 2),
     );
   }
 }

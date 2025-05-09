@@ -75,13 +75,9 @@ class SocketService {
     socket.on('friendRequest', (data) async=> _showFriendRequestPopup(data));
     socket.on('challengeSent', (data) async=> _showChallengePopup(data));
     socket.on("force-logout", (data) async {
-      print("🚨 Recibido evento 'force-logout' del servidor!");
-      print("📌 Data recibido: $data");
-
       String? idJugadorConectado;
       String? mensaje;
 
-      // Manejo flexible del formato recibido
       if (data is List && data.isNotEmpty) {
         final primerElemento = data[0];
         if (primerElemento is Map<String, dynamic>) {
@@ -93,7 +89,6 @@ class SocketService {
         mensaje = data['message'];
       }
 
-      // Fallback: si no viene el id, forzar cierre de sesión
       if (idJugadorConectado == null || idJugadorConectado == idJugador) {
         showForceLogoutPopup(
           mensaje ?? "Tu cuenta ha sido iniciada en otro dispositivo.",

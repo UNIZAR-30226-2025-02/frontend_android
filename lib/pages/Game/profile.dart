@@ -292,44 +292,47 @@ class _ProfilePageState extends State<Profile_page> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[900],
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-        centerTitle: true,
-        title: Image.asset("assets/logoNombre.png", height: 50),
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.black, Colors.grey[900]!],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        backgroundColor: Colors.grey[900],
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () {
+              Navigator.pop(context);
+            },
+          ),
+          centerTitle: true,
+          title: Image.asset("assets/logoNombre.png", height: 50),
+          flexibleSpace: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.black, Colors.grey[900]!],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
             ),
           ),
         ),
-      ),
-      body: _isLoading
-          ? Center(
-        child: CircularProgressIndicator(color: Colors.blueAccent),
-      )
-          : SingleChildScrollView(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildProfileCard(),
-            SizedBox(height: 20),
-            _buildGameModeCharts(),
-            SizedBox(height: 20),
-            buildHistory(),
-          ],
+        body: _isLoading
+            ? Center(
+          child: CircularProgressIndicator(color: Colors.blueAccent),
+        )
+            : SingleChildScrollView(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildProfileCard(),
+              SizedBox(height: 20),
+              _buildGameModeCharts(),
+              SizedBox(height: 20),
+              buildHistory(),
+            ],
+          ),
         ),
       ),
     );

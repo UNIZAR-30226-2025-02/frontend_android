@@ -126,128 +126,131 @@ class _InitPageState extends State<Init_page> {
 
   @override
   Widget build(BuildContext context) {
-    return AppLayout(
-      child: Column(
-        children: [
-          SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text(
-              'PARTIDAS ONLINE',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 22,
+    return PopScope(
+      canPop: false,
+      child: AppLayout(
+        child: Column(
+          children: [
+            SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                'PARTIDAS ONLINE',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 22,
+                ),
               ),
             ),
-          ),
-          Expanded(
-            child: FutureBuilder(
-              future: resumenFuture,
-              builder: (context, snapshot) {
-                return ListView.builder(
-                  padding: EdgeInsets.all(16),
-                  itemCount: gameModes.length + 1,
-                  itemBuilder: (context, index) {
-                    if (index == 0) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Center(
-                          child: CircularProgressIndicator(
-                            color: Colors.blueAccent,
+            Expanded(
+              child: FutureBuilder(
+                future: resumenFuture,
+                builder: (context, snapshot) {
+                  return ListView.builder(
+                    padding: EdgeInsets.all(16),
+                    itemCount: gameModes.length + 1,
+                    itemBuilder: (context, index) {
+                      if (index == 0) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return Center(
+                            child: CircularProgressIndicator(
+                              color: Colors.blueAccent,
+                            ),
+                          );
+                        }
+
+                        if (snapshot.hasError) {
+                          return Text(
+                            "Error al cargar partidas recientes",
+                            style: TextStyle(color: Colors.redAccent),
+                          );
+                        }
+
+                        final data = snapshot.data as Map<String, dynamic>;
+                        final resultados = data['resultados'] as List<String>;
+                        final racha = data['racha'] as int;
+
+                        return Container(
+                          padding: EdgeInsets.all(10),
+                          margin: EdgeInsets.only(bottom: 10),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.blueAccent, width: 2),
+                            boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 6)],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.history, color: Colors.blueAccent),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    "Últimas 5 partidas",
+                                    style: TextStyle(
+                                      color: Colors.black,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 12),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: resultados.map((resultado) {
+                                  switch (resultado) {
+                                    case "victoria":
+                                      return Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                                        child: Icon(Icons.check_circle, color: Colors.green, size: 28),
+                                      );
+                                    case "derrota":
+                                      return Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                                        child: Icon(Icons.cancel, color: Colors.red, size: 28),
+                                      );
+                                    case "tablas":
+                                    default:
+                                      return Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                                        child: Icon(Icons.remove_circle, color: Colors.grey, size: 28),
+                                      );
+                                  }
+                                }).toList(),
+                              ),
+                              SizedBox(height: 12),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  if (racha >= 5)
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 0, right: 8),
+                                      child: Icon(Icons.local_fire_department, color: Colors.orangeAccent),
+                                    ),
+                                  Text(
+                                    "Racha de victorias: $racha",
+                                    style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         );
                       }
-
-                      if (snapshot.hasError) {
-                        return Text(
-                          "Error al cargar partidas recientes",
-                          style: TextStyle(color: Colors.redAccent),
-                        );
-                      }
-
-                      final data = snapshot.data as Map<String, dynamic>;
-                      final resultados = data['resultados'] as List<String>;
-                      final racha = data['racha'] as int;
-
-                      return Container(
-                        padding: EdgeInsets.all(10),
-                        margin: EdgeInsets.only(bottom: 10),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.blueAccent, width: 2),
-                          boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 6)],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(Icons.history, color: Colors.blueAccent),
-                                SizedBox(width: 8),
-                                Text(
-                                  "Últimas 5 partidas",
-                                  style: TextStyle(
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 12),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: resultados.map((resultado) {
-                                switch (resultado) {
-                                  case "victoria":
-                                    return Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                                      child: Icon(Icons.check_circle, color: Colors.green, size: 28),
-                                    );
-                                  case "derrota":
-                                    return Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                                      child: Icon(Icons.cancel, color: Colors.red, size: 28),
-                                    );
-                                  case "tablas":
-                                  default:
-                                    return Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                                      child: Icon(Icons.remove_circle, color: Colors.grey, size: 28),
-                                    );
-                                }
-                              }).toList(),
-                            ),
-                            SizedBox(height: 12),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              children: [
-                                if (racha >= 5)
-                                  Padding(
-                                    padding: const EdgeInsets.only(left: 0, right: 8),
-                                    child: Icon(Icons.local_fire_department, color: Colors.orangeAccent),
-                                  ),
-                                Text(
-                                  "Racha de victorias: $racha",
-                                  style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-                    final modo = gameModes[index - 1];
-                    return _buildGameButton(context, modo);
-                  },
-                );
-              },
+                      final modo = gameModes[index - 1];
+                      return _buildGameButton(context, modo);
+                    },
+                  );
+                },
+              ),
             ),
-          ),
-          _buildBuscarPartidaButton(context),
-          BottomNavBar(currentIndex: 0),
-        ],
+            _buildBuscarPartidaButton(context),
+            BottomNavBar(currentIndex: 0),
+          ],
+        ),
       ),
     );
   }

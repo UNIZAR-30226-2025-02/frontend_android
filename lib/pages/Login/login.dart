@@ -326,7 +326,7 @@ class _LoginPageState extends State<Login_page> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
-        backgroundColor: Color(0xff3A3A3A),
+        backgroundColor: Colors.grey[900],
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -385,7 +385,7 @@ class _LoginPageState extends State<Login_page> {
                   "Entrar como invitado",
                   style: TextStyle(
                     color: Colors.blueAccent,
-                    fontSize: 14,
+                    fontSize: 18,
                     decoration: TextDecoration.underline,
                   ),
                 ),
@@ -396,7 +396,7 @@ class _LoginPageState extends State<Login_page> {
                   "¿Has olvidado tu contraseña?",
                   style: TextStyle(
                     color: Colors.blueAccent,
-                    fontSize: 14,
+                    fontSize: 18,
                     decoration: TextDecoration.underline,
                   ),
                 ),

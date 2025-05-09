@@ -199,7 +199,7 @@ class _Wellcome_pageState extends State<Wellcome_page> {
                   "Entrar como invitado",
                   style: TextStyle(
                     color: Colors.blueAccent,
-                    fontSize: 14,
+                    fontSize: 18,
                     decoration: TextDecoration.underline,
                   ),
                 ),
