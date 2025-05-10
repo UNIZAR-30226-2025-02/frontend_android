@@ -74,6 +74,28 @@ class SocketService {
     socket.on('color', (data) async=> _handleColor(data));
     socket.on('friendRequest', (data) async=> _showFriendRequestPopup(data));
     socket.on('challengeSent', (data) async=> _showChallengePopup(data));
+    socket.on("force-logout", (data) async {
+      String? idJugadorConectado;
+      String? mensaje;
+
+      if (data is List && data.isNotEmpty) {
+        final primerElemento = data[0];
+        if (primerElemento is Map<String, dynamic>) {
+          idJugadorConectado = primerElemento['idJugador'];
+          mensaje = primerElemento['message'];
+        }
+      } else if (data is Map<String, dynamic>) {
+        idJugadorConectado = data['idJugador'];
+        mensaje = data['message'];
+      }
+
+      if (idJugadorConectado == null || idJugadorConectado == idJugador) {
+        showForceLogoutPopup(
+          mensaje ?? "Tu cuenta ha sido iniciada en otro dispositivo.",
+        );
+      } else {
+      }
+    });
 
   }
   void _handleGameReady(dynamic data) {

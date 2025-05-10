@@ -9,38 +9,41 @@ class LearnPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppLayout(
-      child: Column(
-        children: [
-          SizedBox(height: 16),
-          Container(
-            color: Colors.grey[900],
-            padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'APRENDER',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 22,
-                    color: Colors.white,
+    return PopScope(
+      canPop: false,
+      child: AppLayout(
+        child: Column(
+          children: [
+            SizedBox(height: 16),
+            Container(
+              color: Colors.grey[900],
+              padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'APRENDER',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 22,
+                      color: Colors.white,
+                    ),
                   ),
-                ),
-                Icon(Icons.folder, color: Colors.white, size: 36),
-              ],
+                  Icon(Icons.folder, color: Colors.white, size: 36),
+                ],
+              ),
             ),
-          ),
-          Expanded(
-            child: ListView(
-              children: [
-                _buildMenuItem(Icons.menu_book, 'APERTURAS', context, Openings_Page()),
-                _buildMenuItem(Icons.assignment, 'REGLAS', context, Rules_Page()),
-              ],
+            Expanded(
+              child: ListView(
+                children: [
+                  _buildMenuItem(Icons.menu_book, 'APERTURAS', context, Openings_Page()),
+                  _buildMenuItem(Icons.assignment, 'REGLAS', context, Rules_Page()),
+                ],
+              ),
             ),
-          ),
-          BottomNavBar(currentIndex: 2),
-        ],
+            BottomNavBar(currentIndex: 2),
+          ],
+        ),
       ),
     );
   }

@@ -134,7 +134,7 @@ class _SigninPageState extends State<Signin_page> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
-        backgroundColor: Color(0xff3A3A3A),
+        backgroundColor: Colors.grey[900],
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -239,8 +239,17 @@ class _SigninPageState extends State<Signin_page> {
   Widget _buttonRegister() {
     return ElevatedButton(
       onPressed: _registrarUsuario,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.blueAccent,
+        foregroundColor: Colors.white,
+        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
       child: Text(
         'Registrarse',
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
       ),
     );
   }

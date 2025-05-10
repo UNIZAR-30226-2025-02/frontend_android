@@ -50,7 +50,7 @@ class _BoardScreenState extends State<BoardScreen> {
   String? miNombre;
   int incrementoPorJugada = 0;
   final TextEditingController _chatController = TextEditingController();
-  List<String> _mensajesChat = [];
+  List<Map<String, String>> _mensajesChat = [];
   List<String> _historialMovimientos = [];
   String nombreBlancas = "Blancas";
   String nombreNegras = "Negras";
@@ -58,6 +58,7 @@ class _BoardScreenState extends State<BoardScreen> {
   int eloNegras = 0;
   String fotoBlancas = "none";
   String fotoNegras = "none";
+  bool _tieneMensajesNoLeidos = false;
 
   final Map<String, String> modoVisibleMap = {
     "Punt_10": "Rápida",
@@ -261,9 +262,18 @@ class _BoardScreenState extends State<BoardScreen> {
 
       setState(() {
         if (userIdRemitente == idJugador) {
-          _mensajesChat.add("Tú: $mensajeRecibido");
+          _mensajesChat.add({
+            "autor": userIdRemitente == idJugador ? "yo" : "rival",
+            "mensaje": mensajeRecibido,
+          });
         } else {
-          _mensajesChat.add("Rival: $mensajeRecibido");
+          _mensajesChat.add({
+            "autor": userIdRemitente == idJugador ? "yo" : "rival",
+            "mensaje": mensajeRecibido,
+          });
+        }
+        if (!_isChatVisible && userIdRemitente != idJugador) {
+          _tieneMensajesNoLeidos = true;
         }
       });
     });
@@ -321,13 +331,18 @@ class _BoardScreenState extends State<BoardScreen> {
         final info = (data is List && data.isNotEmpty) ? data[0] : data;
         final winner = info['winner'];
         final timeout = info['timeout'] == 'true';
+        final variacionW = (info['variacionW'] is num) ? (info['variacionW'] as num).round() : 0;
+        final variacionB = (info['variacionB'] is num) ? (info['variacionB'] as num).round() : 0;
+        final isWhite = playerColor == 'white' || playerColor == PlayerColor.white;
+        final miVariacion = isWhite ? variacionW : variacionB;
+        final variacionTexto = " (${miVariacion >= 0 ? '+' : ''}$miVariacion)";
 
         if (winner == "draw") {
-          _exitGame("La partida ha terminado en tablas.");
+          _exitGame("La partida ha terminado en tablas. $variacionTexto");
         } else if (winner == idJugador) {
-          _exitGame(timeout ? "¡Has ganado por tiempo!" : "¡Has ganado!");
+          _exitGame((timeout ? "¡Has ganado por tiempo!" : "¡Has ganado!") + variacionTexto);
         } else {
-          _exitGame(timeout ? "Has perdido por tiempo." : "Has perdido. Tu rival ha ganado.");
+          _exitGame((timeout ? "Has perdido por tiempo." : "Has perdido. Tu rival ha ganado. ") + variacionTexto);
         }
       });
     });
@@ -1109,15 +1124,36 @@ class _BoardScreenState extends State<BoardScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        FloatingActionButton(
-                          heroTag: "chatFAB",
-                          backgroundColor: Colors.blueAccent,
-                          child: Icon(Icons.chat, color: Colors.white),
-                          onPressed: () {
-                            setState(() {
-                              _isChatVisible = !_isChatVisible;
-                            });
-                          },
+                        Stack(
+                          alignment: Alignment.topRight,
+                          children: [
+                            FloatingActionButton(
+                              heroTag: "chatFAB",
+                              backgroundColor: Colors.blueAccent,
+                              child: Icon(Icons.chat, color: Colors.white),
+                              onPressed: () {
+                                setState(() {
+                                  _isChatVisible = !_isChatVisible;
+                                  if (_isChatVisible) {
+                                    _tieneMensajesNoLeidos = false;
+                                  }
+                                });
+                              },
+                            ),
+                            if (_tieneMensajesNoLeidos)
+                              Positioned(
+                                top: 6,
+                                right: 6,
+                                child: Container(
+                                  width: 12,
+                                  height: 12,
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                         FloatingActionButton(
                           heroTag: "movesFAB",
@@ -1159,10 +1195,60 @@ class _BoardScreenState extends State<BoardScreen> {
                       Expanded(
                         child: ListView.builder(
                           itemCount: _mensajesChat.length,
-                          itemBuilder: (context, index) => Text(
-                            _mensajesChat[index],
-                            style: TextStyle(color: Colors.white),
-                          ),
+                          itemBuilder: (context, index) {
+                            final mensaje = _mensajesChat[index];
+                            final esMio = mensaje["autor"] == "yo";
+
+                            final foto = getRutaSeguraFoto(
+                              esMio
+                                  ? (playerColor == PlayerColor.white ? fotoBlancas : fotoNegras)
+                                  : (playerColor == PlayerColor.white ? fotoNegras : fotoBlancas),
+                            );
+
+                            return Row(
+                              mainAxisAlignment: esMio ? MainAxisAlignment.start : MainAxisAlignment.end,
+                              children: [
+                                if (esMio) ...[
+                                  // Primero la foto, luego el mensaje (alineado a la izquierda)
+                                  CircleAvatar(radius: 16, backgroundImage: AssetImage(foto)),
+                                  SizedBox(width: 8),
+                                  Flexible(
+                                    child: Container(
+                                      margin: EdgeInsets.symmetric(vertical: 4),
+                                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[700],
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        mensaje["mensaje"]!,
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                if (!esMio) ...[
+                                  // Primero el mensaje, luego la foto (alineado a la derecha)
+                                  Flexible(
+                                    child: Container(
+                                      margin: EdgeInsets.symmetric(vertical: 4),
+                                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blueAccent,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        mensaje["mensaje"]!,
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(width: 8),
+                                  CircleAvatar(radius: 16, backgroundImage: AssetImage(foto)),
+                                ],
+                              ],
+                            );
+                          },
                         ),
                       ),
                       Row(
@@ -1187,7 +1273,10 @@ class _BoardScreenState extends State<BoardScreen> {
                             onPressed: () {
                               if (_chatController.text.trim().isNotEmpty) {
                                 setState(() {
-                                  _mensajesChat.add("Tú: ${_chatController.text.trim()}");
+                                  _mensajesChat.add({
+                                    "autor": "yo", // o "rival"
+                                    "mensaje": _chatController.text.trim(),
+                                  });
                                   _enviarMensaje(_chatController.text);
                                 });
                               }

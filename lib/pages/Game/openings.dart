@@ -32,86 +32,89 @@ class Openings_Page extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[900],
-      appBar: BuildHeadArrow(),
-      body: ListView.builder(
-        itemCount: openings.length,
-        itemBuilder: (context, index) {
-          ChessBoardController controller = ChessBoardController();
-          String fen = openingFens[openings[index]] ?? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
-          controller.loadFen(fen);
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        backgroundColor: Colors.grey[900],
+        appBar: BuildHeadArrow(),
+        body: ListView.builder(
+          itemCount: openings.length,
+          itemBuilder: (context, index) {
+            ChessBoardController controller = ChessBoardController();
+            String fen = openingFens[openings[index]] ?? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+            controller.loadFen(fen);
 
-          return InkWell(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => OpeningDetailPage(openingName: openings[index]),
-                ),
-              );
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey[850],
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: SizedBox(
-                        width: 100,
-                        height: 100,
-                        child: ChessBoard(
-                          controller: controller,
-                          boardColor: BoardColor.brown,
-                          boardOrientation: PlayerColor.white,
-                          enableUserMoves: false,
+            return InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => OpeningDetailPage(openingName: openings[index]),
+                  ),
+                );
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey[850],
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: SizedBox(
+                          width: 100,
+                          height: 100,
+                          child: ChessBoard(
+                            controller: controller,
+                            boardColor: BoardColor.brown,
+                            boardOrientation: PlayerColor.white,
+                            enableUserMoves: false,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            openings[index],
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Container(
-                            height: 70,
-                            child: SingleChildScrollView(
-                              child: Text(
-                                descriptions[index],
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.white70,
-                                ),
-                                softWrap: true,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              openings[index],
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
                               ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 8),
+                            Container(
+                              height: 70,
+                              child: SingleChildScrollView(
+                                child: Text(
+                                  descriptions[index],
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.white70,
+                                  ),
+                                  softWrap: true,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
+        bottomNavigationBar: BottomNavBar(currentIndex: 2),
       ),
-      bottomNavigationBar: BottomNavBar(currentIndex: 2),
     );
   }
 }
@@ -210,61 +213,64 @@ class _OpeningDetailPageState extends State<OpeningDetailPage> {
     bool isLastMove = moveIndex == moves.length - 1;
     String explanation = moveIndex >= 0 ? moves[moveIndex].values.first : 'Inicio de la partida';
 
-    return Scaffold(
-      backgroundColor: Colors.grey[900],
-      appBar: BuildHeadArrow(),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          const SizedBox(height: 20),
-          Text(
-            widget.openingName,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 20),
-          ChessBoard(
-            controller: _chessController,
-            boardOrientation: PlayerColor.white,
-          ),
-          const SizedBox(height: 20),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.lightBlueAccent,
-                borderRadius: BorderRadius.circular(10),
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        backgroundColor: Colors.grey[900],
+        appBar: BuildHeadArrow(),
+        body: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            const SizedBox(height: 20),
+            Text(
+              widget.openingName,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
               ),
-              child: Text(
-                explanation,
-                style: const TextStyle(
-                  fontSize: 18,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+            ),
+            const SizedBox(height: 20),
+            ChessBoard(
+              controller: _chessController,
+              boardOrientation: PlayerColor.white,
+            ),
+            const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.lightBlueAccent,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  explanation,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-                onPressed: _previousMove,
-              ),
-              IconButton(
-                icon: Icon(Icons.arrow_forward, color: isLastMove ? Colors.grey : Colors.white),
-                onPressed: isLastMove ? null : _nextMove,
-              ),
-            ],
-          ),
-        ],
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: _previousMove,
+                ),
+                IconButton(
+                  icon: Icon(Icons.arrow_forward, color: isLastMove ? Colors.grey : Colors.white),
+                  onPressed: isLastMove ? null : _nextMove,
+                ),
+              ],
+            ),
+          ],
+        ),
+        bottomNavigationBar: BottomNavBar(currentIndex: 2),
       ),
-      bottomNavigationBar: BottomNavBar(currentIndex: 2),
     );
   }
 }

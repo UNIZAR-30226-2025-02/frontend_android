@@ -327,149 +327,152 @@ class _FriendsPageState extends State<Friends_Page> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black12,
-      body: AppLayout(
-        child: Column(
-          children: [
-            const SizedBox(height: 16),
-            Container(
-              color: Colors.grey[900],
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'SOCIAL',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 22,
-                      color: Colors.white,
-                    ),
-                  ),
-                  Icon(Icons.people, color: Colors.white, size: 36),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      onChanged: (value) {
-                        setState(() => searchInput = value);
-                        _buscarUsuariosBackend();
-                      },
-                      style: TextStyle(color: Colors.black),
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: Colors.white,
-                        hintText: 'Buscar usuario',
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8)),
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        backgroundColor: Colors.black12,
+        body: AppLayout(
+          child: Column(
+            children: [
+              const SizedBox(height: 16),
+              Container(
+                color: Colors.grey[900],
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'SOCIAL',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 22,
+                        color: Colors.white,
                       ),
                     ),
+                    Icon(Icons.people, color: Colors.white, size: 36),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        onChanged: (value) {
+                          setState(() => searchInput = value);
+                          _buscarUsuariosBackend();
+                        },
+                        style: TextStyle(color: Colors.black),
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.white,
+                          hintText: 'Buscar usuario',
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.search, color: Colors.white),
+                      onPressed: _buscarUsuariosBackend,
+                    )
+                  ],
+                ),
+              ),
+              if (suggestions.isNotEmpty)
+                Expanded(
+                  child: ListView(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8.0, vertical: 4),
+                        child: Text("Sugerencias",
+                            style: TextStyle(color: Colors.white, fontSize: 18)),
+                      ),
+                      ...suggestions.map((sug) {
+                        final idSug = sug['id'].toString().trim();
+                        final esAmigo = friends.any((f) => f['amigoId'].toString().trim() == idSug);
+
+                        return Card(
+                          color: Colors.grey[850],
+                          child: ListTile(
+                            title: Text(sug['NombreUser'], style: TextStyle(color: Colors.white)),
+                            trailing: esAmigo
+                                ? Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: Icon(Icons.sports_esports, color: Colors.green),
+                                  onPressed: () => _showGameModes(idSug),
+                                ),
+                                IconButton(
+                                  icon: Icon(Icons.person_remove, color: Colors.red),
+                                  onPressed: () => _removeFriend(idSug, sug['NombreUser']),
+                                ),
+                              ],
+                            )
+                                : IconButton(
+                              icon: Icon(Icons.person_add, color: Colors.blue),
+                              onPressed: () => _sendFriendRequest(idSug, sug['NombreUser']),
+                            ),
+                          ),
+                        );
+                      }),
+                    ],
                   ),
-                  IconButton(
-                    icon: Icon(Icons.search, color: Colors.white),
-                    onPressed: _buscarUsuariosBackend,
-                  )
-                ],
-              ),
-            ),
-            if (suggestions.isNotEmpty)
-              Expanded(
-                child: ListView(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8.0, vertical: 4),
-                      child: Text("Sugerencias",
-                          style: TextStyle(color: Colors.white, fontSize: 18)),
-                    ),
-                    ...suggestions.map((sug) {
-                      final idSug = sug['id'].toString().trim();
-                      final esAmigo = friends.any((f) => f['amigoId'].toString().trim() == idSug);
+                )
+              else
+                Expanded(
+                  child: ListView(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8.0, vertical: 4),
+                        child: Text("Amigos",
+                            style: TextStyle(color: Colors.white, fontSize: 18)),
+                      ),
+                      ...friends.map((f) {
+                        final nombre = f['NombreUser'] ?? f['nombreAmigo'] ?? "Amigo";
+                        final id = f['amigoId']?.toString().trim() ?? "";
+                        final fotoPerfilCruda = f['fotoPerfil'] ?? f['fotoAmigo'] ?? 'none';
+                        final fotoSegura = getRutaSeguraFoto(fotoPerfilCruda);
 
-                      return Card(
-                        color: Colors.grey[850],
-                        child: ListTile(
-                          title: Text(sug['NombreUser'], style: TextStyle(color: Colors.white)),
-                          trailing: esAmigo
-                              ? Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: Icon(Icons.sports_esports, color: Colors.green),
-                                onPressed: () => _showGameModes(idSug),
-                              ),
-                              IconButton(
-                                icon: Icon(Icons.person_remove, color: Colors.red),
-                                onPressed: () => _removeFriend(idSug, sug['NombreUser']),
-                              ),
-                            ],
-                          )
-                              : IconButton(
-                            icon: Icon(Icons.person_add, color: Colors.blue),
-                            onPressed: () => _sendFriendRequest(idSug, sug['NombreUser']),
+                        return Card(
+                          color: Colors.grey[900],
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundImage: fotoSegura.startsWith('assets/')
+                                  ? AssetImage(fotoSegura) as ImageProvider
+                                  : NetworkImage("https://checkmatex-gkfda9h5bfb0gsed.spaincentral-01.azurewebsites.net/$fotoPerfilCruda"),
+                              backgroundColor: Colors.white24,
+                            ),
+                            title: Text(nombre, style: TextStyle(color: Colors.white)),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: Icon(Icons.sports_esports, color: Colors.green),
+                                  onPressed: () => _showGameModes(id),
+                                ),
+                                IconButton(
+                                  icon: Icon(Icons.person_remove, color: Colors.red),
+                                  onPressed: () => _removeFriend(id, nombre),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    }),
-                  ],
+                        );
+                      })
+                    ],
+                  ),
                 ),
-              )
-            else
-              Expanded(
-                child: ListView(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8.0, vertical: 4),
-                      child: Text("Amigos",
-                          style: TextStyle(color: Colors.white, fontSize: 18)),
-                    ),
-                    ...friends.map((f) {
-                      final nombre = f['NombreUser'] ?? f['nombreAmigo'] ?? "Amigo";
-                      final id = f['amigoId']?.toString().trim() ?? "";
-                      final fotoPerfilCruda = f['fotoPerfil'] ?? f['fotoAmigo'] ?? 'none';
-                      final fotoSegura = getRutaSeguraFoto(fotoPerfilCruda);
-
-                      return Card(
-                        color: Colors.grey[900],
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundImage: fotoSegura.startsWith('assets/')
-                                ? AssetImage(fotoSegura) as ImageProvider
-                                : NetworkImage("https://checkmatex-gkfda9h5bfb0gsed.spaincentral-01.azurewebsites.net/$fotoPerfilCruda"),
-                            backgroundColor: Colors.white24,
-                          ),
-                          title: Text(nombre, style: TextStyle(color: Colors.white)),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: Icon(Icons.sports_esports, color: Colors.green),
-                                onPressed: () => _showGameModes(id),
-                              ),
-                              IconButton(
-                                icon: Icon(Icons.person_remove, color: Colors.red),
-                                onPressed: () => _removeFriend(id, nombre),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    })
-                  ],
-                ),
-              ),
-          ],
+            ],
+          ),
         ),
+        bottomNavigationBar: BottomNavBar(currentIndex: 3),
       ),
-      bottomNavigationBar: BottomNavBar(currentIndex: 3),
     );
   }
 }

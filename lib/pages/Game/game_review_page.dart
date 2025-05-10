@@ -351,183 +351,161 @@ class _GameReviewPageState extends State<GameReviewPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[900],
-      appBar: AppBar(
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
         backgroundColor: Colors.grey[900],
-        title: const Text(
-          "Revisión de partida",
-          style: TextStyle(color: Colors.white),
+        appBar: AppBar(
+          backgroundColor: Colors.grey[900],
+          automaticallyImplyLeading: false,
+          title: const Text(
+            "Revisión de partida",
+            style: TextStyle(color: Colors.white),
+          ),
+          centerTitle: true,
+          iconTheme: const IconThemeData(color: Colors.white),
         ),
-        centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            ...(
-                esJugadorBlancas
-                    ? [
-                  Padding(
-                    padding: const EdgeInsets.only(left: 20.0, top: 16.0, bottom: 4.0),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundImage: AssetImage(widget.rivalFoto),
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          '${widget.rival} (${widget.rivalElo})',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+        body: SingleChildScrollView(
+          child: Column(
+            children: [
+              ...(
+                  esJugadorBlancas
+                      ? [
+                    // sección jugador negras
+                    Padding(
+                      padding: const EdgeInsets.only(left: 20.0, top: 16.0, bottom: 4.0),
+                      child: Row(
+                        children: [
+                          CircleAvatar(radius: 20, backgroundImage: AssetImage(widget.rivalFoto)),
+                          SizedBox(width: 8),
+                          Text(
+                            '${widget.rival} (${widget.rivalElo})',
+                            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  _buildBarraVentajaNegra(),
-                  _buildTablero(),
-                  _buildBarraVentajaBlanca(),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 20.0, top: 4.0, bottom: 16.0),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundImage: AssetImage(widget.miFoto),
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          '${widget.yo} (${widget.miElo})',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                    _buildBarraVentajaNegra(),
+                    _buildTablero(),
+                    _buildBarraVentajaBlanca(),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 20.0, top: 4.0, bottom: 4.0),
+                      child: Row(
+                        children: [
+                          CircleAvatar(radius: 20, backgroundImage: AssetImage(widget.miFoto)),
+                          SizedBox(width: 8),
+                          Text(
+                            '${widget.yo} (${widget.miElo})',
+                            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ]
-                    : [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16.0, bottom: 4.0),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundImage: AssetImage(widget.rivalFoto),
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          '${widget.rival} (${widget.rivalElo})',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                  ]
+                      : [
+                    // sección jugador blancas
+                    Padding(
+                      padding: const EdgeInsets.only(left: 20.0, top: 4.0, bottom: 4.0),
+                      child: Row(
+                        children: [
+                          CircleAvatar(radius: 20, backgroundImage: AssetImage(widget.rivalFoto)),
+                          SizedBox(width: 8),
+                          Text(
+                            '${widget.rival} (${widget.rivalElo})',
+                            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  _buildBarraVentajaBlanca(),
-                  _buildTablero(),
-                  _buildBarraVentajaNegra(),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4.0, bottom: 16.0),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundImage: AssetImage(widget.miFoto),
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          '${widget.yo} (${widget.miElo})',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                    _buildBarraVentajaBlanca(),
+                    _buildTablero(),
+                    _buildBarraVentajaNegra(),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 20.0, top: 4.0, bottom: 4.0),
+                      child: Row(
+                        children: [
+                          CircleAvatar(radius: 20, backgroundImage: AssetImage(widget.miFoto)),
+                          SizedBox(width: 8),
+                          Text(
+                            '${widget.yo} (${widget.miElo})',
+                            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
+                  ]
+              ),
+              const SizedBox(height: 12),
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.lightBlueAccent,
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                ]
-            ),
-            const SizedBox(height: 12),
-            Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-                decoration: BoxDecoration(
-                  color: Colors.lightBlueAccent,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  moveIndex >= 0
-                      ? widget.historial[moveIndex]
-                      : "Inicio de la partida",
-                  style: const TextStyle(
-                    fontSize: 18,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                  child: Text(
+                    moveIndex >= 0
+                        ? widget.historial[moveIndex]
+                        : "Inicio de la partida",
+                    style: const TextStyle(
+                      fontSize: 18,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  icon: Icon(
-                    Icons.arrow_back,
-                    color: moveIndex >= 0 ? Colors.white : Colors.grey,
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      Icons.arrow_back,
+                      color: moveIndex >= 0 ? Colors.white : Colors.grey,
+                    ),
+                    onPressed: moveIndex >= 0 ? _previousMove : null,
                   ),
-                  onPressed: moveIndex >= 0 ? _previousMove : null,
-                ),
-                const SizedBox(width: 24),
-                IconButton(
-                  icon: Icon(
-                    Icons.arrow_forward,
-                    color: moveIndex == widget.historial.length - 1 ? Colors.grey : Colors.white,
+                  const SizedBox(width: 24),
+                  IconButton(
+                    icon: Icon(
+                      Icons.arrow_forward,
+                      color: moveIndex == widget.historial.length - 1 ? Colors.grey : Colors.white,
+                    ),
+                    onPressed: moveIndex == widget.historial.length - 1 ? null : _nextMove,
                   ),
-                  onPressed: moveIndex == widget.historial.length - 1 ? null : _nextMove,
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: _goBackToStart,
-                  icon: const Icon(Icons.home, color: Colors.white),
-                  label: const Text("Volver", style: TextStyle(color: Colors.white)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _goBackToStart,
+                    icon: const Icon(Icons.home, color: Colors.white),
+                    label: const Text("Inicio", style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueAccent,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                ElevatedButton.icon(
-                  onPressed: _restartReview,
-                  icon: const Icon(Icons.replay, color: Colors.white),
-                  label: const Text("Reiniciar", style: TextStyle(color: Colors.white)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  const SizedBox(width: 16),
+                  ElevatedButton.icon(
+                    onPressed: _restartReview,
+                    icon: const Icon(Icons.replay, color: Colors.white),
+                    label: const Text("Reiniciar", style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueAccent,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 32),
-          ],
+                ],
+              ),
+              const SizedBox(height: 32),
+            ],
+          ),
         ),
       ),
     );

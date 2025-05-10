@@ -45,57 +45,60 @@ class _Settings_pageState extends State<Settings_page> {
 
   @override
   Widget build(BuildContext context) {
-    return AppLayout(
-      child: Column(
-        children: [
-          SizedBox(height: 16),
-          Container(
-            color: Colors.grey[900],
-            padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'AJUSTES',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 22,
-                    color: Colors.white,
+    return PopScope(
+      canPop: false,
+      child: AppLayout(
+        child: Column(
+          children: [
+            SizedBox(height: 16),
+            Container(
+              color: Colors.grey[900],
+              padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'AJUSTES',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 22,
+                      color: Colors.white,
+                    ),
                   ),
-                ),
-                Icon(Icons.settings, color: Colors.white, size: 36),
-              ],
+                  Icon(Icons.settings, color: Colors.white, size: 36),
+                ],
+              ),
             ),
-          ),
-          Expanded(
-            child: ListView(
-              children: [
-                _buildMenuItem(Icons.person, 'PERFIL', () async {
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => Profile_page()),
-                  );
+            Expanded(
+              child: ListView(
+                children: [
+                  _buildMenuItem(Icons.person, 'PERFIL', () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => Profile_page()),
+                    );
 
-                  if (result == true) {
-                    await _cargarUsuario();
-                    setState(() {});
-                  }
-                }),
-                _buildMenuItem(Icons.group, 'SOCIAL', () {
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (context) => Friends_Page()),
-                        (route) => true,
-                  );
-                }),
-                _buildMenuItem(Icons.close, 'CERRAR SESIÓN', () {
-                  _confirmCloseSession(context);
-                }),
-              ],
+                    if (result == true) {
+                      await _cargarUsuario();
+                      setState(() {});
+                    }
+                  }),
+                  _buildMenuItem(Icons.group, 'SOCIAL', () {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (context) => Friends_Page()),
+                          (route) => true,
+                    );
+                  }),
+                  _buildMenuItem(Icons.close, 'CERRAR SESIÓN', () {
+                    _confirmCloseSession(context);
+                  }),
+                ],
+              ),
             ),
-          ),
-          BottomNavBar(currentIndex: 4),
-        ],
+            BottomNavBar(currentIndex: 4),
+          ],
+        ),
       ),
     );
   }

@@ -326,7 +326,7 @@ class _LoginPageState extends State<Login_page> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
-        backgroundColor: Color(0xff3A3A3A),
+        backgroundColor: Colors.grey[900],
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -385,7 +385,7 @@ class _LoginPageState extends State<Login_page> {
                   "Entrar como invitado",
                   style: TextStyle(
                     color: Colors.blueAccent,
-                    fontSize: 14,
+                    fontSize: 18,
                     decoration: TextDecoration.underline,
                   ),
                 ),
@@ -396,7 +396,7 @@ class _LoginPageState extends State<Login_page> {
                   "¿Has olvidado tu contraseña?",
                   style: TextStyle(
                     color: Colors.blueAccent,
-                    fontSize: 14,
+                    fontSize: 18,
                     decoration: TextDecoration.underline,
                   ),
                 ),
@@ -463,7 +463,18 @@ class _LoginPageState extends State<Login_page> {
   Widget _buttonLogin() {
     return ElevatedButton(
       onPressed: _login,
-      child: Text('Iniciar Sesión'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.blueAccent,
+        foregroundColor: Colors.white, // color de texto e íconos
+        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      child: Text(
+        'Iniciar Sesión',
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      ),
     );
   }
 
